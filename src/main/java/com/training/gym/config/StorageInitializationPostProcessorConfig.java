@@ -1,4 +1,4 @@
-package com.training.gym.config.initialization;
+package com.training.gym.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,14 +14,12 @@ import java.io.IOException;
 import java.io.InputStream;
 
 @Configuration(proxyBeanMethods = false)
-public class InitializationConfiguration {
+public class StorageInitializationPostProcessorConfig {
 
-    private InitializationConfiguration() {
-    }
+    @Value("${gym.storage.initial-data-file}") String location;
 
     @Bean
-    public static BeanPostProcessor storageInitializationPostProcessor(
-            @Value("${gym.storage.initial-data-file}") String location) {
+    public  BeanPostProcessor storageInitializationPostProcessor() {
 
         ObjectMapper mapper = JsonMapper.builder()
                 .findAndAddModules()
@@ -32,7 +30,7 @@ public class InitializationConfiguration {
 
         try (InputStream input = resource.getInputStream()) {
 
-            InitialStorageData data = mapper.readValue(input, InitialStorageData.class);
+            StorageInitializationPostProcessor.InitialStorageData data = mapper.readValue(input, StorageInitializationPostProcessor.InitialStorageData.class);
 
             if (data == null) {
                 throw new IllegalStateException("JSON file must contain an object");
