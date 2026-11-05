@@ -1,7 +1,7 @@
-package com.training.gym.training.mapper;
+package com.training.gym.mapper;
 
-import com.training.gym.training.domain.Training;
-import com.training.gym.training.dto.CreateTrainingDto;
+import com.training.gym.model.Training;
+import com.training.gym.dto.training.CreateTrainingDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

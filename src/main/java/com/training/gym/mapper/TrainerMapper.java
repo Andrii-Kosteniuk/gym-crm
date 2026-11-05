@@ -1,24 +1,24 @@
-package com.training.gym.trainee.mapper;
+package com.training.gym.mapper;
 
-import com.training.gym.trainee.domain.Trainee;
-import com.training.gym.trainee.dto.CreateTraineeDto;
-import com.training.gym.trainee.dto.UpdateTraineeDto;
+import com.training.gym.model.Trainer;
+import com.training.gym.dto.trainer.CreateTrainerDto;
+import com.training.gym.dto.trainer.UpdateTrainerDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
-public interface TraineeMapper {
+public interface TrainerMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userName", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "active", ignore = true)
-    Trainee toTrainee(CreateTraineeDto dto);
+    Trainer toTrainer(CreateTrainerDto dto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userName", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "active", ignore = true)
-    void updateTrainee(UpdateTraineeDto dto, @MappingTarget Trainee trainee);
+    void updateTrainer(UpdateTrainerDto dto, @MappingTarget Trainer trainer);
 }
