@@ -1,4 +1,4 @@
-package com.training.gym.config.initialization;
+package com.training.gym.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 
 @Configuration
-@PropertySource("classpath:application.yml")
+@PropertySource("classpath:application.properties")
 public class ApplicationPropertiesConfig {
     private ApplicationPropertiesConfig() {
     }
@@ -14,11 +14,6 @@ public class ApplicationPropertiesConfig {
     @Bean
     public static PropertySourcesPlaceholderConfigurer
     propertySourcesPlaceholderConfigurer() {
-
-        PropertySourcesPlaceholderConfigurer configurer = new PropertySourcesPlaceholderConfigurer();
-
-        configurer.setIgnoreUnresolvablePlaceholders(false);
-
-        return configurer;
+        return new PropertySourcesPlaceholderConfigurer();
     }
 }

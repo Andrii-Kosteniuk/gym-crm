@@ -1,8 +1,8 @@
 package com.training.gym.config;
 
-import com.training.gym.trainee.domain.Trainee;
-import com.training.gym.trainer.domain.Trainer;
-import com.training.gym.training.domain.Training;
+import com.training.gym.model.Trainee;
+import com.training.gym.model.Trainer;
+import com.training.gym.model.Training;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Configuration
-public class StorageConfig {
+public class StorageBeanDefinitionConfig {
 
     @Bean("traineeStorage")
     public Map<Long, Trainee> traineeStorage() {

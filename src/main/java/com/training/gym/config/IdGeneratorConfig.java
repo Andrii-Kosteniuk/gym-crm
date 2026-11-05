@@ -1,10 +1,10 @@
-package com.training.gym.common.credentials.config;
+package com.training.gym.config;
 
-import com.training.gym.common.credentials.IdGeneratorImpl;
-import com.training.gym.common.credentials.generator.IdGenerator;
-import com.training.gym.trainee.domain.Trainee;
-import com.training.gym.trainer.domain.Trainer;
-import com.training.gym.training.domain.Training;
+import com.training.gym.util.IdGeneratorImpl;
+import com.training.gym.util.IdGenerator;
+import com.training.gym.model.Trainee;
+import com.training.gym.model.Trainer;
+import com.training.gym.model.Training;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

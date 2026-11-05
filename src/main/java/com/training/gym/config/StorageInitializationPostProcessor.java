@@ -1,8 +1,8 @@
-package com.training.gym.config.initialization;
+package com.training.gym.config;
 
-import com.training.gym.trainee.domain.Trainee;
-import com.training.gym.trainer.domain.Trainer;
-import com.training.gym.training.domain.Training;
+import com.training.gym.model.Trainee;
+import com.training.gym.model.Trainer;
+import com.training.gym.model.Training;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -11,7 +11,7 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 @Slf4j
 public final class StorageInitializationPostProcessor implements BeanPostProcessor {
@@ -56,7 +56,7 @@ public final class StorageInitializationPostProcessor implements BeanPostProcess
     }
 
     @SuppressWarnings("unchecked")
-    private <T> void initialize(Object bean, List<T> entities, Function<T, Long> idExtractor, String beanName) {
+    private <T> void initialize(Object bean, List<T> entities, ToLongFunction<T> idExtractor, String beanName) {
 
         if (!(bean instanceof Map<?, ?>)) {
             throw new IllegalStateException("Storage bean must be a Map: " + beanName);
@@ -69,10 +69,18 @@ public final class StorageInitializationPostProcessor implements BeanPostProcess
         }
 
         for (T entity : entities) {
-            storage.put(idExtractor.apply(entity), entity);
+            storage.put(idExtractor.applyAsLong(entity), entity);
         }
 
         log.info("Initialized storage bean '{}' with {} records", beanName, storage.size());
+    }
+
+    public record InitialStorageData(
+            List<Trainee> trainees,
+            List<Trainer> trainers,
+            List<Training> trainings
+    ) {
+
     }
 
 }
