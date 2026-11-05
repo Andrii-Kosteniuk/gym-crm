@@ -1,4 +1,4 @@
-package com.training.gym.common.credentials.generator;
+package com.training.gym.util;
 
 public interface IdGenerator {
 

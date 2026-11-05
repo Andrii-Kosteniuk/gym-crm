@@ -1,6 +1,5 @@
-package com.training.gym.common.credentials;
+package com.training.gym.util;
 
-import com.training.gym.common.credentials.generator.PasswordGenerator;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;

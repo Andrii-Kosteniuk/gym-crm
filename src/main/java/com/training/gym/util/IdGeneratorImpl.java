@@ -1,6 +1,5 @@
-package com.training.gym.common.credentials;
+package com.training.gym.util;
 
-import com.training.gym.common.credentials.generator.IdGenerator;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class IdGeneratorImpl implements IdGenerator {

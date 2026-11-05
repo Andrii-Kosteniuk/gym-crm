@@ -1,4 +1,4 @@
-package com.training.gym.common.credentials.generator;
+package com.training.gym.util;
 
 import java.util.function.Predicate;
 
