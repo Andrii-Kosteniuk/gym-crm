@@ -1,17 +1,17 @@
-package com.training.gym.trainer.service;
+package com.training.gym.service;
 
-import com.training.gym.common.credentials.generator.IdGenerator;
-import com.training.gym.common.credentials.generator.PasswordGenerator;
-import com.training.gym.common.credentials.generator.UsernameGenerator;
-import com.training.gym.common.exception.EntityNotFoundException;
-import com.training.gym.trainee.domain.Address;
-import com.training.gym.trainee.repository.TraineeRepository;
-import com.training.gym.trainer.domain.Trainer;
-import com.training.gym.trainer.dto.CreateTrainerDto;
-import com.training.gym.trainer.dto.UpdateTrainerDto;
-import com.training.gym.trainer.mapper.TrainerMapper;
-import com.training.gym.trainer.repository.TrainerRepository;
-import com.training.gym.training.domain.TrainingType;
+import com.training.gym.util.IdGenerator;
+import com.training.gym.util.PasswordGenerator;
+import com.training.gym.util.UsernameGenerator;
+import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.model.Address;
+import com.training.gym.dao.TraineeRepository;
+import com.training.gym.model.Trainer;
+import com.training.gym.dto.trainer.CreateTrainerDto;
+import com.training.gym.dto.trainer.UpdateTrainerDto;
+import com.training.gym.mapper.TrainerMapper;
+import com.training.gym.dao.TrainerRepository;
+import com.training.gym.model.TrainingType;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

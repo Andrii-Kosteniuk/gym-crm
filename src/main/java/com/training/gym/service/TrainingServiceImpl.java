@@ -1,12 +1,11 @@
-package com.training.gym.training.service;
+package com.training.gym.service;
 
-import com.training.gym.common.credentials.generator.IdGenerator;
-import com.training.gym.common.exception.EntityNotFoundException;
-import com.training.gym.training.domain.Training;
-import com.training.gym.training.dto.CreateTrainingDto;
-import com.training.gym.training.mapper.TrainingMapper;
-import com.training.gym.training.repository.TrainingRepository;
-import lombok.AllArgsConstructor;
+import com.training.gym.util.IdGenerator;
+import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.model.Training;
+import com.training.gym.dto.training.CreateTrainingDto;
+import com.training.gym.mapper.TrainingMapper;
+import com.training.gym.dao.TrainingRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;

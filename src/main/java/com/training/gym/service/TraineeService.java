@@ -1,8 +1,8 @@
-package com.training.gym.trainee.service;
+package com.training.gym.service;
 
-import com.training.gym.trainee.domain.Trainee;
-import com.training.gym.trainee.dto.CreateTraineeDto;
-import com.training.gym.trainee.dto.UpdateTraineeDto;
+import com.training.gym.model.Trainee;
+import com.training.gym.dto.trainee.CreateTraineeDto;
+import com.training.gym.dto.trainee.UpdateTraineeDto;
 
 public interface TraineeService {
 
