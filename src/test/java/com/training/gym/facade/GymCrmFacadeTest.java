@@ -1,19 +1,18 @@
 package com.training.gym.facade;
 
-import com.training.gym.common.exception.EntityNotFoundException;
-import com.training.gym.common.exception.ResourceConflictException;
-import com.training.gym.fasade.GymCrmFacade;
-import com.training.gym.trainee.domain.Trainee;
-import com.training.gym.trainee.dto.CreateTraineeDto;
-import com.training.gym.trainee.dto.UpdateTraineeDto;
-import com.training.gym.trainee.service.TraineeService;
-import com.training.gym.trainer.domain.Trainer;
-import com.training.gym.trainer.dto.CreateTrainerDto;
-import com.training.gym.trainer.dto.UpdateTrainerDto;
-import com.training.gym.trainer.service.TrainerService;
-import com.training.gym.training.domain.Training;
-import com.training.gym.training.dto.CreateTrainingDto;
-import com.training.gym.training.service.TrainingService;
+import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.ResourceConflictException;
+import com.training.gym.model.Trainee;
+import com.training.gym.dto.trainee.CreateTraineeDto;
+import com.training.gym.dto.trainee.UpdateTraineeDto;
+import com.training.gym.service.TraineeService;
+import com.training.gym.model.Trainer;
+import com.training.gym.dto.trainer.CreateTrainerDto;
+import com.training.gym.dto.trainer.UpdateTrainerDto;
+import com.training.gym.service.TrainerService;
+import com.training.gym.model.Training;
+import com.training.gym.dto.training.CreateTrainingDto;
+import com.training.gym.service.TrainingService;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

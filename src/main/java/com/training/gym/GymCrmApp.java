@@ -1,9 +1,9 @@
 package com.training.gym;
 
-import com.training.gym.fasade.GymCrmFacade;
-import com.training.gym.trainee.domain.Address;
-import com.training.gym.trainee.domain.Trainee;
-import com.training.gym.trainee.dto.CreateTraineeDto;
+import com.training.gym.facade.GymCrmFacade;
+import com.training.gym.model.Address;
+import com.training.gym.model.Trainee;
+import com.training.gym.dto.trainee.CreateTraineeDto;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.time.LocalDate;
