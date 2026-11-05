@@ -1,6 +1,6 @@
-package com.training.gym.training.dto;
+package com.training.gym.dto.training;
 
-import com.training.gym.training.domain.TrainingType;
+import com.training.gym.model.TrainingType;
 
 import java.time.Duration;
 import java.time.LocalDate;

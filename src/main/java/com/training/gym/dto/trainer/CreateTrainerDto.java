@@ -1,7 +1,7 @@
-package com.training.gym.trainer.dto;
+package com.training.gym.dto.trainer;
 
-import com.training.gym.trainee.domain.Address;
-import com.training.gym.training.domain.TrainingType;
+import com.training.gym.model.Address;
+import com.training.gym.model.TrainingType;
 
 import java.time.LocalDate;
 
