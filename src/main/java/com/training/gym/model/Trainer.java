@@ -1,7 +1,5 @@
-package com.training.gym.trainer.domain;
+package com.training.gym.model;
 
-import com.training.gym.training.domain.TrainingType;
-import com.training.gym.user.domain.User;
 import lombok.*;
 
 @NoArgsConstructor

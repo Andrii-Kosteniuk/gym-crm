@@ -1,6 +1,5 @@
-package com.training.gym.trainee.domain;
+package com.training.gym.model;
 
-import com.training.gym.user.domain.User;
 import lombok.*;
 
 import java.time.LocalDate;

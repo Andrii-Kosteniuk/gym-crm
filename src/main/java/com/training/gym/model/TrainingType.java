@@ -1,4 +1,4 @@
-package com.training.gym.training.domain;
+package com.training.gym.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

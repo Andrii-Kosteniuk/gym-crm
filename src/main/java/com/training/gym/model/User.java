@@ -1,4 +1,4 @@
-package com.training.gym.user.domain;
+package com.training.gym.model;
 
 import lombok.*;
 
