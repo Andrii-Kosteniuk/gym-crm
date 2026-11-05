@@ -1,4 +1,4 @@
-package com.training.gym.common.exception;
+package com.training.gym.exception;
 
 public class EntityNotFoundException extends RuntimeException {
 
