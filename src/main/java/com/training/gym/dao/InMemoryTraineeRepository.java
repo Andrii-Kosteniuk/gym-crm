@@ -1,8 +1,6 @@
-package com.training.gym.trainee.infrastructure;
+package com.training.gym.dao;
 
-import com.training.gym.trainee.domain.Trainee;
-import com.training.gym.trainee.repository.TraineeRepository;
-import lombok.Getter;
+import com.training.gym.model.Trainee;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;

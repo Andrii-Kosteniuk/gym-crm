@@ -1,4 +1,4 @@
-package com.training.gym.common.repository;
+package com.training.gym.dao;
 
 import java.util.List;
 import java.util.Optional;

@@ -1,7 +1,6 @@
-package com.training.gym.trainer.repository;
+package com.training.gym.dao;
 
-import com.training.gym.common.repository.CrudRepository;
-import com.training.gym.trainer.domain.Trainer;
+import com.training.gym.model.Trainer;
 import java.util.Optional;
 
 public interface TrainerRepository extends CrudRepository<Trainer, Long> {

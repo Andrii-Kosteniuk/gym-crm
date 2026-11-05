@@ -1,7 +1,6 @@
-package com.training.gym.trainee.repository;
+package com.training.gym.dao;
 
-import com.training.gym.common.repository.CrudRepository;
-import com.training.gym.trainee.domain.Trainee;
+import com.training.gym.model.Trainee;
 
 import java.util.Optional;
 

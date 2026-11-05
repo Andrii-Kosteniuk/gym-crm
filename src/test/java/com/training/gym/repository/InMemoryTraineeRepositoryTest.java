@@ -1,7 +1,7 @@
-package com.training.gym.trainee.repository;
+package com.training.gym.repository;
 
-import com.training.gym.trainee.domain.Trainee;
-import com.training.gym.trainee.infrastructure.InMemoryTraineeRepository;
+import com.training.gym.model.Trainee;
+import com.training.gym.dao.InMemoryTraineeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

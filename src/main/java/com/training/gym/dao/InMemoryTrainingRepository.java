@@ -1,7 +1,6 @@
-package com.training.gym.training.infrastructure;
+package com.training.gym.dao;
 
-import com.training.gym.training.domain.Training;
-import com.training.gym.training.repository.TrainingRepository;
+import com.training.gym.model.Training;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;

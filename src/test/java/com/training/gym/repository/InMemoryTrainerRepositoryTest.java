@@ -1,6 +1,6 @@
-package com.training.gym.trainer.repository;
-import com.training.gym.trainer.domain.Trainer;
-import com.training.gym.trainer.infrastructure.InMemoryTrainerRepository;
+package com.training.gym.repository;
+import com.training.gym.model.Trainer;
+import com.training.gym.dao.InMemoryTrainerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
