@@ -17,19 +17,6 @@ public class GymCrmApp {
             // Register configuration and scan application components
             context.scan("com.training.gym");
 
-            // Load external configuration
-            context.getEnvironment()
-                    .getPropertySources()
-                    .addFirst(
-                            new org.springframework.core.env.MapPropertySource(
-                                    "gymConfig",
-                                    java.util.Map.of(
-                                            "gym.storage.initial-data-file",
-                                            "file:./gym-data.json"
-                                    )
-                            )
-                    );
-
             // Initialize Spring container
             context.refresh();
 
@@ -59,7 +46,7 @@ public class GymCrmApp {
                     new CreateTraineeDto(
                             "Andrii",
                             "Kosteniuk",
-                            LocalDate.of(2026, Month.OCTOBER,26),
+                            LocalDate.of(2026, Month.NOVEMBER,7),
                             createAddress()
                     )
             );
