@@ -12,6 +12,7 @@ import com.training.gym.mapper.TraineeMapper;
 import com.training.gym.dao.TraineeRepository;
 import com.training.gym.dao.TrainerRepository;
 import com.training.gym.dao.TrainingRepository;
+import com.training.gym.validation.TraineeDtoValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -29,13 +30,14 @@ public class TraineeServiceImpl implements TraineeService {
     private final IdGenerator idGenerator;
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
+    private final TraineeDtoValidator traineeValidator;
 
     public TraineeServiceImpl(TraineeRepository traineeRepository,
                               TrainerRepository trainerRepository, TrainingRepository trainingRepository,
                               TraineeMapper traineeMapper,
                               @Qualifier("traineeIdGenerator") IdGenerator idGenerator,
                               UsernameGenerator usernameGenerator,
-                              PasswordGenerator passwordGenerator) {
+                              PasswordGenerator passwordGenerator, TraineeDtoValidator traineeValidator) {
         this.traineeRepository = traineeRepository;
         this.trainerRepository = trainerRepository;
         this.trainingRepository = trainingRepository;
@@ -43,12 +45,14 @@ public class TraineeServiceImpl implements TraineeService {
         this.idGenerator = idGenerator;
         this.usernameGenerator = usernameGenerator;
         this.passwordGenerator = passwordGenerator;
+        this.traineeValidator = traineeValidator;
     }
 
     @Override
     public Trainee createTrainee(CreateTraineeDto traineeDto) {
         log.debug("Creating trainee profile");
-        Objects.requireNonNull(traineeDto, "Create trainee DTO must not be null");
+
+        traineeValidator.validateCreate(traineeDto);
 
         Trainee trainee = traineeMapper.toTrainee(traineeDto);
 
@@ -68,7 +72,9 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     public Trainee updateTrainee(UpdateTraineeDto traineeDto) {
-        Objects.requireNonNull(traineeDto, "Update trainee DTO must not be null");
+
+        traineeValidator.validateUpdate(traineeDto);
+
         String username = traineeDto.userName();
 
         log.debug("Updating trainee profile: username={}", username);
@@ -109,7 +115,7 @@ public class TraineeServiceImpl implements TraineeService {
             );
         }
 
-        if (trainingRepository.existsByTraineeOrTrainerId(id)) {
+        if (trainingRepository.existsByTraineeId(id)) {
             log.warn(
                     "Trainee deletion rejected because related trainings exist: id={}",
                     id

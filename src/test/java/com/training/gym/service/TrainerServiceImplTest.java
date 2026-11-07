@@ -13,6 +13,7 @@ import com.training.gym.mapper.TrainerMapper;
 import com.training.gym.dao.TrainerRepository;
 import com.training.gym.model.TrainingType;
 
+import com.training.gym.validation.TrainerDtoValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -56,6 +57,9 @@ class TrainerServiceImplTest {
 
     @Mock
     private PasswordGenerator passwordGenerator;
+
+    @Mock
+    private TrainerDtoValidator dtoValidator;
 
     @InjectMocks
     private TrainerServiceImpl trainerService;
@@ -146,17 +150,24 @@ class TrainerServiceImplTest {
 
         @Test
         void shouldRejectNullCreateDto() {
+            doThrow(new IllegalArgumentException("CreateTrainerDto must not be null"))
+                    .when(dtoValidator)
+                    .validateCreate(isNull());
+
             // Act
-            NullPointerException exception = assertThrows(
-                    NullPointerException.class,
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
                     () -> trainerService.createTrainer(null)
             );
 
             // Assert
             assertEquals(
-                    "Create trainer DTO must not be null",
+                    "CreateTrainerDto must not be null",
                     exception.getMessage()
             );
+
+            verify(dtoValidator).validateCreate(isNull());
+            verifyNoInteractions(trainerRepository, trainerMapper);
 
             verifyNoInteractions(
                     trainerRepository,
@@ -380,18 +391,23 @@ class TrainerServiceImplTest {
 
         @Test
         void shouldRejectNullUpdateDto() {
+            doThrow(new IllegalArgumentException("UpdateTrainerDto must not be null"))
+                    .when(dtoValidator)
+                    .validateUpdate(isNull());
+
             // Act
-            NullPointerException exception = assertThrows(
-                    NullPointerException.class,
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
                     () -> trainerService.updateTrainer(null)
             );
 
             // Assert
             assertEquals(
-                    "Update trainer DTO must not be null",
+                    "UpdateTrainerDto must not be null",
                     exception.getMessage()
             );
 
+            verify(dtoValidator).validateUpdate(isNull());
             verifyNoInteractions(trainerRepository, trainerMapper);
         }
 
