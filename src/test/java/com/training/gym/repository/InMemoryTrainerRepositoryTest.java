@@ -1,6 +1,7 @@
 package com.training.gym.repository;
-import com.training.gym.model.Trainer;
+
 import com.training.gym.dao.InMemoryTrainerRepository;
+import com.training.gym.model.Trainer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -77,6 +78,42 @@ class InMemoryTrainerRepositoryTest {
                             .orElseThrow()
                             .getFirstName()
             );
+        }
+
+        @Test
+        void shouldRejectNullTrainer() {
+            NullPointerException exception = assertThrows(
+                    NullPointerException.class,
+                    () -> repository.save(null)
+            );
+
+            assertEquals(
+                    "Trainer must not be null",
+                    exception.getMessage()
+            );
+
+            assertTrue(storage.isEmpty());
+        }
+
+        @Test
+        void shouldRejectTrainerWithNullId() {
+            // Arrange
+
+            trainer.setId(null);
+
+            // Act
+            NullPointerException exception = assertThrows(
+                    NullPointerException.class,
+                    () -> repository.save(trainer)
+            );
+
+            // Assert
+            assertEquals(
+                    "Trainer ID must not be null",
+                    exception.getMessage()
+            );
+
+            assertTrue(storage.isEmpty());
         }
     }
 
