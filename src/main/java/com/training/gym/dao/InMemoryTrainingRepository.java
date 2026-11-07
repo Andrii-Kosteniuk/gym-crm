@@ -25,8 +25,7 @@ public class InMemoryTrainingRepository implements TrainingRepository {
     public Training save(Training entity) {
         Objects.requireNonNull(entity, "Training must not be null");
 
-        Long id = Objects.requireNonNull(
-                entity.getId(), NOT_NULL_ID_MESSAGE);
+        Long id = Objects.requireNonNull(entity.getId(), NOT_NULL_ID_MESSAGE);
 
         storage.put(id, entity);
         return entity;
@@ -57,15 +56,22 @@ public class InMemoryTrainingRepository implements TrainingRepository {
     }
 
     @Override
-    public boolean existsByTraineeOrTrainerId(Long id) {
+    public boolean existsByTraineeId(Long id) {
         Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
+
         return storage.values()
                 .stream()
-                .anyMatch(entity -> {
-                    Long traineeId = entity.getTraineeId();
+                .anyMatch(training ->
+                        id.equals(training.getTraineeId()));
+    }
 
-                    Long trainerId = entity.getTrainerId();
-                    return (traineeId != null && traineeId.equals(id)) || (trainerId != null && trainerId.equals(id));
-                });
+    @Override
+    public boolean existsByTrainerId(Long id) {
+        Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
+
+        return storage.values()
+                .stream()
+                .anyMatch(training ->
+                        id.equals(training.getTrainerId()));
     }
 }
