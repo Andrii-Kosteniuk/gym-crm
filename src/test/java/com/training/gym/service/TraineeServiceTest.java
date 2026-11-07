@@ -1,6 +1,5 @@
 package com.training.gym.service;
 
-import com.training.gym.service.TraineeServiceImpl;
 import com.training.gym.util.IdGenerator;
 import com.training.gym.util.PasswordGenerator;
 import com.training.gym.util.UsernameGenerator;
@@ -14,6 +13,7 @@ import com.training.gym.mapper.TraineeMapper;
 import com.training.gym.dao.TraineeRepository;
 import com.training.gym.dao.TrainerRepository;
 import com.training.gym.dao.TrainingRepository;
+import com.training.gym.validation.TraineeDtoValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -64,6 +64,9 @@ class TraineeServiceTest {
 
     @InjectMocks
     private TraineeServiceImpl traineeService;
+
+    @Mock
+    private TraineeDtoValidator dtoValidator;
 
 
     private Trainee trainee;
@@ -145,17 +148,24 @@ class TraineeServiceTest {
 
         @Test
         void shouldThrowExceptionWhenCreateDtoIsNull() {
+            doThrow(new IllegalArgumentException("CreateTrainerDto must not be null"))
+                    .when(dtoValidator)
+                    .validateCreate(isNull());
+
             // Act
-            NullPointerException exception = assertThrows(
-                    NullPointerException.class,
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
                     () -> traineeService.createTrainee(null)
             );
 
             // Assert
             assertEquals(
-                    "Create trainee DTO must not be null",
+                    "CreateTrainerDto must not be null",
                     exception.getMessage()
             );
+
+            verify(dtoValidator).validateCreate(isNull());
+            verifyNoInteractions(trainerRepository, traineeMapper);
 
             verifyNoInteractions(
                     traineeMapper,
@@ -386,19 +396,24 @@ class TraineeServiceTest {
 
         @Test
         void shouldThrowExceptionWhenUpdateDtoIsNull() {
+            doThrow(new IllegalArgumentException("UpdateTrainerDto must not be null"))
+                    .when(dtoValidator)
+                    .validateUpdate(isNull());
+
             // Act
-            NullPointerException exception = assertThrows(
-                    NullPointerException.class,
+            IllegalArgumentException exception = assertThrows(
+                    IllegalArgumentException.class,
                     () -> traineeService.updateTrainee(null)
             );
 
             // Assert
             assertEquals(
-                    "Update trainee DTO must not be null",
+                    "UpdateTrainerDto must not be null",
                     exception.getMessage()
             );
 
-            verifyNoInteractions(traineeRepository, traineeMapper);
+            verify(dtoValidator).validateUpdate(isNull());
+            verifyNoInteractions(trainerRepository, traineeMapper);
         }
 
         @Test
@@ -514,11 +529,9 @@ class TraineeServiceTest {
         void shouldRemoveTraineeWhenNoRelatedTrainingsExist() {
 
             // Arrange
-            when(traineeRepository.existsById(TRAINING_ID))
-                    .thenReturn(true);
+            when(traineeRepository.existsById(TRAINING_ID)).thenReturn(true);
 
-            when(trainingRepository.existsByTraineeOrTrainerId(TRAINING_ID))
-                    .thenReturn(false);
+            when(trainingRepository.existsByTraineeId(TRAINING_ID)).thenReturn(false);
 
             // Act
             traineeService.removeTrainee(TRAINING_ID);
@@ -526,8 +539,7 @@ class TraineeServiceTest {
             // Assert
             verify(traineeRepository).existsById(TRAINING_ID);
 
-            verify(trainingRepository)
-                    .existsByTraineeOrTrainerId(TRAINING_ID);
+            verify(trainingRepository).existsByTraineeId(TRAINING_ID);
 
             verify(traineeRepository).deleteById(TRAINING_ID);
         }
@@ -575,11 +587,9 @@ class TraineeServiceTest {
             // Arrange
             Long traineeId = 1L;
 
-            when(traineeRepository.existsById(traineeId))
-                    .thenReturn(true);
+            when(traineeRepository.existsById(traineeId)).thenReturn(true);
 
-            when(trainingRepository.existsByTraineeOrTrainerId(traineeId))
-                    .thenReturn(true);
+            when(trainingRepository.existsByTraineeId(traineeId)).thenReturn(true);
 
             // Act
             ResourceConflictException exception = assertThrows(
@@ -594,9 +604,6 @@ class TraineeServiceTest {
             );
 
             verify(traineeRepository).existsById(traineeId);
-
-            verify(trainingRepository)
-                    .existsByTraineeOrTrainerId(traineeId);
 
             verify(traineeRepository, never())
                     .deleteById(anyLong());

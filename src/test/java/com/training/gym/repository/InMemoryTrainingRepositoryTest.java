@@ -1,8 +1,7 @@
 package com.training.gym.repository;
 
-import com.training.gym.model.Training;
 import com.training.gym.dao.InMemoryTrainingRepository;
-
+import com.training.gym.model.Training;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,11 +39,7 @@ class InMemoryTrainingRepositoryTest {
         );
     }
 
-    private Training createTraining(
-            Long id,
-            Long traineeId,
-            Long trainerId
-    ) {
+    private Training createTraining(Long id, Long traineeId, Long trainerId) {
         Training result = new Training();
 
         result.setId(id);
@@ -418,10 +413,7 @@ class InMemoryTrainingRepositoryTest {
             repository.save(training);
 
             // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            TRAINEE_ID
-                    );
+            boolean exists = repository.existsByTraineeId(TRAINEE_ID);
 
             // Assert
             assertTrue(exists);
@@ -433,35 +425,18 @@ class InMemoryTrainingRepositoryTest {
             repository.save(training);
 
             // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            TRAINER_ID
-                    );
+            boolean exists = repository.existsByTrainerId(TRAINER_ID);
 
             // Assert
             assertTrue(exists);
         }
 
-        @Test
-        void shouldReturnFalseWhenIdMatchesNeitherTraineeNorTrainer() {
-            // Arrange
-            repository.save(training);
-
-            // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            999L
-                    );
-
-            // Assert
-            assertFalse(exists);
-        }
 
         @Test
         void shouldReturnFalseWhenStorageIsEmpty() {
             // Act
             boolean exists =
-                    repository.existsByTraineeOrTrainerId(
+                    repository.existsByTraineeId(
                             TRAINEE_ID
                     );
 
@@ -481,10 +456,7 @@ class InMemoryTrainingRepositoryTest {
             repository.save(trainingWithNullTrainer);
 
             // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            TRAINEE_ID
-                    );
+            boolean exists = repository.existsByTraineeId(TRAINEE_ID);
 
             // Assert
             assertTrue(exists);
@@ -502,10 +474,7 @@ class InMemoryTrainingRepositoryTest {
             repository.save(trainingWithNullTrainee);
 
             // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            TRAINER_ID
-                    );
+            boolean exists = repository.existsByTrainerId(TRAINER_ID);
 
             // Assert
             assertTrue(exists);
@@ -523,13 +492,12 @@ class InMemoryTrainingRepositoryTest {
             repository.save(trainingWithoutReferences);
 
             // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            TRAINEE_ID
-                    );
+            boolean existsByTraineeId = repository.existsByTraineeId(TRAINEE_ID);
+            boolean existsByTrainerId = repository.existsByTrainerId(TRAINER_ID);
 
             // Assert
-            assertFalse(exists);
+            assertFalse(existsByTraineeId);
+            assertFalse(existsByTrainerId);
         }
 
         @Test
@@ -544,10 +512,7 @@ class InMemoryTrainingRepositoryTest {
             repository.save(trainingWithNullTrainee);
 
             // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            999L
-                    );
+            boolean exists = repository.existsByTrainerId(999L);
 
             // Assert
             assertFalse(exists);
@@ -565,10 +530,7 @@ class InMemoryTrainingRepositoryTest {
             repository.save(trainingWithNullTrainer);
 
             // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            999L
-                    );
+            boolean exists = repository.existsByTraineeId(999L);
 
             // Assert
             assertFalse(exists);
@@ -586,13 +548,12 @@ class InMemoryTrainingRepositoryTest {
             repository.save(third);
 
             // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            40L
-                    );
+            boolean existsByTraineeId = repository.existsByTraineeId(10L);
+            boolean existsByTrainerId = repository.existsByTraineeId(10L);
 
             // Assert
-            assertTrue(exists);
+            assertTrue(existsByTraineeId);
+            assertTrue(existsByTrainerId);
         }
 
         @Test
@@ -603,13 +564,12 @@ class InMemoryTrainingRepositoryTest {
             repository.save(createTraining(3L, 50L, 60L));
 
             // Act
-            boolean exists =
-                    repository.existsByTraineeOrTrainerId(
-                            999L
-                    );
+            boolean existsByTraineeId = repository.existsByTraineeId(999L);
+            boolean existsByTrainerId = repository.existsByTrainerId(999L);
 
             // Assert
-            assertFalse(exists);
+            assertFalse(existsByTraineeId);
+            assertFalse(existsByTrainerId);
         }
 
         @Test
@@ -617,16 +577,11 @@ class InMemoryTrainingRepositoryTest {
             // Act
             NullPointerException exception = assertThrows(
                     NullPointerException.class,
-                    () -> repository.existsByTraineeOrTrainerId(
-                            null
-                    )
+                    () -> repository.existsByTrainerId(null)
             );
 
             // Assert
-            assertEquals(
-                    NULL_ID_MESSAGE,
-                    exception.getMessage()
-            );
+            assertEquals(NULL_ID_MESSAGE, exception.getMessage());
         }
     }
 }
