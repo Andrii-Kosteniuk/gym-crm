@@ -4,7 +4,9 @@ import com.training.gym.model.Training;
 
 public interface TrainingRepository extends CrudRepository<Training, Long> {
 
-    boolean existsByTraineeOrTrainerId(Long id);
+    boolean existsByTraineeId(Long traineeId);
+
+    boolean existsByTrainerId(Long trainerId);
 }
 
 
