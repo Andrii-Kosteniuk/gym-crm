@@ -10,11 +10,10 @@ import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
 import com.training.gym.mapper.TrainerMapper;
 import com.training.gym.dao.TrainerRepository;
+import com.training.gym.validation.TrainerDtoValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-
-import java.util.Objects;
 
 @Service
 @Slf4j
@@ -26,6 +25,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final IdGenerator idGenerator;
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
+    private final TrainerDtoValidator trainerDtoValidator;
 
     public TrainerServiceImpl(
             TrainerRepository trainerRepository,
@@ -33,7 +33,7 @@ public class TrainerServiceImpl implements TrainerService {
             TrainerMapper trainerMapper,
             @Qualifier("trainerIdGenerator") IdGenerator idGenerator,
             UsernameGenerator usernameGenerator,
-            PasswordGenerator passwordGenerator
+            PasswordGenerator passwordGenerator, TrainerDtoValidator trainerDtoValidator
     ) {
         this.trainerRepository = trainerRepository;
         this.traineeRepository = traineeRepository;
@@ -41,12 +41,14 @@ public class TrainerServiceImpl implements TrainerService {
         this.idGenerator = idGenerator;
         this.usernameGenerator = usernameGenerator;
         this.passwordGenerator = passwordGenerator;
+        this.trainerDtoValidator = trainerDtoValidator;
     }
 
     @Override
     public Trainer createTrainer(CreateTrainerDto trainerDto) {
         log.debug("Creating trainer profile");
-        Objects.requireNonNull(trainerDto, "Create trainer DTO must not be null");
+
+        trainerDtoValidator.validateCreate(trainerDto);
 
         Trainer trainer = trainerMapper.toTrainer(trainerDto);
 
@@ -65,7 +67,8 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     public Trainer updateTrainer(UpdateTrainerDto trainerDto) {
-        Objects.requireNonNull(trainerDto, "Update trainer DTO must not be null");
+        trainerDtoValidator.validateUpdate(trainerDto);
+
         String username = trainerDto.userName();
 
         log.debug("Updating trainer profile: username={}", username);
