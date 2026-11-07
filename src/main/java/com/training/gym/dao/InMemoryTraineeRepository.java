@@ -12,6 +12,8 @@ import java.util.Optional;
 
 @Repository
 public class InMemoryTraineeRepository implements TraineeRepository {
+    private static final String NOT_NULL_ID_MESSAGE = "Trainee ID must not be null";
+    private static final String NOT_BLANK_USERNAME_MESSAGE = "Trainee username must not be empty";
 
     private Map<Long, Trainee> storage;
 
@@ -24,8 +26,7 @@ public class InMemoryTraineeRepository implements TraineeRepository {
     public Trainee save(Trainee entity) {
         Objects.requireNonNull(entity, "Trainee must not be null");
 
-        Long id = Objects.requireNonNull(
-                entity.getId(), "Trainer ID must not be null");
+        Long id = Objects.requireNonNull(entity.getId(), NOT_NULL_ID_MESSAGE);
 
         storage.put(id, entity);
         return entity;
@@ -33,7 +34,7 @@ public class InMemoryTraineeRepository implements TraineeRepository {
 
     @Override
     public Optional<Trainee> findById(Long id) {
-        Objects.requireNonNull(id, "Trainee ID must not be null");
+        Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
         return Optional.ofNullable(storage.get(id));
     }
 
@@ -44,30 +45,39 @@ public class InMemoryTraineeRepository implements TraineeRepository {
 
     @Override
     public boolean existsById(Long id) {
-        Objects.requireNonNull(id, "ID must not be null");
+        Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
         return storage.containsKey(id);
     }
 
     @Override
     public void deleteById(Long id) {
-        Objects.requireNonNull(id, "ID must not be null");
+        Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
         storage.remove(id);
     }
 
     @Override
     public boolean existsByUserName(String userName) {
-        Objects.requireNonNull(userName, "Username must not be null");
+        Objects.requireNonNull(userName, NOT_NULL_ID_MESSAGE);
+
+        if (userName.isBlank()) {
+            throw new IllegalArgumentException(NOT_BLANK_USERNAME_MESSAGE);
+        }
+
         return storage.values()
                 .stream()
                 .anyMatch(entity -> entity.getUserName().equals(userName));
     }
 
     @Override
-    public Optional<Trainee> findByUserName(String username) {
-        Objects.requireNonNull(username, "Username must not be null");
+    public Optional<Trainee> findByUserName(String userName) {
+        Objects.requireNonNull(userName, NOT_NULL_ID_MESSAGE);
+
+        if (userName.isBlank()) {
+            throw new IllegalArgumentException(NOT_BLANK_USERNAME_MESSAGE);
+        }
         return storage.values()
                 .stream()
-                .filter(trainee -> trainee.getUserName().equals(username))
+                .filter(trainee -> trainee.getUserName().equals(userName))
                 .findFirst();
     }
 }
