@@ -1,5 +1,7 @@
 package com.training.gym.dao;
 
+import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.ResourceConflictException;
 import com.training.gym.model.Training;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,7 +29,25 @@ public class InMemoryTrainingRepository implements TrainingRepository {
 
         Long id = Objects.requireNonNull(entity.getId(), NOT_NULL_ID_MESSAGE);
 
-        storage.put(id, entity);
+        Training training = storage.putIfAbsent(id, entity);
+
+        if (training != null) {
+            throw new ResourceConflictException("Training with id %d already exists".formatted(id));
+        }
+        return entity;
+    }
+
+    @Override
+    public Training update(Training entity) {
+        Objects.requireNonNull(entity, "Training must not be null");
+        Long id = Objects.requireNonNull(entity.getId(), NOT_NULL_ID_MESSAGE);
+
+        Training training= storage.computeIfPresent(id, (key, existing) -> entity);
+
+        if (training == null) {
+            throw new EntityNotFoundException("Training with id %d does not exist".formatted(id));
+        }
+
         return entity;
     }
 

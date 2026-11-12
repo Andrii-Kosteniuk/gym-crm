@@ -128,7 +128,7 @@ class InMemoryTrainingRepositoryTest {
             );
 
             // Act
-            Training result = repository.save(updated);
+            Training result = repository.update(updated);
 
             // Assert
             assertSame(updated, result);
