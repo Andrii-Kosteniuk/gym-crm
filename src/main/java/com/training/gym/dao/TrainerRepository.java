@@ -5,6 +5,8 @@ import java.util.Optional;
 
 public interface TrainerRepository extends CrudRepository<Trainer, Long> {
 
+    Trainer update(Trainer entity);
+
     boolean existsByUserName(String userName);
 
     Optional<Trainer> findByUserName(String username);

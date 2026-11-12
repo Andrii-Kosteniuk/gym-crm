@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 
 @Service
 @Slf4j
@@ -40,6 +42,7 @@ public class TrainingServiceImpl implements TrainingService {
     @Override
     public Training createTraining(CreateTrainingDto trainingDto) {
         log.debug("Creating training");
+        Objects.requireNonNull(trainingDto, "Dto can not be null");
 
         trainingValidator.validateCreate(trainingDto);
         validateTrainingReferences(trainingDto);
@@ -57,6 +60,7 @@ public class TrainingServiceImpl implements TrainingService {
     @Override
     public Training getTrainingById(Long id) {
         log.debug("Retrieving training: id={}", id);
+        Objects.requireNonNull(id, "Id can not be null");
         return trainingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Training with id %d not found".formatted(id)));
     }

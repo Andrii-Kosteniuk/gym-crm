@@ -15,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 @Slf4j
 public class TrainerServiceImpl implements TrainerService {
@@ -33,7 +35,8 @@ public class TrainerServiceImpl implements TrainerService {
             TrainerMapper trainerMapper,
             @Qualifier("trainerIdGenerator") IdGenerator idGenerator,
             UsernameGenerator usernameGenerator,
-            PasswordGenerator passwordGenerator, TrainerDtoValidator trainerDtoValidator
+            PasswordGenerator passwordGenerator,
+            TrainerDtoValidator trainerDtoValidator
     ) {
         this.trainerRepository = trainerRepository;
         this.traineeRepository = traineeRepository;
@@ -47,6 +50,7 @@ public class TrainerServiceImpl implements TrainerService {
     @Override
     public Trainer createTrainer(CreateTrainerDto trainerDto) {
         log.debug("Creating trainer profile");
+        Objects.requireNonNull(trainerDto, "DTO can not be null");
 
         trainerDtoValidator.validateCreate(trainerDto);
 
@@ -67,6 +71,9 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     public Trainer updateTrainer(UpdateTrainerDto trainerDto) {
+        log.debug("Updating trainer profile");
+        Objects.requireNonNull(trainerDto, "DTO can not be null");
+
         trainerDtoValidator.validateUpdate(trainerDto);
 
         String username = trainerDto.userName();
@@ -82,7 +89,7 @@ public class TrainerServiceImpl implements TrainerService {
 
         trainerMapper.updateTrainer(trainerDto, existingTrainer);
 
-        Trainer updatedTrainer = trainerRepository.save(existingTrainer);
+        Trainer updatedTrainer = trainerRepository.update(existingTrainer);
 
         log.info("Trainer profile updated successfully: username={}", username);
         return updatedTrainer;
@@ -91,6 +98,7 @@ public class TrainerServiceImpl implements TrainerService {
     @Override
     public Trainer getTrainerById(Long id) {
         log.debug("Retrieving trainer profile: id={}", id);
+        Objects.requireNonNull(id, "Id can not be null");
         return trainerRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer with id %d not found".formatted(id)));
     }
