@@ -33,11 +33,13 @@ public class TraineeServiceImpl implements TraineeService {
     private final TraineeDtoValidator traineeValidator;
 
     public TraineeServiceImpl(TraineeRepository traineeRepository,
-                              TrainerRepository trainerRepository, TrainingRepository trainingRepository,
+                              TrainerRepository trainerRepository,
+                              TrainingRepository trainingRepository,
                               TraineeMapper traineeMapper,
                               @Qualifier("traineeIdGenerator") IdGenerator idGenerator,
                               UsernameGenerator usernameGenerator,
-                              PasswordGenerator passwordGenerator, TraineeDtoValidator traineeValidator) {
+                              PasswordGenerator passwordGenerator,
+                              TraineeDtoValidator traineeValidator) {
         this.traineeRepository = traineeRepository;
         this.trainerRepository = trainerRepository;
         this.trainingRepository = trainingRepository;
@@ -51,6 +53,7 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     public Trainee createTrainee(CreateTraineeDto traineeDto) {
         log.debug("Creating trainee profile");
+        Objects.requireNonNull(traineeDto, "Dto cannot be null");
 
         traineeValidator.validateCreate(traineeDto);
 
@@ -72,7 +75,7 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     public Trainee updateTrainee(UpdateTraineeDto traineeDto) {
-
+        Objects.requireNonNull(traineeDto, "Dto cannot be null");
         traineeValidator.validateUpdate(traineeDto);
 
         String username = traineeDto.userName();
@@ -88,7 +91,7 @@ public class TraineeServiceImpl implements TraineeService {
 
         traineeMapper.updateTrainee(traineeDto, existing);
 
-        Trainee updatedTrainee = traineeRepository.save(existing);
+        Trainee updatedTrainee = traineeRepository.update(existing);
 
         log.info("Trainee profile updated successfully: username={}", username);
         return updatedTrainee;
@@ -97,6 +100,7 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     public Trainee getTraineeById(Long id) {
         log.debug("Retrieving trainee profile: id={}", id);
+        Objects.requireNonNull(id, "Id cannot be null");
         return traineeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee with id %d not found".formatted(id)));
     }

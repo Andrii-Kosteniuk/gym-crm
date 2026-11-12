@@ -65,7 +65,7 @@ class InMemoryTrainerRepositoryTest {
             updated.setUserName("andrew.kosteniuk");
 
             // Act
-            Trainer saved = repository.save(updated);
+            Trainer saved = repository.update(updated);
 
             // Assert
             assertSame(updated, saved);

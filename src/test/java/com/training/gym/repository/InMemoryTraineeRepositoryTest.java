@@ -1,5 +1,7 @@
 package com.training.gym.repository;
 
+import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.ResourceConflictException;
 import com.training.gym.model.Trainee;
 import com.training.gym.dao.InMemoryTraineeRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +64,7 @@ class InMemoryTraineeRepositoryTest {
         updated.setUserName("andrew.kosteniuk");
 
         // Act
-        repository.save(updated);
+        repository.update(updated);
 
         // Assert
         assertEquals(1, storage.size());
@@ -225,5 +227,34 @@ class InMemoryTraineeRepositoryTest {
 
         // Assert
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void shouldRejectSavingTraineeWithExistingId() {
+        // Arrange
+        Trainee newTrainee = new Trainee();
+        newTrainee.setId(1L);
+
+        Trainee duplicateTrainee = new Trainee();
+        duplicateTrainee.setId(1L);
+
+        repository.save(newTrainee);
+
+        // Act & Assert
+        assertThrows(ResourceConflictException.class,() -> repository.save(duplicateTrainee));
+
+        assertSame(newTrainee, repository.findById(1L).orElseThrow());
+    }
+
+    @Test
+    void shouldNotInsertTraineeWhenUpdatingNonexistentId() {
+        // Arrange
+        Trainee notExistedTrainee = new Trainee();
+        notExistedTrainee.setId(999L);
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> repository.update(trainee));
+
+        assertFalse(repository.existsById(999L));
     }
 }
