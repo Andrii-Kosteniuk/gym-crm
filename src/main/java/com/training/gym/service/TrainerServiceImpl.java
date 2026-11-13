@@ -6,11 +6,7 @@ import com.training.gym.util.UsernameGenerator;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.dao.TraineeRepository;
 import com.training.gym.model.Trainer;
-import com.training.gym.dto.trainer.CreateTrainerDto;
-import com.training.gym.dto.trainer.UpdateTrainerDto;
-import com.training.gym.mapper.TrainerMapper;
 import com.training.gym.dao.TrainerRepository;
-import com.training.gym.validation.TrainerDtoValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -23,43 +19,36 @@ public class TrainerServiceImpl implements TrainerService {
 
     private final TrainerRepository trainerRepository;
     private final TraineeRepository traineeRepository;
-    private final TrainerMapper trainerMapper;
     private final IdGenerator idGenerator;
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
-    private final TrainerDtoValidator trainerDtoValidator;
 
     public TrainerServiceImpl(
             TrainerRepository trainerRepository,
             TraineeRepository traineeRepository,
-            TrainerMapper trainerMapper,
             @Qualifier("trainerIdGenerator") IdGenerator idGenerator,
             UsernameGenerator usernameGenerator,
-            PasswordGenerator passwordGenerator,
-            TrainerDtoValidator trainerDtoValidator
+            PasswordGenerator passwordGenerator
     ) {
         this.trainerRepository = trainerRepository;
         this.traineeRepository = traineeRepository;
-        this.trainerMapper = trainerMapper;
         this.idGenerator = idGenerator;
         this.usernameGenerator = usernameGenerator;
         this.passwordGenerator = passwordGenerator;
-        this.trainerDtoValidator = trainerDtoValidator;
     }
 
     @Override
-    public Trainer createTrainer(CreateTrainerDto trainerDto) {
+    public Trainer createTrainer(Trainer trainer) {
         log.debug("Creating trainer profile");
-        Objects.requireNonNull(trainerDto, "DTO can not be null");
+        Objects.requireNonNull(trainer, "Trainer can not be null");
 
-        trainerDtoValidator.validateCreate(trainerDto);
-
-        Trainer trainer = trainerMapper.toTrainer(trainerDto);
+        String uniqUserName = usernameGenerator.generate(
+                trainer.getFirstName(),
+                trainer.getLastName(),
+                this::usernameExists);
 
         trainer.setId(idGenerator.generate());
         trainer.setPassword(passwordGenerator.generate());
-
-        String uniqUserName = usernameGenerator.generate(trainerDto.firstName(), trainerDto.lastName(), this::usernameExists);
         trainer.setUserName(uniqUserName);
         trainer.setActive(true);
 
@@ -70,13 +59,11 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Override
-    public Trainer updateTrainer(UpdateTrainerDto trainerDto) {
+    public Trainer updateTrainer(Trainer trainer) {
         log.debug("Updating trainer profile");
-        Objects.requireNonNull(trainerDto, "DTO can not be null");
+        Objects.requireNonNull(trainer, "Trainer can not be null");
 
-        trainerDtoValidator.validateUpdate(trainerDto);
-
-        String username = trainerDto.userName();
+        String username = trainer.getUserName();
 
         log.debug("Updating trainer profile: username={}", username);
 
@@ -84,12 +71,13 @@ public class TrainerServiceImpl implements TrainerService {
                 .findByUserName(username)
                 .orElseThrow(() -> {
                     log.warn("Trainer update failed: username={} not found", username);
-                    return new EntityNotFoundException("Trainer with username %s not found".formatted(trainerDto.userName()));
+                    return new EntityNotFoundException("Trainer with username %s not found".formatted(username));
                 });
 
-        trainerMapper.updateTrainer(trainerDto, existingTrainer);
+        trainer.setId(existingTrainer.getId());
+        trainer.setActive(existingTrainer.isActive());
 
-        Trainer updatedTrainer = trainerRepository.update(existingTrainer);
+        Trainer updatedTrainer = trainerRepository.update(trainer);
 
         log.info("Trainer profile updated successfully: username={}", username);
         return updatedTrainer;
