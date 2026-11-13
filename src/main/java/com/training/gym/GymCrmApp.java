@@ -1,11 +1,18 @@
 package com.training.gym;
 
+import com.training.gym.dto.trainee.CreateTraineeDto;
+import com.training.gym.dto.trainee.UpdateTraineeDto;
+import com.training.gym.dto.trainer.CreateTrainerDto;
+import com.training.gym.dto.trainer.UpdateTrainerDto;
+import com.training.gym.dto.training.CreateTrainingDto;
+import com.training.gym.dto.training.TrainingTypeDto;
 import com.training.gym.facade.GymCrmFacade;
 import com.training.gym.model.Address;
-import com.training.gym.model.Trainee;
-import com.training.gym.dto.trainee.CreateTraineeDto;
+import com.training.gym.model.TrainingType;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.Month;
 
@@ -46,15 +53,68 @@ public class GymCrmApp {
                     new CreateTraineeDto(
                             "Andrii",
                             "Kosteniuk",
-                            LocalDate.of(2026, Month.NOVEMBER,7),
+                            LocalDate.of(2026, Month.NOVEMBER, 7),
                             createAddress()
                     )
             );
 
             System.out.println("Created trainee:\n" + createdTrainee);
 
+            // Updating existed trainee
+            var updatedTrainee = facade.updateTrainee(
+                    new UpdateTraineeDto(
+                            "Andrew",
+                            "Kosteniuk",
+                            createdTrainee.userName(),
+                            LocalDate.of(2026, Month.NOVEMBER, 7),
+                            createAddress()
+                    )
+            );
+            System.out.println("Updated trainee:\n" + updatedTrainee);
+
+
+            // Creating new trainer
+            var createdTrainer = facade.createTrainer(
+                    new CreateTrainerDto(
+                            "James",
+                            "Bond",
+                            LocalDate.of(2026, Month.NOVEMBER, 7),
+                            createAddress(),
+                            new TrainingType(100L, "Health")
+                    )
+            );
+
+            System.out.println("Created trainer:\n" + createdTrainer);
+
+            // Updating existed trainer
+            var updatedTrainer = facade.updateTrainer(
+                    new UpdateTrainerDto(
+                            "James",
+                            "SuperPower",
+                            createdTrainer.userName(),
+                            new TrainingType(100L, "Power")
+                    )
+            );
+
+            System.out.println("Updated trainer:\n" + updatedTrainer);
+
+            // Creating new training
+            var createdTraining = facade.createTraining(
+                    new CreateTrainingDto(
+                            trainee.id(),
+                            trainer.id(),
+                            "Health training",
+                            new TrainingTypeDto(100L, "Health"),
+                            LocalDate.now(Clock.systemDefaultZone()).plusDays(1),
+                            Duration.ofMinutes(60)
+                    )
+            );
+
+            System.out.println("Created training:\n" + createdTraining);
+
+
             // Check whether trainee storage contains new trainee.
-            Trainee traineeById = facade.getTraineeById(createdTrainee.getId());
+            var traineeById = facade.getTraineeById(createdTrainee.id());
 
             System.out.println("Loaded trainee:\n" + traineeById);
 

@@ -3,12 +3,9 @@ package com.training.gym.service;
 import com.training.gym.dao.TraineeRepository;
 import com.training.gym.dao.TrainerRepository;
 import com.training.gym.dao.TrainingRepository;
-import com.training.gym.dto.training.CreateTrainingDto;
 import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.mapper.TrainingMapper;
 import com.training.gym.model.Training;
 import com.training.gym.util.IdGenerator;
-import com.training.gym.validation.TrainingDtoValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -24,30 +21,24 @@ public class TrainingServiceImpl implements TrainingService {
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
     private final IdGenerator idGenerator;
-    private final TrainingMapper trainingMapper;
-    private final TrainingDtoValidator trainingValidator;
 
-    public TrainingServiceImpl(TrainingRepository trainingRepository, TraineeRepository traineeRepository, TrainerRepository trainerRepository,
+    public TrainingServiceImpl(TrainingRepository trainingRepository,
+                               TraineeRepository traineeRepository,
+                               TrainerRepository trainerRepository,
                                @Qualifier("trainingIdGenerator")
-                               IdGenerator idGenerator,
-                               TrainingMapper trainingMapper, TrainingDtoValidator trainingValidator) {
+                               IdGenerator idGenerator) {
         this.trainingRepository = trainingRepository;
         this.traineeRepository = traineeRepository;
         this.trainerRepository = trainerRepository;
         this.idGenerator = idGenerator;
-        this.trainingMapper = trainingMapper;
-        this.trainingValidator = trainingValidator;
     }
 
     @Override
-    public Training createTraining(CreateTrainingDto trainingDto) {
+    public Training createTraining(Training training) {
         log.debug("Creating training");
-        Objects.requireNonNull(trainingDto, "Dto can not be null");
+        Objects.requireNonNull(training, "Training can not be null");
 
-        trainingValidator.validateCreate(trainingDto);
-        validateTrainingReferences(trainingDto);
-
-        Training training = trainingMapper.toTraining(trainingDto);
+        validateTrainingReferences(training);
 
         training.setId(idGenerator.generate());
 
@@ -65,13 +56,16 @@ public class TrainingServiceImpl implements TrainingService {
                 .orElseThrow(() -> new EntityNotFoundException("Training with id %d not found".formatted(id)));
     }
 
-    private void validateTrainingReferences(CreateTrainingDto dto) {
-        if (!traineeRepository.existsById(dto.traineeId())) {
-            throw new EntityNotFoundException("Trainee with id %d not found".formatted(dto.traineeId()));
+    private void validateTrainingReferences(Training training) {
+
+        Long traineeId = training.getTraineeId();
+        if (!traineeRepository.existsById(traineeId)) {
+            throw new EntityNotFoundException("Trainee with id %d not found".formatted(traineeId));
         }
 
-        if (!trainerRepository.existsById(dto.trainerId())) {
-            throw new EntityNotFoundException("Trainer with id %d not found".formatted(dto.trainerId()));
+        Long trainerId = training.getTrainerId();
+        if (!trainerRepository.existsById(trainerId)) {
+            throw new EntityNotFoundException("Trainer with id %d not found".formatted(trainerId));
         }
     }
 

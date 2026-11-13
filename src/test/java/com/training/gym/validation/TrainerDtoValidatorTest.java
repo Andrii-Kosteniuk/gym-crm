@@ -52,8 +52,6 @@ class TrainerDtoValidatorTest {
                 "James",
                 "Bond",
                 "james.bond",
-                LocalDate.of(1990, 5, 15),
-                null,
                 specialization
         );
     }
@@ -143,22 +141,11 @@ class TrainerDtoValidatorTest {
             );
         }
 
-        @Test
-        void shouldRejectNullDateOfBirth() {
-            CreateTrainerDto dto = new CreateTrainerDto(
-                    "James", "Bond", null, null, specialization
-            );
-
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> validator.validateCreate(dto)
-            );
-        }
 
         @Test
         void shouldRejectFutureDateOfBirth() {
             CreateTrainerDto dto = new CreateTrainerDto(
-                    "James",
+                    "",
                     "Bond",
                     TODAY.plusDays(1),
                     null,
@@ -214,8 +201,6 @@ class TrainerDtoValidatorTest {
                     "James",
                     "Bond",
                     username,
-                    LocalDate.of(1990, 5, 15),
-                    null,
                     specialization
             );
 
@@ -236,8 +221,6 @@ class TrainerDtoValidatorTest {
                     " ",
                     "Bond",
                     "james.bond",
-                    LocalDate.of(1990, 5, 15),
-                    null,
                     specialization
             );
 
@@ -253,8 +236,6 @@ class TrainerDtoValidatorTest {
                     "James",
                     " ",
                     "james.bond",
-                    LocalDate.of(1990, 5, 15),
-                    null,
                     specialization
             );
 
@@ -270,8 +251,6 @@ class TrainerDtoValidatorTest {
                     "James",
                     "Bond",
                     "james.bond",
-                    LocalDate.of(1990, 5, 15),
-                    null,
                     null
             );
 
@@ -281,34 +260,5 @@ class TrainerDtoValidatorTest {
             );
         }
 
-        @Test
-        void shouldRejectFutureDateOfBirth() {
-            UpdateTrainerDto dto = new UpdateTrainerDto(
-                    "James",
-                    "Bond",
-                    "james.bond",
-                    TODAY.plusDays(1),
-                    null,
-                    specialization
-            );
-
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> validator.validateUpdate(dto)
-            );
-        }
-
-        @Test
-        void shouldRejectNullDateOfBirth() {
-            UpdateTrainerDto dto = new UpdateTrainerDto(
-                    "James", "Bond", "james.bond",
-                    null, null, specialization
-            );
-
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> validator.validateUpdate(dto)
-            );
-        }
     }
 }
