@@ -60,8 +60,10 @@ public class GymCrmFacade {
         return traineeMapper.toResponseDto(updatedTrainee);
     }
 
-    public Trainee getTraineeById(Long id) {
-        return traineeService.getTraineeById(id);
+    public TraineeResponseDto getTraineeById(Long id) {
+        Trainee traineeById = traineeService.getTraineeById(id);
+
+        return traineeMapper.toResponseDto(traineeById);
     }
 
     public void deleteTrainee(Long id) {
@@ -88,8 +90,10 @@ public class GymCrmFacade {
         return trainerMapper.toResponseDto(updatedTrainer);
     }
 
-    public Trainer getTrainerById(Long id) {
-        return trainerService.getTrainerById(id);
+    public TrainerResponseDto getTrainerById(Long id) {
+        Trainer trainerById = trainerService.getTrainerById(id);
+
+        return trainerMapper.toResponseDto(trainerById);
     }
 
     public TrainingResponseDto createTraining(CreateTrainingDto dto) {
@@ -101,8 +105,10 @@ public class GymCrmFacade {
         return trainingMapper.toResponseDto(createdTraining);
     }
 
-    public Training getTrainingById(Long id) {
-        return trainingService.getTrainingById(id);
+    public TrainingResponseDto getTrainingById(Long id) {
+        Training trainingById = trainingService.getTrainingById(id);
+
+        return trainingMapper.toResponseDto(trainingById);
     }
 
 
