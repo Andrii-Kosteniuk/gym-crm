@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
-import java.time.LocalDate;
 
 import static com.training.gym.validation.ValidationUtils.*;
 
@@ -23,7 +22,6 @@ public class TrainerDtoValidator {
         validatePersonalData(
                 dto.firstName(),
                 dto.lastName(),
-                dto.dateOfBirth(),
                 dto.specialization()
         );
     }
@@ -36,16 +34,13 @@ public class TrainerDtoValidator {
         validatePersonalData(
                 dto.firstName(),
                 dto.lastName(),
-                dto.dateOfBirth(),
                 dto.specialization()
         );
     }
 
-    private void validatePersonalData(String firstName, String lastName, LocalDate dateOfBirth, TrainingType specialization) {
+    private void validatePersonalData(String firstName, String lastName, TrainingType specialization) {
         requireNotBlank(firstName, "First name");
         requireNotBlank(lastName, "Last name");
-
-        requireValidDateOfBirth(dateOfBirth, LocalDate.now(clock));
 
         requireNotNull(specialization, "Trainer specialization");
     }
