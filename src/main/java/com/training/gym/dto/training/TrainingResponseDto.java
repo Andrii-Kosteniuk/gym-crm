@@ -1,6 +1,5 @@
 package com.training.gym.dto.training;
 
-import java.time.Duration;
 import java.time.LocalDate;
 
 public record TrainingResponseDto(
@@ -11,6 +10,6 @@ public record TrainingResponseDto(
         String name,
         TrainingTypeResponseDto type,
         LocalDate date,
-        Duration duration
+        Long duration
 ) {
 }

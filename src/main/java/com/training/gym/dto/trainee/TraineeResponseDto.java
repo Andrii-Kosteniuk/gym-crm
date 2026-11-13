@@ -1,6 +1,6 @@
 package com.training.gym.dto.trainee;
 
-import com.training.gym.model.Address;
+import com.training.gym.dto.AddressResponse;
 
 import java.time.LocalDate;
 
@@ -10,7 +10,7 @@ public record TraineeResponseDto(
         String lastName,
         String userName,
         LocalDate dateOfBirth,
-        Address address,
+        AddressResponse address,
         boolean active
 ) {
 
