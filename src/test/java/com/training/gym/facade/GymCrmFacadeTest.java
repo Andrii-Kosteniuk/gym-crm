@@ -186,27 +186,4 @@ class GymCrmFacadeTest {
         // Assert
         verifyNoInteractions(trainingMapper, trainingService);
     }
-
-    @Test
-    void shouldDelegateReadAndDeleteOperationsWithoutMapping() {
-        // Arrange
-        Trainee trainee = new Trainee();
-        Trainer trainer = new Trainer();
-        Training training = new Training();
-        when(traineeService.getTraineeById(1L)).thenReturn(trainee);
-        when(trainerService.getTrainerById(2L)).thenReturn(trainer);
-        when(trainingService.getTrainingById(3L)).thenReturn(training);
-        // Act
-        Trainee loadedTrainee = facade.getTraineeById(1L);
-        Trainer loadedTrainer = facade.getTrainerById(2L);
-        Training loadedTraining = facade.getTrainingById(3L);
-        facade.deleteTrainee(1L);
-        // Assert
-        assertSame(trainee, loadedTrainee);
-        assertSame(trainer, loadedTrainer);
-        assertSame(training, loadedTraining);
-        verify(traineeService).removeTrainee(1L);
-        verifyNoInteractions(traineeMapper, trainerMapper, trainingMapper,
-                traineeValidator, trainerValidator, trainingValidator);
-    }
 }

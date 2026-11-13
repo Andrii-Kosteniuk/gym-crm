@@ -2,7 +2,7 @@
 package com.training.gym.validation;
 
 import com.training.gym.dto.training.CreateTrainingDto;
-import com.training.gym.model.TrainingType;
+import com.training.gym.dto.training.TrainingTypeDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,12 +18,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class TrainingDtoValidatorTest {
 
     private TrainingDtoValidator validator;
-    private TrainingType type;
+    private TrainingTypeDto type;
 
     @BeforeEach
     void setUp() {
         validator = new TrainingDtoValidator();
-        type = new TrainingType(1L, "Strength");
+        type = new TrainingTypeDto(1L, "Strength");
     }
 
     private CreateTrainingDto validDto() {
