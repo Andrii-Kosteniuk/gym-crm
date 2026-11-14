@@ -1,128 +1,163 @@
 package com.training.gym;
 
+import com.training.gym.config.PersistenceConfig;
+import com.training.gym.dto.auth.Credentials;
+import com.training.gym.dto.auth.RegistrationResponseDto;
 import com.training.gym.dto.trainee.CreateTraineeDto;
+import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
 import com.training.gym.dto.trainer.CreateTrainerDto;
+import com.training.gym.dto.trainer.TrainerResponseDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
 import com.training.gym.dto.training.CreateTrainingDto;
-import com.training.gym.dto.training.TrainingTypeDto;
+import com.training.gym.dto.training.TrainingResponseDto;
 import com.training.gym.facade.GymCrmFacade;
-import com.training.gym.model.Address;
-import com.training.gym.model.TrainingType;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import java.time.Clock;
-import java.time.Duration;
 import java.time.LocalDate;
-import java.time.Month;
+import java.time.ZoneId;
 
-public class GymCrmApp {
+public final class GymCrmApp {
+
+    private static final String DEMO_PASSWORD = "DemoPass123!";
+    private static final String TRAINEE_USERNAME = "james.bond";
+    private static final String TRAINER_USERNAME = "sarah.connor";
 
     public static void main(String[] args) {
+
         try (var context = new AnnotationConfigApplicationContext()) {
-
-            // Register configuration and scan application components
-            context.scan("com.training.gym");
-
-            // Initialize Spring container
+            context.getEnvironment().setActiveProfiles("dev");
+            context.register(PersistenceConfig.class);
             context.refresh();
 
-            // Retrieve Facade bean from Spring IoC container
             GymCrmFacade facade = context.getBean(GymCrmFacade.class);
 
-            System.out.println("\n========== GYM CRM DEMO ==========\n");
+            Credentials traineeCredentials =
+                    new Credentials(TRAINEE_USERNAME, DEMO_PASSWORD);
 
-            // Retrieve trainee initialized from JSON
-            var trainee = facade.getTraineeById(1L);
-            System.out.println("Loaded trainee:\n" + trainee);
+            Credentials trainerCredentials =
+                    new Credentials(TRAINER_USERNAME, DEMO_PASSWORD);
 
-            // Retrieve second trainee initialized from JSON
-            var trainee2 = facade.getTraineeById(2L);
-            System.out.println("Loaded second trainee:\n" + trainee2);
+            System.out.println("\n========== GYM CRM DEMO ==========");
 
-            // Retrieve trainer initialized from JSON
-            var trainer = facade.getTrainerById(1L);
-            System.out.println("Loaded trainer:\n" + trainer);
 
-            // Retrieve training initialized from JSON
-            var training = facade.getTrainingById(1L);
-            System.out.println("Loaded training:\n" + training);
+            // 7. Registration
+            System.out.println("\n========== REGISTRATION ==========");
 
-            // Creating new trainee
-            var createdTrainee = facade.createTrainee(
+            RegistrationResponseDto registeredTrainee = facade.createTrainee(
                     new CreateTraineeDto(
-                            "Andrii",
-                            "Kosteniuk",
-                            LocalDate.of(2026, Month.NOVEMBER, 7),
-                            createAddress()
+                            "Some",
+                            "Name",
+                            LocalDate.of(1995, 5, 10),
+                            null
                     )
             );
 
-            System.out.println("Created trainee:\n" + createdTrainee);
+            System.out.println("Registered trainee: " + registeredTrainee);
 
-            // Updating existed trainee
-            var updatedTrainee = facade.updateTrainee(
-                    new UpdateTraineeDto(
-                            "Andrew",
-                            "Kosteniuk",
-                            createdTrainee.userName(),
-                            LocalDate.of(2026, Month.NOVEMBER, 7),
-                            createAddress()
-                    )
-            );
-            System.out.println("Updated trainee:\n" + updatedTrainee);
-
-
-            // Creating new trainer
-            var createdTrainer = facade.createTrainer(
+            RegistrationResponseDto registeredTrainer = facade.createTrainer(
                     new CreateTrainerDto(
-                            "James",
-                            "Bond",
-                            LocalDate.of(2026, Month.NOVEMBER, 7),
-                            createAddress(),
-                            new TrainingType(100L, "Health")
+                            "Alice",
+                            "Demo",
+                            1L
                     )
             );
 
-            System.out.println("Created trainer:\n" + createdTrainer);
+            System.out.println("Registered trainer: " + registeredTrainer);
 
-            // Updating existed trainer
-            var updatedTrainer = facade.updateTrainer(
+            // 1. Get profiles by username
+            TraineeResponseDto trainee = facade.getTraineeByUserName(
+                    TRAINEE_USERNAME, traineeCredentials);
+
+            TrainerResponseDto trainer = facade.getTrainerByUserName(
+                    TRAINER_USERNAME, trainerCredentials);
+
+            System.out.println("Trainee: " + trainee);
+            System.out.println("Trainer: " + trainer);
+
+            // 2. Get profiles by ID
+            System.out.println("\n========== GET PROFILES BY ID ==========");
+
+            System.out.println("Trainee by ID: " +
+                    facade.getTraineeById(trainee.id(), traineeCredentials));
+
+            System.out.println("Trainer by ID: " +
+                    facade.getTrainerById(trainer.id(), trainerCredentials));
+
+            // 3. Update profiles
+            System.out.println("\n========== UPDATE PROFILES ==========");
+
+            TraineeResponseDto updatedTrainee = facade.updateTrainee(
+                    new UpdateTraineeDto(
+                            trainee.firstName(),
+                            trainee.lastName(),
+                            trainee.userName(),
+                            trainee.dateOfBirth(),
+                            null
+                    ),
+                    traineeCredentials
+            );
+
+            System.out.println("Updated trainee: " + updatedTrainee);
+
+            TrainerResponseDto updatedTrainer = facade.updateTrainer(
                     new UpdateTrainerDto(
-                            "James",
-                            "SuperPower",
-                            createdTrainer.userName(),
-                            new TrainingType(100L, "Power")
-                    )
+                            trainer.firstName(),
+                            trainer.lastName(),
+                            trainer.userName(),
+                            trainer.type().id()
+                    ),
+                    trainerCredentials
             );
 
-            System.out.println("Updated trainer:\n" + updatedTrainer);
+            System.out.println("Updated trainer: " + updatedTrainer);
 
-            // Creating new training
-            var createdTraining = facade.createTraining(
+            // 4. Create training
+            System.out.println("\n========== TRAINING OPERATIONS ==========");
+
+            TrainingResponseDto createdTraining = facade.createTraining(
                     new CreateTrainingDto(
                             trainee.id(),
                             trainer.id(),
-                            "Health training",
-                            new TrainingTypeDto(100L, "Health"),
-                            LocalDate.now(Clock.systemDefaultZone()).plusDays(1),
-                            Duration.ofMinutes(60)
+                            "Demo session",
+                            trainer.type().id(),
+                            LocalDate.now(ZoneId.systemDefault()).plusDays(1),
+                            45L
                     )
             );
 
-            System.out.println("Created training:\n" + createdTraining);
+            System.out.println("Created training: " + createdTraining);
 
+            System.out.println("Training by ID: " +
+                    facade.getTrainingById(createdTraining.id()));
 
-            // Check whether trainee storage contains new trainee.
-            var traineeById = facade.getTraineeById(createdTrainee.id());
+            // 5. Get unassigned trainers
+            System.out.println("\n========== UNASSIGNED TRAINERS ==========");
 
-            System.out.println("Loaded trainee:\n" + traineeById);
+            System.out.println("Unassigned trainers: " + facade.getUnassignedTrainers(TRAINER_USERNAME, trainerCredentials));
 
-            System.out.println("========== DEMO COMPLETED ==========");
+            // 6. Activate / deactivate profiles
+            System.out.println("\n========== ACTIVATION ==========");
+
+            if (trainee.active()) {
+                facade.deActivateTrainee(trainee.id(), traineeCredentials);
+                System.out.println("Trainee deactivated");
+
+            } else {
+                facade.activateTrainee(trainee.id(), traineeCredentials);
+                System.out.println("Trainee activated");
+            }
+
+            if (trainer.active()) {
+                facade.deActivateTrainer(trainer.id(), trainerCredentials);
+                System.out.println("Trainer deactivated");
+
+            } else {
+                facade.activateTrainer(trainer.id(), trainerCredentials);
+                System.out.println("Trainer activated");
+            }
+
+            System.out.println("\n========== DEMO COMPLETED ==========");
         }
-    }
-
-    private static Address createAddress() {
-        return new Address("Wroclaw", "Main Street", 7, "12-345");
     }
 }
