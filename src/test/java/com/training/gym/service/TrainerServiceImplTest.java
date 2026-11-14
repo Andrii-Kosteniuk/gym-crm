@@ -1,148 +1,208 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.TraineeRepository;
 import com.training.gym.dao.TrainerRepository;
+import com.training.gym.dao.TrainingRepository;
+import com.training.gym.dao.TrainingTypeRepository;
+import com.training.gym.dao.UserRepository;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.model.Trainer;
-import com.training.gym.util.IdGenerator;
-import com.training.gym.util.PasswordGenerator;
-import com.training.gym.util.UsernameGenerator;
+import com.training.gym.model.Training;
+import com.training.gym.model.TrainingType;
+import com.training.gym.model.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TrainerServiceImplTest {
     @Mock
-    TrainerRepository trainerRepository;
+    TrainerRepository trainers;
     @Mock
-    TraineeRepository traineeRepository;
+    TrainingRepository trainings;
     @Mock
-    IdGenerator idGenerator;
+    UserRepository users;
     @Mock
-    UsernameGenerator usernameGenerator;
+    TrainingTypeRepository types;
     @Mock
-    PasswordGenerator passwordGenerator;
+    com.training.gym.util.UsernameGenerator usernameGenerator;
+    @Mock
+    com.training.gym.util.PasswordGenerator passwordGenerator;
+    @Mock
+    org.springframework.security.crypto.password.PasswordEncoder encoder;
+    @Mock
+    CredentialService credentials;
     @InjectMocks
     TrainerServiceImpl service;
 
-    private static Trainer trainer() {
-        Trainer result = new Trainer();
-        result.setFirstName("John");
-        result.setLastName("Smith");
-        result.setUserName("john.smith");
-        return result;
+    private TrainingType fitness() {
+        return TrainingType.builder().id(1L).name("Fitness").build();
+    }
+
+    private Trainer sara() {
+        return Trainer.builder().id(2L).user(User.builder().id(2L).firstName("Sara").lastName("Connor").userName("sara.connor").password("hash").active(true).build()).specialization(fitness()).build();
     }
 
     @Test
-    void shouldGenerateCredentialsAndSaveTrainer() {
+    void shouldRegisterTrainerAndResolveSpecialization() {
         // Arrange
-        Trainer input = trainer();
-        when(idGenerator.generate()).thenReturn(8L);
-        when(passwordGenerator.generate()).thenReturn("password123");
-        when(usernameGenerator.generate(eq("John"), eq("Smith"), any())).thenReturn("john.smith");
-        when(trainerRepository.save(input)).thenReturn(input);
+        Trainer sara = sara();
+        TrainingType type = fitness();
+        when(usernameGenerator.generate(eq("Sara"), eq("Connor"), any())).thenReturn("sara.connor");
+        when(passwordGenerator.generate()).thenReturn("raw-secret");
+        when(encoder.encode("raw-secret")).thenReturn("encoded");
+        when(types.findById(1L)).thenReturn(Optional.of(type));
+        when(trainers.save(sara)).thenReturn(sara);
         // Act
-        Trainer result = service.createTrainer(input);
+        RegistrationResult<Trainer> result = service.registerTrainer(sara);
         // Assert
-        assertSame(input, result);
-        assertEquals(8L, result.getId());
-        assertEquals("password123", result.getPassword());
-        assertTrue(result.isActive());
-        verify(trainerRepository).save(input);
+        assertEquals("raw-secret", result.initialPassword());
+        assertEquals("encoded", sara.getUser().getPassword());
+        assertSame(type, sara.getSpecialization());
     }
 
     @Test
-    void shouldCheckUsernameAcrossBothProfileTypes() {
+    void shouldRejectUnknownSpecializationDuringRegistration() {
         // Arrange
-        Trainer input = trainer();
-        when(usernameGenerator.generate(eq("John"), eq("Smith"), any())).thenAnswer(invocation -> {
-            Predicate<String> exists = invocation.getArgument(2);
-            assertFalse(exists.test("available"));
-            return "available";
-        });
-        // Act
-        service.createTrainer(input);
-        // Assert
-        verify(traineeRepository).existsByUserName("available");
-        verify(trainerRepository).existsByUserName("available");
+        Trainer sara = sara();
+        when(usernameGenerator.generate(eq("Sara"), eq("Connor"), any())).thenReturn("sara.connor");
+        when(passwordGenerator.generate()).thenReturn("secret");
+        when(types.findById(1L)).thenReturn(Optional.empty());
+        // Act / Assert
+        assertThrows(EntityNotFoundException.class, () -> service.registerTrainer(sara));
+        verify(trainers, never()).save(any());
     }
 
     @Test
-    void shouldRejectNullTrainerOnCreate() {
+    void shouldUpdateNamesAndSpecializationWithoutChangingPassword() {
         // Arrange
+        Trainer existing = sara();
+        Trainer incoming = sara();
+        incoming.getUser().setFirstName("Jym");
+        incoming.getUser().setLastName("Kerry");
+        incoming.getUser().setPassword(null);
+        incoming.setSpecialization(TrainingType.builder().id(3L).build());
+        TrainingType yoga = TrainingType.builder().id(3L).name("Yoga").build();
+        when(trainers.findByUserName("sara.connor")).thenReturn(Optional.of(existing));
+        when(types.findById(3L)).thenReturn(Optional.of(yoga));
         // Act
-        assertThrows(NullPointerException.class, () -> service.createTrainer(null));
+        Trainer result = service.updateTrainer(incoming);
         // Assert
-        verifyNoInteractions(trainerRepository);
+        assertSame(existing, result);
+        assertEquals("Jym", result.getUser().getFirstName());
+        assertEquals("Kerry", result.getUser().getLastName());
+        assertEquals("hash", result.getUser().getPassword());
+        assertSame(yoga, result.getSpecialization());
     }
 
     @Test
-    void shouldUpdateExistingTrainerPreservingIdAndActive() {
+    void shouldRejectUnknownTrainerUpdate() {
         // Arrange
-        Trainer input = trainer();
-        Trainer existing = trainer();
-        existing.setId(7L);
-        existing.setActive(true);
-        when(trainerRepository.findByUserName("john.smith")).thenReturn(Optional.of(existing));
-        when(trainerRepository.update(input)).thenReturn(input);
-        // Act
-        Trainer result = service.updateTrainer(input);
-        // Assert
-        assertSame(input, result);
-        assertEquals(7L, result.getId());
-        assertTrue(result.isActive());
-        verify(trainerRepository).update(input);
+        Trainer incoming = sara();
+        when(trainers.findByUserName("sara.connor")).thenReturn(Optional.empty());
+        // Act / Assert
+        assertThrows(EntityNotFoundException.class, () -> service.updateTrainer(incoming));
     }
 
     @Test
-    void shouldRejectMissingTrainerOnUpdate() {
+    void shouldRetrieveTrainerById() {
         // Arrange
-        Trainer input = trainer();
-        when(trainerRepository.findByUserName("john.smith")).thenReturn(Optional.empty());
+        Trainer sara = sara();
+        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
         // Act
-        assertThrows(EntityNotFoundException.class, () -> service.updateTrainer(input));
+        Trainer result = service.getTrainerById(2L);
         // Assert
-        verify(trainerRepository, never()).update(any());
+        assertSame(sara, result);
     }
 
     @Test
-    void shouldRejectNullTrainerOnUpdate() {
+    void shouldRejectUnknownTrainerId() {
         // Arrange
-        // Act
-        assertThrows(NullPointerException.class, () -> service.updateTrainer(null));
-        // Assert
-        verifyNoInteractions(trainerRepository);
+        when(trainers.findById(404L)).thenReturn(Optional.empty());
+        // Act / Assert
+        assertThrows(EntityNotFoundException.class, () -> service.getTrainerById(404L));
     }
 
     @Test
-    void shouldFindTrainerById() {
+    void shouldRejectRepeatedActivation() {
         // Arrange
-        Trainer expected = trainer();
-        when(trainerRepository.findById(4L)).thenReturn(Optional.of(expected));
-        // Act
-        Trainer result = service.getTrainerById(4L);
-        // Assert
-        assertSame(expected, result);
+        Trainer sara = sara();
+        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
+        // Act / Assert
+        assertThrows(IllegalStateException.class, () -> service.activateTrainer(sara));
+        verify(trainers, never()).activateTrainer(any());
     }
 
     @Test
-    void shouldRejectMissingTrainerById() {
+    void shouldActivateInactiveTrainer() {
         // Arrange
-        when(trainerRepository.findById(4L)).thenReturn(Optional.empty());
+        Trainer sara = sara();
+        sara.getUser().setActive(false);
+        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
         // Act
-        assertThrows(EntityNotFoundException.class, () -> service.getTrainerById(4L));
+        service.activateTrainer(sara);
         // Assert
-        verify(trainerRepository).findById(4L);
+        verify(trainers).activateTrainer(sara);
+    }
+
+    @Test
+    void shouldDeactivateActiveTrainer() {
+        // Arrange
+        Trainer sara = sara();
+        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
+        // Act
+        service.deactivateTrainer(sara);
+        // Assert
+        verify(trainers).deactivateTrainer(sara);
+    }
+
+    @Test
+    void shouldRejectRepeatedDeactivation() {
+        // Arrange
+        Trainer sara = sara();
+        sara.getUser().setActive(false);
+        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
+        // Act / Assert
+        assertThrows(IllegalStateException.class, () -> service.deactivateTrainer(sara));
+        verify(trainers, never()).deactivateTrainer(any());
+    }
+
+    @Test
+    void shouldFindUnassignedTrainers() {
+        // Arrange
+        Trainer sara = sara();
+        when(trainers.findUnassignedTrainers("james.bond")).thenReturn(List.of(sara));
+        // Act
+        List<Trainer> result = service.getUnassignedTrainers("james.bond");
+        // Assert
+        assertEquals(List.of(sara), result);
+    }
+
+    @Test
+    void shouldDelegateTrainingSearch() {
+        // Arrange
+        var criteria = new com.training.gym.dto.trainer.TrainerTrainingCriteria(null, null, null);
+        when(trainings.findByTrainerUsername("sara.connor", criteria)).thenReturn(List.of());
+        // Act
+        List<Training> result = service.findTrainings("sara.connor", criteria);
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void shouldDelegatePasswordChange() {
+        // Arrange
+        String username = "sara.connor";
+        // Act
+        service.changePassword(username, "old", "new");
+        // Assert
+        verify(credentials).changePassword(username, "old", "new");
     }
 }

@@ -1,43 +1,44 @@
 package com.training.gym.facade;
 
+import com.training.gym.dto.auth.ChangePasswordDto;
+import com.training.gym.dto.auth.Credentials;
+import com.training.gym.dto.auth.RegistrationResponseDto;
 import com.training.gym.dto.trainee.CreateTraineeDto;
-import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
 import com.training.gym.dto.trainer.CreateTrainerDto;
-import com.training.gym.dto.trainer.TrainerResponseDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
 import com.training.gym.dto.training.CreateTrainingDto;
-import com.training.gym.dto.training.TrainingResponseDto;
 import com.training.gym.mapper.TraineeMapper;
 import com.training.gym.mapper.TrainerMapper;
 import com.training.gym.mapper.TrainingMapper;
 import com.training.gym.model.Trainee;
 import com.training.gym.model.Trainer;
 import com.training.gym.model.Training;
-import com.training.gym.service.TraineeService;
-import com.training.gym.service.TrainerService;
-import com.training.gym.service.TrainingService;
+import com.training.gym.model.User;
+import com.training.gym.service.*;
 import com.training.gym.validation.TraineeDtoValidator;
 import com.training.gym.validation.TrainerDtoValidator;
 import com.training.gym.validation.TrainingDtoValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.time.LocalDate;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GymCrmFacadeTest {
     @Mock
-    TraineeService traineeService;
+    TraineeService trainees;
     @Mock
-    TrainerService trainerService;
+    TrainerService trainers;
     @Mock
-    TrainingService trainingService;
+    TrainingService trainings;
     @Mock
     TraineeDtoValidator traineeValidator;
     @Mock
@@ -50,140 +51,172 @@ class GymCrmFacadeTest {
     TrainerMapper trainerMapper;
     @Mock
     TrainingMapper trainingMapper;
+    @Mock
+    ProfileAuthorizationService authorization;
     @InjectMocks
     GymCrmFacade facade;
 
-    @Test
-    void shouldValidateMapAndCreateTraineeInOrder() {
-        // Arrange
-        CreateTraineeDto dto = mock(CreateTraineeDto.class);
-        TraineeResponseDto response = mock(TraineeResponseDto.class);
-        Trainee mapped = new Trainee();
-        Trainee saved = new Trainee();
-        when(traineeMapper.toTrainee(dto)).thenReturn(mapped);
-        when(traineeService.createTrainee(mapped)).thenReturn(saved);
-        when(traineeMapper.toResponseDto(mapped)).thenReturn(response);
-        // Act
-        var result = facade.createTrainee(dto);
-        // Assert
-        assertSame(response, result);
-        InOrder order = inOrder(traineeValidator, traineeMapper, traineeService);
-        order.verify(traineeValidator).validateCreate(dto);
-        order.verify(traineeMapper).toTrainee(dto);
-        order.verify(traineeService).createTrainee(mapped);
+    private Credentials jamesCredentials() {
+        return new Credentials("james.bond", "secret");
+    }
+
+    private Trainee james() {
+        return Trainee.builder().id(1L).user(User.builder().id(1L).firstName("James").lastName("Bond").userName("james.bond").build()).build();
+    }
+
+    private Trainer sara() {
+        return Trainer.builder().id(2L).user(User.builder().id(2L).firstName("Sara").lastName("Connor").userName("sara.connor").build()).build();
     }
 
     @Test
-    void shouldValidateMapAndUpdateTraineeInOrder() {
+    void shouldRegisterTraineeWithoutAuthentication() {
         // Arrange
-        UpdateTraineeDto dto = mock(UpdateTraineeDto.class);
-        TraineeResponseDto response = mock(TraineeResponseDto.class);
-        Trainee mapped = new Trainee();
-        when(traineeMapper.toUpdateTrainee(dto)).thenReturn(mapped);
-        when(traineeService.updateTrainee(mapped)).thenReturn(mapped);
-        when(traineeMapper.toResponseDto(mapped)).thenReturn(response);
+        CreateTraineeDto dto = new CreateTraineeDto("James", "Bond", LocalDate.of(1990, 4, 13), null);
+        Trainee james = james();
+        when(traineeMapper.toTrainee(dto)).thenReturn(james);
+        when(trainees.registerTrainee(james)).thenReturn(new RegistrationResult<>(james, "raw-password"));
         // Act
-        var result = facade.updateTrainee(dto);
+        RegistrationResponseDto result = facade.createTrainee(dto);
         // Assert
-        assertSame(response, result);
-        InOrder order = inOrder(traineeValidator, traineeMapper, traineeService);
-        order.verify(traineeValidator).validateUpdate(dto);
-        order.verify(traineeMapper).toUpdateTrainee(dto);
-        order.verify(traineeService).updateTrainee(mapped);
+        assertEquals("james.bond", result.username());
+        assertEquals("raw-password", result.password());
+        verify(traineeValidator).validateCreate(dto);
+        verifyNoInteractions(authorization);
     }
 
     @Test
-    void shouldValidateMapAndCreateTrainerInOrder() {
+    void shouldRegisterTrainerWithoutAuthentication() {
         // Arrange
-        CreateTrainerDto dto = mock(CreateTrainerDto.class);
-        TrainerResponseDto response = mock(TrainerResponseDto.class);
-        Trainer mapped = new Trainer();
-        when(trainerMapper.toTrainer(dto)).thenReturn(mapped);
-        when(trainerService.createTrainer(mapped)).thenReturn(mapped);
-        when(trainerMapper.toResponseDto(mapped)).thenReturn(response);
+        CreateTrainerDto dto = new CreateTrainerDto("Sara", "Connor", 1L);
+        Trainer sara = sara();
+        when(trainerMapper.toTrainer(dto)).thenReturn(sara);
+        when(trainers.registerTrainer(sara)).thenReturn(new RegistrationResult<>(sara, "raw-password"));
         // Act
-        var result = facade.createTrainer(dto);
+        RegistrationResponseDto result = facade.createTrainer(dto);
         // Assert
-        assertSame(response, result);
-        InOrder order = inOrder(trainerValidator, trainerMapper, trainerService);
-        order.verify(trainerValidator).validateCreate(dto);
-        order.verify(trainerMapper).toTrainer(dto);
-        order.verify(trainerService).createTrainer(mapped);
+        assertEquals("sara.connor", result.username());
+        assertEquals("raw-password", result.password());
+        verifyNoInteractions(authorization);
     }
 
     @Test
-    void shouldValidateMapAndUpdateTrainerInOrder() {
+    void shouldAuthorizeBeforeReadingTrainee() {
         // Arrange
-        UpdateTrainerDto dto = mock(UpdateTrainerDto.class);
-        TrainerResponseDto response = mock(TrainerResponseDto.class);
-        Trainer mapped = new Trainer();
-        when(trainerMapper.updateTrainer(dto)).thenReturn(mapped);
-        when(trainerService.updateTrainer(mapped)).thenReturn(mapped);
-        when(trainerMapper.toResponseDto(mapped)).thenReturn(response);
+        Credentials credentials = jamesCredentials();
+        Trainee james = james();
+        when(trainees.findByUserName("james.bond")).thenReturn(james);
         // Act
-        var result = facade.updateTrainer(dto);
+        facade.getTraineeByUserName("james.bond", credentials);
         // Assert
-        assertSame(response, result);
-        InOrder order = inOrder(trainerValidator, trainerMapper, trainerService);
-        order.verify(trainerValidator).validateUpdate(dto);
-        order.verify(trainerMapper).updateTrainer(dto);
-        order.verify(trainerService).updateTrainer(mapped);
+        var order = inOrder(authorization, trainees);
+        order.verify(authorization).requireTraineeOwner(credentials, "james.bond");
+        order.verify(trainees).findByUserName("james.bond");
     }
 
     @Test
-    void shouldValidateMapAndCreateTrainingInOrder() {
+    void shouldAuthorizeBeforeUpdatingTrainee() {
         // Arrange
-        CreateTrainingDto dto = mock(CreateTrainingDto.class);
-        TrainingResponseDto response = mock(TrainingResponseDto.class);
-        Training mapped = new Training();
-        when(trainingMapper.toTraining(dto)).thenReturn(mapped);
-        when(trainingService.createTraining(mapped)).thenReturn(mapped);
-        when(trainingMapper.toResponseDto(mapped)).thenReturn(response);
+        Credentials credentials = jamesCredentials();
+        UpdateTraineeDto dto = new UpdateTraineeDto("James", "Bond", "james.bond", LocalDate.of(1990, 4, 13), null);
         // Act
-        var result = facade.createTraining(dto);
+        facade.updateTrainee(dto, credentials);
         // Assert
-        assertSame(response, result);
-        InOrder order = inOrder(trainingValidator, trainingMapper, trainingService);
-        order.verify(trainingValidator).validateCreate(dto);
-        order.verify(trainingMapper).toTraining(dto);
-        order.verify(trainingService).createTraining(mapped);
+        verify(traineeValidator).validateUpdate(dto);
+        verify(authorization).requireTraineeOwner(credentials, "james.bond");
+        verify(traineeMapper).toUpdateTrainee(dto);
     }
 
     @Test
-    void shouldNotMapOrCallServiceWhenTraineeValidationFails() {
+    void shouldAuthorizeBeforeUpdatingTrainer() {
         // Arrange
-        CreateTraineeDto dto = mock(CreateTraineeDto.class);
-        doThrow(new IllegalArgumentException("Invalid trainee"))
-                .when(traineeValidator).validateCreate(dto);
+        Credentials credentials = new Credentials("sara.connor", "secret");
+        UpdateTrainerDto dto = new UpdateTrainerDto("Sara", "Connor", "sara.connor", 1L);
         // Act
-        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
-                () -> facade.createTrainee(dto));
+        facade.updateTrainer(dto, credentials);
         // Assert
-        assertEquals("Invalid trainee", error.getMessage());
-        verifyNoInteractions(traineeMapper, traineeService);
+        verify(trainerValidator).validateUpdate(dto);
+        verify(authorization).requireTrainerOwner(credentials, "sara.connor");
+        verify(trainerMapper).updateTrainer(dto);
     }
 
     @Test
-    void shouldNotMapOrCallServiceWhenTrainerValidationFails() {
+    void shouldAuthorizeBeforeDeletingTrainee() {
         // Arrange
-        CreateTrainerDto dto = mock(CreateTrainerDto.class);
-        doThrow(new IllegalArgumentException("Invalid trainer"))
-                .when(trainerValidator).validateCreate(dto);
+        Credentials credentials = jamesCredentials();
         // Act
-        assertThrows(IllegalArgumentException.class, () -> facade.createTrainer(dto));
+        facade.removeTraineeByUsername("james.bond", credentials);
         // Assert
-        verifyNoInteractions(trainerMapper, trainerService);
+        var order = inOrder(authorization, trainees);
+        order.verify(authorization).requireTraineeOwner(credentials, "james.bond");
+        order.verify(trainees).removeTraineeByUsername("james.bond");
     }
 
     @Test
-    void shouldNotMapOrCallServiceWhenTrainingValidationFails() {
+    void shouldAuthorizePasswordChange() {
         // Arrange
-        CreateTrainingDto dto = mock(CreateTrainingDto.class);
-        doThrow(new IllegalArgumentException("Invalid training"))
-                .when(trainingValidator).validateCreate(dto);
+        Credentials credentials = jamesCredentials();
+        ChangePasswordDto dto = new ChangePasswordDto("old", "new");
         // Act
-        assertThrows(IllegalArgumentException.class, () -> facade.createTraining(dto));
+        facade.changeTraineePassword("james.bond", dto, credentials);
         // Assert
-        verifyNoInteractions(trainingMapper, trainingService);
+        verify(authorization).requireTraineeOwner(credentials, "james.bond");
+        verify(trainees).changePassword("james.bond", "old", "new");
+    }
+
+    @Test
+    void shouldActivateTraineeOnlyAfterOwnerCheck() {
+        // Arrange
+        Credentials credentials = jamesCredentials();
+        Trainee james = james();
+        when(trainees.getTraineeById(1L)).thenReturn(james);
+        // Act
+        facade.activateTrainee(1L, credentials);
+        // Assert
+        verify(authorization).requireTraineeOwner(credentials, "james.bond");
+        verify(trainees).activateTrainee(james);
+    }
+
+    @Test
+    void shouldActivateTrainerOnlyAfterOwnerCheck() {
+        // Arrange
+        Credentials credentials = new Credentials("sara.connor", "secret");
+        Trainer sara = sara();
+        when(trainers.getTrainerById(2L)).thenReturn(sara);
+        // Act
+        facade.activateTrainer(2L, credentials);
+        // Assert
+        verify(authorization).requireTrainerOwner(credentials, "sara.connor");
+        verify(trainers).activateTrainer(sara);
+    }
+
+    @Test
+    void shouldDelegateTrainingCreation() {
+        // Arrange
+        CreateTrainingDto dto = new CreateTrainingDto(1L, 2L, "Fitness", 1L, LocalDate.of(2026, 11, 15), 45L);
+        Training training = Training.builder().build();
+        when(trainingMapper.toTraining(dto)).thenReturn(training);
+        // Act
+        facade.createTraining(dto);
+        // Assert
+        verify(trainingValidator).validateCreate(dto);
+        verify(trainings).createTraining(training);
+    }
+
+    @Test
+    void shouldRejectNullTrainingId() {
+        // Arrange
+        Long id = null;
+        // Act / Assert
+        assertThrows(NullPointerException.class, () -> facade.getTrainingById(id));
+        verifyNoInteractions(trainings);
+    }
+
+    @Test
+    void shouldRejectNullTraineeUsername() {
+        // Arrange
+        String username = null;
+        // Act / Assert
+        assertThrows(NullPointerException.class, () -> facade.getTraineeByUserName(username, jamesCredentials()));
+        verifyNoInteractions(authorization);
     }
 }
