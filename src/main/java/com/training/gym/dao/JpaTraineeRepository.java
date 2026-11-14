@@ -1,10 +1,10 @@
 package com.training.gym.dao;
 
 import com.training.gym.dto.trainee.TraineeTrainingCriteria;
+import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.model.Trainee;
 import com.training.gym.model.Training;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 

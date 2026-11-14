@@ -1,10 +1,10 @@
 package com.training.gym.dao;
 
 import com.training.gym.dto.trainer.TrainerTrainingCriteria;
+import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.model.Trainer;
 import com.training.gym.model.Training;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
@@ -87,7 +87,7 @@ public class JpaTrainerRepository implements TrainerRepository {
                         JOIN FETCH t.specialization
                         WHERE t.user.userName = :username
                         """, Trainer.class)
-                .setParameter("username", username)
+                .setParameter(USERNAME, username)
                 .getResultList()
                 .stream()
                 .findFirst();
@@ -188,6 +188,7 @@ public class JpaTrainerRepository implements TrainerRepository {
 
     @Override
     public List<Trainer> findUnassignedTrainers(String username) {
+        validateUsername(username);
         return entityManager.createQuery("""
                                    SELECT t
                         FROM Trainer t
@@ -206,6 +207,7 @@ public class JpaTrainerRepository implements TrainerRepository {
     }
 
     private StringBuilder getCriteriaQuery(TrainerTrainingCriteria criteria) {
+        Objects.requireNonNull(criteria, "Training criteria must not be null");
         StringBuilder criteriaQuery = new StringBuilder("""
                 SELECT tr
                 FROM Training tr
