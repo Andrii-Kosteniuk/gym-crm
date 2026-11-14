@@ -7,9 +7,9 @@ public record TrainingResponseDto(
         Long id,
         Long traineeId,
         Long trainerId,
-        String name,
+        String trainingName,
         TrainingTypeResponseDto type,
-        LocalDate date,
+        LocalDate trainingDate,
         Long duration
 ) {
 }

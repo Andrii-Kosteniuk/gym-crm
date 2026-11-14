@@ -13,15 +13,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TrainerDtoValidatorTest {
-
-    private static final LocalDate TODAY =
-            LocalDate.of(2026, 11, 7);
 
     private TrainerDtoValidator validator;
     private TrainingType specialization;
@@ -41,9 +37,7 @@ class TrainerDtoValidatorTest {
         return new CreateTrainerDto(
                 "James",
                 "Bond",
-                LocalDate.of(1990, 5, 15),
-                null,
-                specialization
+                1L
         );
     }
 
@@ -52,7 +46,7 @@ class TrainerDtoValidatorTest {
                 "James",
                 "Bond",
                 "james.bond",
-                specialization
+                1L
         );
     }
 
@@ -86,9 +80,7 @@ class TrainerDtoValidatorTest {
             CreateTrainerDto dto = new CreateTrainerDto(
                     firstName,
                     "Bond",
-                    LocalDate.of(1990, 5, 15),
-                    null,
-                    specialization
+                    1L
             );
 
             IllegalArgumentException exception = assertThrows(
@@ -109,9 +101,7 @@ class TrainerDtoValidatorTest {
             CreateTrainerDto dto = new CreateTrainerDto(
                     "James",
                     lastName,
-                    LocalDate.of(1990, 5, 15),
-                    null,
-                    specialization
+                    1L
             );
 
             assertThrows(
@@ -120,48 +110,13 @@ class TrainerDtoValidatorTest {
             );
         }
 
-        @Test
-        void shouldRejectNullSpecialization() {
-            CreateTrainerDto dto = new CreateTrainerDto(
-                    "James",
-                    "Bond",
-                    LocalDate.of(1990, 5, 15),
-                    null,
-                    null
-            );
-
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> validator.validateCreate(dto)
-            );
-
-            assertEquals(
-                    "Trainer specialization must not be null",
-                    exception.getMessage()
-            );
-        }
-
-
-        @Test
-        void shouldRejectFutureDateOfBirth() {
-            CreateTrainerDto dto = new CreateTrainerDto(
-                    "",
-                    "Bond",
-                    TODAY.plusDays(1),
-                    null,
-                    specialization
-            );
-
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> validator.validateCreate(dto)
-            );
-        }
 
         @Test
         void shouldAcceptDateOfBirthEqualToToday() {
             CreateTrainerDto dto = new CreateTrainerDto(
-                    "James", "Bond", TODAY, null, specialization
+                    "James",
+                    "Bond",
+                    1L
             );
 
             assertDoesNotThrow(
@@ -201,7 +156,7 @@ class TrainerDtoValidatorTest {
                     "James",
                     "Bond",
                     username,
-                    specialization
+                    1L
             );
 
             IllegalArgumentException exception = assertThrows(
@@ -221,7 +176,7 @@ class TrainerDtoValidatorTest {
                     " ",
                     "Bond",
                     "james.bond",
-                    specialization
+                    1L
             );
 
             assertThrows(
@@ -236,7 +191,7 @@ class TrainerDtoValidatorTest {
                     "James",
                     " ",
                     "james.bond",
-                    specialization
+                    1L
             );
 
             assertThrows(
@@ -245,20 +200,6 @@ class TrainerDtoValidatorTest {
             );
         }
 
-        @Test
-        void shouldRejectNullSpecialization() {
-            UpdateTrainerDto dto = new UpdateTrainerDto(
-                    "James",
-                    "Bond",
-                    "james.bond",
-                    null
-            );
-
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> validator.validateUpdate(dto)
-            );
-        }
 
     }
 }

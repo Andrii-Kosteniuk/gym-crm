@@ -2,7 +2,6 @@ package com.training.gym.validation;
 
 import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
-import com.training.gym.model.TrainingType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,11 +18,7 @@ public class TrainerDtoValidator {
     public void validateCreate(CreateTrainerDto dto) {
         requireNotNull(dto, "CreateTrainerDto");
 
-        validatePersonalData(
-                dto.firstName(),
-                dto.lastName(),
-                dto.specialization()
-        );
+        validatePersonalData(dto.firstName(), dto.lastName());
     }
 
     public void validateUpdate(UpdateTrainerDto dto) {
@@ -31,17 +26,12 @@ public class TrainerDtoValidator {
 
         requireNotBlank(dto.userName(), "Username");
 
-        validatePersonalData(
-                dto.firstName(),
-                dto.lastName(),
-                dto.specialization()
-        );
+        validatePersonalData(dto.firstName(), dto.lastName());
     }
 
-    private void validatePersonalData(String firstName, String lastName, TrainingType specialization) {
+    private void validatePersonalData(String firstName, String lastName) {
         requireNotBlank(firstName, "First name");
         requireNotBlank(lastName, "Last name");
 
-        requireNotNull(specialization, "Trainer specialization");
     }
 }

@@ -1,14 +1,11 @@
 package com.training.gym.dto.trainer;
 
-import com.training.gym.model.Address;
-import com.training.gym.model.TrainingType;
-
-import java.time.LocalDate;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record CreateTrainerDto(
-        String firstName,
-        String lastName,
-        LocalDate dateOfBirth,
-        Address address,
-        TrainingType specialization
+
+        @NotBlank String firstName,
+        @NotBlank String lastName,
+        @NotNull Long specializationId
 ) {}

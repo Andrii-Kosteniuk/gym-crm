@@ -1,15 +1,18 @@
 package com.training.gym.dto.training;
 
-import java.time.Duration;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
 import java.time.LocalDate;
 
 public record CreateTrainingDto(
 
-        Long traineeId,
-        Long trainerId,
-        String name,
-        TrainingTypeDto type,
-        LocalDate date,
-        Duration duration
+        @NotNull Long traineeId,
+        @NotNull Long trainerId,
+        @NotBlank String name,
+        @NotNull @Positive Long trainingTypeId,
+        @NotNull LocalDate date,
+        @NotNull @Positive Long duration
 ) {
 }
