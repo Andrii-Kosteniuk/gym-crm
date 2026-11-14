@@ -13,21 +13,35 @@ import org.mapstruct.Mapping;
 public interface TrainerMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "userName", ignore = true)
-    @Mapping(target = "password", ignore = true)
-    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "user.firstName", source = "firstName")
+    @Mapping(target = "user.lastName", source = "lastName")
+    @Mapping(target = "user.userName", ignore = true)
+    @Mapping(target = "user.password", ignore = true)
+    @Mapping(target = "specialization.id", source = "specializationId")
+    @Mapping(target = "user.active", ignore = true)
+    @Mapping(target = "trainees", ignore = true)
+    @Mapping(target = "trainings", ignore = true)
     Trainer toTrainer(CreateTrainerDto dto);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "firstName", source = "firstName")
-    @Mapping(target = "lastName", source = "lastName")
-    @Mapping(target = "userName", source = "userName")
-    @Mapping(target = "password", ignore = true)
+    @Mapping(target = "user.firstName", source = "firstName")
+    @Mapping(target = "user.lastName", source = "lastName")
+    @Mapping(target = "user.userName", source = "userName")
+    @Mapping(target = "user.password", ignore = true)
+    @Mapping(target = "user.active", ignore = true)
+    @Mapping(target = "specialization.id", source = "specializationId")
+    @Mapping(target = "trainees", ignore = true)
+    @Mapping(target = "trainings", ignore = true)
     Trainer updateTrainer(UpdateTrainerDto dto);
 
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "firstName", source = "user.firstName")
+    @Mapping(target = "lastName", source = "user.lastName")
+    @Mapping(target = "userName", source = "user.userName")
+    @Mapping(target = "active", source = "user.active")
     @Mapping(target = "type", source = "specialization")
     TrainerResponseDto toResponseDto(Trainer trainer);
 
     @Mapping(target = "specialization", source = "name")
-    TrainingTypeResponseDto toTrainingTypeResponseDto(TrainingType type);
+    TrainingTypeResponseDto toTrainingTypeResponseDto(TrainingType trainingType);
 }
