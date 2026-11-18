@@ -2,6 +2,7 @@ package com.training.gym.validation;
 
 import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
+import com.training.gym.util.validation.TraineeDtoValidator;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -55,7 +56,7 @@ class TraineeDtoValidatorTest {
     @Test
     void shouldRejectMissingUpdateUsername() {
         // Arrange
-        UpdateTraineeDto dto = new UpdateTraineeDto("James", "Bond", " ", LocalDate.of(1990, 4, 13), null);
+        UpdateTraineeDto dto = new UpdateTraineeDto(1L, "James", "Bond", " ");
         // Act / Assert
         assertThrows(IllegalArgumentException.class, () -> validator.validateUpdate(dto));
     }
@@ -63,7 +64,7 @@ class TraineeDtoValidatorTest {
     @Test
     void shouldAcceptValidUpdate() {
         // Arrange
-        UpdateTraineeDto dto = new UpdateTraineeDto("Jym", "Kerry", "james.bond", LocalDate.of(1990, 4, 13), null);
+        UpdateTraineeDto dto = new UpdateTraineeDto(2L,"Jym", "Kerry", "james.bond");
         // Act / Assert
         assertDoesNotThrow(() -> validator.validateUpdate(dto));
     }

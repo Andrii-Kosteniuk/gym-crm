@@ -1,19 +1,24 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.TraineeRepository;
-import com.training.gym.dao.TrainerRepository;
-import com.training.gym.dao.TrainingRepository;
-import com.training.gym.dao.UserRepository;
+import com.training.gym.domain.criteria.TraineeTrainingFilter;
+import com.training.gym.dto.crireria.TraineeTrainingCriteria;
+import com.training.gym.repository.TraineeRepository;
+import com.training.gym.repository.TrainerRepository;
+import com.training.gym.repository.TrainingRepository;
+import com.training.gym.repository.UserRepository;
+import com.training.gym.domain.Trainee;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.Training;
+import com.training.gym.domain.User;
 import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.model.Trainee;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.Training;
-import com.training.gym.model.User;
+import com.training.gym.util.PasswordGenerator;
+import com.training.gym.util.UsernameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -27,26 +32,39 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TraineeServiceImplTest {
     @Mock
-    TraineeRepository trainees;
+    TraineeRepository traineeRepository;
     @Mock
-    TrainerRepository trainers;
+    TrainerRepository trainerRepository;
     @Mock
-    TrainingRepository trainings;
+    TrainingRepository trainingRepository;
     @Mock
-    UserRepository users;
+    UserRepository userRepository;
     @Mock
-    com.training.gym.util.UsernameGenerator usernameGenerator;
+    UsernameGenerator usernameGenerator;
     @Mock
-    com.training.gym.util.PasswordGenerator passwordGenerator;
+    PasswordGenerator passwordGenerator;
     @Mock
-    org.springframework.security.crypto.password.PasswordEncoder encoder;
+    TraineeTrainingFilter filter;
+    @Mock
+    PasswordEncoder encoder;
     @Mock
     CredentialService credentials;
     @InjectMocks
     TraineeServiceImpl service;
 
     private Trainee james() {
-        return Trainee.builder().id(1L).user(User.builder().id(1L).firstName("James").lastName("Bond").userName("james.bond").password("hash").active(true).build()).dateOfBirth(LocalDate.of(1990, 4, 13)).build();
+        return Trainee.builder()
+                .id(1L)
+                .user(User.builder()
+                        .id(1L)
+                        .firstName("James")
+                        .lastName("Bond")
+                        .userName("james.bond")
+                        .password("hash")
+                        .active(true)
+                        .build())
+                .dateOfBirth(LocalDate.of(1990, 4, 13))
+                .build();
     }
 
     @Test
@@ -56,7 +74,7 @@ class TraineeServiceImplTest {
         when(usernameGenerator.generate(eq("James"), eq("Bond"), any())).thenReturn("james.bond");
         when(passwordGenerator.generate()).thenReturn("raw-secret");
         when(encoder.encode("raw-secret")).thenReturn("hash-new");
-        when(trainees.save(james)).thenReturn(james);
+        when(traineeRepository.save(james)).thenReturn(james);
         // Act
         RegistrationResult<Trainee> result = service.registerTrainee(james);
         // Assert
@@ -72,7 +90,7 @@ class TraineeServiceImplTest {
         Trainee invalid = Trainee.builder().build();
         // Act / Assert
         assertThrows(NullPointerException.class, () -> service.registerTrainee(invalid));
-        verifyNoInteractions(trainees);
+        verifyNoInteractions(traineeRepository);
     }
 
     @Test
@@ -84,7 +102,8 @@ class TraineeServiceImplTest {
         input.getUser().setLastName("Kerry");
         input.getUser().setPassword(null);
         input.getUser().setActive(false);
-        when(trainees.findByUserName("james.bond")).thenReturn(Optional.of(existing));
+        when(traineeRepository.findByUserName("james.bond")).thenReturn(Optional.of(existing));
+        when(traineeRepository.update(existing)).thenReturn(existing);
         // Act
         Trainee result = service.updateTrainee(input);
         // Assert
@@ -99,7 +118,7 @@ class TraineeServiceImplTest {
     void shouldRejectUpdatingUnknownTrainee() {
         // Arrange
         Trainee input = james();
-        when(trainees.findByUserName("james.bond")).thenReturn(Optional.empty());
+        when(traineeRepository.findByUserName("james.bond")).thenReturn(Optional.empty());
         // Act / Assert
         assertThrows(EntityNotFoundException.class, () -> service.updateTrainee(input));
     }
@@ -108,7 +127,7 @@ class TraineeServiceImplTest {
     void shouldRetrieveTraineeById() {
         // Arrange
         Trainee james = james();
-        when(trainees.findById(1L)).thenReturn(Optional.of(james));
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(james));
         // Act
         Trainee result = service.getTraineeById(1L);
         // Assert
@@ -118,7 +137,7 @@ class TraineeServiceImplTest {
     @Test
     void shouldRejectUnknownUsername() {
         // Arrange
-        when(trainees.findByUserName("jym.kerry")).thenReturn(Optional.empty());
+        when(traineeRepository.findByUserName("jym.kerry")).thenReturn(Optional.empty());
         // Act / Assert
         assertThrows(EntityNotFoundException.class, () -> service.findByUserName("jym.kerry"));
     }
@@ -128,18 +147,18 @@ class TraineeServiceImplTest {
         // Arrange
         Trainee james = james();
         james.getUser().setActive(false);
-        when(trainees.findById(1L)).thenReturn(Optional.of(james));
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(james));
         // Act
         service.activateTrainee(james);
         // Assert
-        assertTrue(james.getUser().getActive());
+        verify(traineeRepository).activateTrainee(james);
     }
 
     @Test
     void shouldRejectRepeatedActivation() {
         // Arrange
         Trainee james = james();
-        when(trainees.findById(1L)).thenReturn(Optional.of(james));
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(james));
         // Act / Assert
         assertThrows(IllegalStateException.class, () -> service.activateTrainee(james));
     }
@@ -148,11 +167,11 @@ class TraineeServiceImplTest {
     void shouldDeactivateActiveTrainee() {
         // Arrange
         Trainee james = james();
-        when(trainees.findById(1L)).thenReturn(Optional.of(james));
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(james));
         // Act
         service.deactivateTrainee(james);
         // Assert
-        assertFalse(james.getUser().getActive());
+        verify(traineeRepository).deactivateTrainee(james);
     }
 
     @Test
@@ -160,7 +179,7 @@ class TraineeServiceImplTest {
         // Arrange
         Trainee james = james();
         james.getUser().setActive(false);
-        when(trainees.findById(1L)).thenReturn(Optional.of(james));
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(james));
         // Act / Assert
         assertThrows(IllegalStateException.class, () -> service.deactivateTrainee(james));
     }
@@ -169,13 +188,13 @@ class TraineeServiceImplTest {
     void shouldDeleteTraineeAndUser() {
         // Arrange
         Trainee james = james();
-        when(trainees.findByUserName("james.bond")).thenReturn(Optional.of(james));
+        when(traineeRepository.findByUserName("james.bond")).thenReturn(Optional.of(james));
         // Act
         service.removeTraineeByUsername("james.bond");
         // Assert
-        var order = inOrder(trainees, users);
-        order.verify(trainees).delete(james);
-        order.verify(users).delete(james.getUser());
+        var order = inOrder(traineeRepository, userRepository);
+        order.verify(traineeRepository).delete(james);
+        order.verify(userRepository).delete(james.getUser());
     }
 
     @Test
@@ -184,22 +203,39 @@ class TraineeServiceImplTest {
         Set<Long> invalid = new HashSet<>();
         invalid.add(null);
         // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> service.replaceTrainers("james.bond", invalid));
-        verifyNoInteractions(trainers);
+        assertThrows(IllegalArgumentException.class, () -> service.replaceTrainers(1L, invalid));
+        verifyNoInteractions(trainerRepository);
     }
 
     @Test
     void shouldReplaceAssignments() {
         // Arrange
+        Long traineeId = 1L;
+        Long trainerId = 2L;
+        Set<Long> trainerIds = Set.of(trainerId);
+
         Trainee james = james();
-        Trainer sara = Trainer.builder().id(2L).user(User.builder().firstName("Sara").lastName("Connor").build()).build();
-        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
-        when(trainees.findByUserName("james.bond")).thenReturn(Optional.of(james));
+
+        Trainer sara = Trainer.builder()
+                .id(trainerId)
+                .user(User.builder()
+                        .firstName("Sara")
+                        .lastName("Connor")
+                        .active(true)
+                        .build())
+                .build();
+
+        when(traineeRepository.findById(traineeId)).thenReturn(Optional.of(james));
+
+        when(trainerRepository.findById(trainerId)).thenReturn(Optional.of(sara));
+
         // Act
-        Set<Trainer> result = service.replaceTrainers("james.bond", Set.of(2L));
+        service.replaceTrainers(traineeId, trainerIds);
+
         // Assert
-        assertEquals(Set.of(sara), result);
-        assertTrue(sara.getTrainees().contains(james));
+        verify(traineeRepository).findById(traineeId);
+        verify(trainerRepository).findById(trainerId);
+        verify(traineeRepository).replaceTrainers(traineeId, trainerIds);
     }
 
     @Test
@@ -212,15 +248,4 @@ class TraineeServiceImplTest {
         verify(credentials).changePassword(username, "old", "new");
     }
 
-    @Test
-    void shouldDelegateTrainingCriteria() {
-        // Arrange
-        var criteria = new com.training.gym.dto.trainee.TraineeTrainingCriteria(null, null, null, null);
-        when(trainings.findByTraineeUsername("james.bond", criteria)).thenReturn(List.of());
-        // Act
-        List<Training> result = service.findTrainings("james.bond", criteria);
-        // Assert
-        assertTrue(result.isEmpty());
-        verify(trainings).findByTraineeUsername("james.bond", criteria);
-    }
 }

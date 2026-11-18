@@ -2,6 +2,7 @@ package com.training.gym.validation;
 
 import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
+import com.training.gym.util.validation.TrainerDtoValidator;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;

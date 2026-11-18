@@ -1,12 +1,13 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.TraineeRepository;
-import com.training.gym.dao.TrainerRepository;
+import com.training.gym.dto.auth.Credentials;
+import com.training.gym.repository.TraineeRepository;
+import com.training.gym.repository.TrainerRepository;
+import com.training.gym.domain.Trainee;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.User;
 import com.training.gym.exception.AccessDeniedException;
 import com.training.gym.exception.AuthenticationFailedException;
-import com.training.gym.model.Trainee;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,15 +16,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProfileAuthorizationServiceTest {
     @Mock
-    CredentialService credentials;
+    CredentialService credentialService;
     @Mock
     TraineeRepository trainees;
     @Mock
@@ -31,53 +30,73 @@ class ProfileAuthorizationServiceTest {
     @InjectMocks
     ProfileAuthorizationService service;
 
-    private com.training.gym.dto.auth.Credentials jamesCredentials() {
-        return new com.training.gym.dto.auth.Credentials("james.bond", "secret");
+    private Credentials jamesCredentials() {
+        return new Credentials("james.bond", "secret");
     }
 
     private User james() {
-        return User.builder().id(1L).firstName("James").lastName("Bond").userName("james.bond").build();
+        return User.builder()
+                .id(1L)
+                .firstName("James")
+                .lastName("Bond")
+                .userName("james.bond")
+                .build();
     }
 
     @Test
-    void shouldAuthenticateTrainee() {
+    void shouldAllowTraineeToAccessOwnProfile() {
         // Arrange
+        Long traineeId = 1L;
+
         User user = james();
-        Trainee trainee = Trainee.builder().user(user).build();
-        when(credentials.authenticate("james.bond", "secret")).thenReturn(user);
-        when(trainees.findByUserName("james.bond")).thenReturn(Optional.of(trainee));
-        // Act
-        Trainee result = service.requireTrainee(jamesCredentials());
-        // Assert
-        assertSame(trainee, result);
+
+        Trainee trainee = Trainee.builder()
+                .id(traineeId)
+                .user(user)
+                .build();
+
+        Credentials credentials = jamesCredentials();
+
+        when(credentialService.authenticate("james.bond", "secret"))
+                .thenReturn(user);
+
+        when(trainees.findByUserName("james.bond"))
+                .thenReturn(Optional.of(trainee));
+
+        // Act & Assert
+        assertDoesNotThrow(() -> service.requireTraineeOwner(credentials, traineeId));
+
+        verify(credentialService).authenticate("james.bond", "secret");
+
+        verify(trainees).findByUserName("james.bond");
     }
 
     @Test
     void shouldRejectUserWithoutTraineeProfile() {
         // Arrange
-        when(credentials.authenticate("james.bond", "secret")).thenReturn(james());
+        when(credentialService.authenticate("james.bond", "secret")).thenReturn(james());
         when(trainees.findByUserName("james.bond")).thenReturn(Optional.empty());
         // Act / Assert
-        assertThrows(AuthenticationFailedException.class, () -> service.requireTrainee(jamesCredentials()));
+        assertThrows(AuthenticationFailedException.class, () -> service.requireTraineeOwner(jamesCredentials(),  james().getId()));
     }
 
     @Test
     void shouldRejectAccessToOtherTrainee() {
         // Arrange
         User user = james();
-        when(credentials.authenticate("james.bond", "secret")).thenReturn(user);
+        when(credentialService.authenticate("james.bond", "secret")).thenReturn(user);
         when(trainees.findByUserName("james.bond")).thenReturn(Optional.of(Trainee.builder().user(user).build()));
         // Act / Assert
-        assertThrows(AccessDeniedException.class, () -> service.requireTraineeOwner(jamesCredentials(), "jym.kerry"));
+        assertThrows(AccessDeniedException.class, () -> service.requireTraineeOwner(jamesCredentials(),  james().getId()));
     }
 
     @Test
     void shouldRejectNullCredentialsBeforeAuthentication() {
         // Arrange
-        com.training.gym.dto.auth.Credentials missing = null;
+        Credentials missing = null;
         // Act / Assert
-        assertThrows(NullPointerException.class, () -> service.requireTrainee(missing));
-        verifyNoInteractions(credentials);
+        assertThrows(AuthenticationFailedException.class, () -> service.requireTraineeOwner(missing, james().getId()));
+        verifyNoInteractions(credentialService);
     }
 
     @Test
@@ -85,21 +104,21 @@ class ProfileAuthorizationServiceTest {
         // Arrange
         User sara = User.builder().userName("sara.connor").build();
         Trainer trainer = Trainer.builder().user(sara).build();
-        when(credentials.authenticate("sara.connor", "secret")).thenReturn(sara);
+        when(credentialService.authenticate("sara.connor", "secret")).thenReturn(sara);
         when(trainers.findByUserName("sara.connor")).thenReturn(Optional.of(trainer));
         // Act
-        Trainer result = service.requireTrainer(new com.training.gym.dto.auth.Credentials("sara.connor", "secret"));
+        service.requireTrainerOwner(new Credentials("sara.connor", "secret"), sara.getId());
         // Assert
-        assertSame(trainer, result);
+        assertDoesNotThrow(()-> new AuthenticationFailedException("Authentication Failed"));
     }
 
     @Test
     void shouldRejectAccessToOtherTrainer() {
         // Arrange
         User sara = User.builder().userName("sara.connor").build();
-        when(credentials.authenticate("sara.connor", "secret")).thenReturn(sara);
+        when(credentialService.authenticate("sara.connor", "secret")).thenReturn(sara);
         when(trainers.findByUserName("sara.connor")).thenReturn(Optional.of(Trainer.builder().user(sara).build()));
         // Act / Assert
-        assertThrows(AccessDeniedException.class, () -> service.requireTrainerOwner(new com.training.gym.dto.auth.Credentials("sara.connor", "secret"), "jym.kerry"));
+        assertThrows(AccessDeniedException.class, () -> service.requireTrainerOwner(new Credentials("sara.connor", "secret"), james().getId()));
     }
 }

@@ -1,9 +1,10 @@
 package com.training.gym.service;
 
-import com.training.gym.dto.trainee.TraineeTrainingCriteria;
-import com.training.gym.model.Trainee;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.Training;
+import com.training.gym.domain.Trainee;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.Training;
+import com.training.gym.dto.crireria.TraineeTrainingCriteria;
+
 
 import java.util.List;
 import java.util.Set;
@@ -28,5 +29,5 @@ public interface TraineeService {
 
     void changePassword(String username, String oldPassword, String newPassword);
 
-    Set<Trainer> replaceTrainers(String username, Set<Long> ids);
+    void replaceTrainers(Long traineeId, Set<Long> trainersIds);
 }

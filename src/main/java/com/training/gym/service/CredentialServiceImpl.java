@@ -1,8 +1,8 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.UserRepository;
+import com.training.gym.domain.User;
 import com.training.gym.exception.AuthenticationFailedException;
-import com.training.gym.model.User;
+import com.training.gym.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +30,9 @@ public class CredentialServiceImpl implements CredentialService {
                 .findByUsername(username)
                 .orElseThrow(AuthenticationFailedException::new);
 
+        if (Boolean.FALSE.equals(user.getActive()))
+            throw new AuthenticationFailedException("You are not authenticated");
+
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new AuthenticationFailedException();
         }
@@ -42,7 +45,7 @@ public class CredentialServiceImpl implements CredentialService {
     public void changePassword(String username, String oldPassword, String newPassword) {
 
         if (newPassword == null || newPassword.length() < 6) {
-            throw new IllegalArgumentException("New password must contain at least 6 characters" );
+            throw new IllegalArgumentException("New password must contain at least 6 characters");
         }
 
         User user = authenticate(username, oldPassword);
@@ -51,7 +54,9 @@ public class CredentialServiceImpl implements CredentialService {
             throw new IllegalArgumentException("New password must differ from the current password");
         }
 
-        user.setPassword(passwordEncoder.encode(newPassword));
+        String encodedPassword = passwordEncoder.encode(newPassword);
+
+        userRepository.updatePassword(user.getId(), encodedPassword);
 
         log.info("Password changed: username={}", username);
     }

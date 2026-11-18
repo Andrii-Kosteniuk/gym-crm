@@ -1,12 +1,17 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.TrainerRepository;
-import com.training.gym.dao.TrainingRepository;
-import com.training.gym.dao.TrainingTypeRepository;
-import com.training.gym.dao.UserRepository;
-import com.training.gym.dto.trainer.TrainerTrainingCriteria;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.Training;
+import com.training.gym.domain.TrainingType;
+import com.training.gym.domain.User;
+import com.training.gym.domain.criteria.TrainerTrainingFilter;
+import com.training.gym.domain.mapper.TrainingCriteriaMapper;
+import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.model.*;
+import com.training.gym.repository.TrainerRepository;
+import com.training.gym.repository.TrainingRepository;
+import com.training.gym.repository.TrainingTypeRepository;
+import com.training.gym.repository.UserRepository;
 import com.training.gym.util.PasswordGenerator;
 import com.training.gym.util.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +20,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -33,6 +37,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final TrainingTypeRepository trainingTypeRepository;
     private final PasswordEncoder passwordEncoder;
     private final CredentialService credentialService;
+    private final TrainingCriteriaMapper criteriaMapper;
 
 
     @Override
@@ -56,7 +61,7 @@ public class TrainerServiceImpl implements TrainerService {
 
         TrainingType specialization = trainingTypeRepository
                 .findById(specializationId)
-                .orElseThrow(() -> new EntityNotFoundException("Training type not found: " + specializationId ));
+                .orElseThrow(() -> new EntityNotFoundException("Training type not found: " + specializationId));
 
         user.setUserName(username);
         user.setPassword(passwordEncoder.encode(rawPassword));
@@ -83,7 +88,7 @@ public class TrainerServiceImpl implements TrainerService {
         Trainer existing = trainerRepository.findByUserName(username)
                 .orElseThrow(() -> new EntityNotFoundException(TRAINER_NOT_FOUND + username));
 
-        Long specializationId = Objects.requireNonNull(trainer.getSpecialization(),"Specialization is required").getId();
+        Long specializationId = Objects.requireNonNull(trainer.getSpecialization(), "Specialization is required").getId();
 
         TrainingType specialization = trainingTypeRepository
                 .findById(specializationId)
@@ -100,7 +105,7 @@ public class TrainerServiceImpl implements TrainerService {
 
         log.info("Trainer updated: username={}", username);
 
-        return existing;
+        return trainerRepository.update(existing);
     }
 
     @Override
@@ -152,14 +157,16 @@ public class TrainerServiceImpl implements TrainerService {
     @Override
     @Transactional(readOnly = true)
     public List<Training> findTrainings(String username, TrainerTrainingCriteria criteria) {
-        Objects.requireNonNull(criteria, "Criteria must not be null");
-        log.debug("Finding training by specified criteria");
+
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Trainer username must not be blank");
         }
 
+        Objects.requireNonNull(criteria, "Criteria must not be null");
 
-        return trainingRepository.findByTrainerUsername(username, criteria);
+        TrainerTrainingFilter filter = criteriaMapper.toFilter(criteria);
+
+        return trainingRepository.findByTrainerUsername(username.trim(), filter);
     }
 
     @Override

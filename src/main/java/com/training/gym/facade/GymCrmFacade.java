@@ -1,8 +1,16 @@
 package com.training.gym.facade;
 
+import com.training.gym.domain.Trainee;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.Training;
+import com.training.gym.domain.mapper.TraineeMapper;
+import com.training.gym.domain.mapper.TrainerMapper;
+import com.training.gym.domain.mapper.TrainingMapper;
 import com.training.gym.dto.auth.ChangePasswordDto;
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.auth.RegistrationResponseDto;
+import com.training.gym.dto.crireria.TraineeTrainingCriteria;
+import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
@@ -11,21 +19,16 @@ import com.training.gym.dto.trainer.TrainerResponseDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
 import com.training.gym.dto.training.CreateTrainingDto;
 import com.training.gym.dto.training.TrainingResponseDto;
-import com.training.gym.mapper.TraineeMapper;
-import com.training.gym.mapper.TrainerMapper;
-import com.training.gym.mapper.TrainingMapper;
-import com.training.gym.model.Trainee;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.Training;
 import com.training.gym.service.*;
-import com.training.gym.validation.TraineeDtoValidator;
-import com.training.gym.validation.TrainerDtoValidator;
-import com.training.gym.validation.TrainingDtoValidator;
+import com.training.gym.util.validation.TraineeDtoValidator;
+import com.training.gym.util.validation.TrainerDtoValidator;
+import com.training.gym.util.validation.TrainingDtoValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -44,6 +47,7 @@ public class GymCrmFacade {
     private final TrainerMapper trainerMapper;
     private final TrainingMapper trainingMapper;
     private final ProfileAuthorizationService authorizationService;
+    private final CredentialService credentialService;
 
     public RegistrationResponseDto createTrainee(CreateTraineeDto dto) {
         traineeValidator.validateCreate(dto);
@@ -52,11 +56,11 @@ public class GymCrmFacade {
 
         RegistrationResult<Trainee> result = traineeService.registerTrainee(trainee);
 
-        return new RegistrationResponseDto(
-                result.profile().getId(),
-                result.profile().getUser().getUserName(),
-                result.initialPassword()
-        );
+        Long id = result.profile().getId();
+        String username = result.profile().getUser().getUserName();
+        String initialPassword = result.initialPassword();
+
+        return new RegistrationResponseDto(id, username, initialPassword);
     }
 
     public TraineeResponseDto updateTrainee(UpdateTraineeDto dto, Credentials credentials) {
@@ -73,12 +77,10 @@ public class GymCrmFacade {
     }
 
     public TraineeResponseDto getTraineeById(Long id, Credentials credentials) {
-        Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
+
+        authorizationService.requireTraineeOwner(credentials, id);
 
         Trainee traineeById = traineeService.getTraineeById(id);
-        String username = traineeById.getUser().getUserName();
-
-        authorizationService.requireTraineeOwner(credentials, username);
 
         return traineeMapper.toResponseDto(traineeById);
     }
@@ -129,12 +131,10 @@ public class GymCrmFacade {
     }
 
     public TrainerResponseDto getTrainerById(Long id, Credentials credentials) {
-        Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
+
+        authorizationService.requireTrainerOwner(credentials, id);
 
         Trainer trainerById = trainerService.getTrainerById(id);
-        String username = trainerById.getUser().getUserName();
-
-        authorizationService.requireTrainerOwner(credentials, username);
 
         return trainerMapper.toResponseDto(trainerById);
     }
@@ -142,9 +142,9 @@ public class GymCrmFacade {
     public TrainerResponseDto getTrainerByUserName(String username, Credentials credentials) {
         Objects.requireNonNull(username, USERNAME_CAN_NOT_BE_NULL);
 
-        Trainer trainer = trainerService.findByUserName(username);
-
         authorizationService.requireTrainerOwner(credentials, username);
+
+        Trainer trainer = trainerService.findByUserName(username);
 
         return trainerMapper.toResponseDto(trainer);
     }
@@ -157,17 +157,30 @@ public class GymCrmFacade {
         trainerService.changePassword(username, dto.currentPassword(), dto.newPassword());
     }
 
-    public TrainingResponseDto createTraining(CreateTrainingDto dto) {
+    public TrainingResponseDto createTraining(CreateTrainingDto dto, Credentials credentials) {
+
+        Objects.requireNonNull(credentials, "Credentials are required");
+
+        credentialService.authenticate(
+                credentials.username(),
+                credentials.password());
+
         trainingValidator.validateCreate(dto);
 
         Training training = trainingMapper.toTraining(dto);
 
-        Training createdTraining = trainingService.createTraining(training);
-        return trainingMapper.toResponseDto(createdTraining);
+        return trainingMapper.toResponseDto(
+                trainingService.createTraining(training)
+        );
     }
 
-    public TrainingResponseDto getTrainingById(Long id) {
+    public TrainingResponseDto getTrainingById(Long id, Credentials credentials) {
         Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
+
+        credentialService.authenticate(
+                credentials.username(),
+                credentials.password());
+
 
         Training training = trainingService.getTrainingById(id);
 
@@ -177,44 +190,37 @@ public class GymCrmFacade {
     public void activateTrainee(Long id, Credentials credentials) {
         Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
 
-        Trainee trainee = traineeService.getTraineeById(id);
-        String username = trainee.getUser().getUserName();
+        authorizationService.requireTraineeOwner(credentials, id);
 
-        authorizationService.requireTraineeOwner(credentials, username);
+        Trainee trainee = traineeService.getTraineeById(id);
 
         traineeService.activateTrainee(trainee);
     }
 
     public void deActivateTrainee(Long id, Credentials credentials) {
-        Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
+
+        authorizationService.requireTraineeOwner(credentials, id);
 
         Trainee trainee = traineeService.getTraineeById(id);
-        String username = trainee.getUser().getUserName();
-
-        authorizationService.requireTraineeOwner(credentials, username);
 
         traineeService.deactivateTrainee(trainee);
     }
 
 
     public void activateTrainer(Long id, Credentials credentials) {
-        Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
+
+        authorizationService.requireTrainerOwner(credentials, id);
 
         Trainer trainer = trainerService.getTrainerById(id);
-        String username = trainer.getUser().getUserName();
-
-        authorizationService.requireTrainerOwner(credentials, username);
 
         trainerService.activateTrainer(trainer);
     }
 
     public void deActivateTrainer(Long id, Credentials credentials) {
-        Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
+
+        authorizationService.requireTrainerOwner(credentials, id);
 
         Trainer trainer = trainerService.getTrainerById(id);
-        String username = trainer.getUser().getUserName();
-
-        authorizationService.requireTrainerOwner(credentials, username);
 
         trainerService.deactivateTrainer(trainer);
     }
@@ -222,21 +228,37 @@ public class GymCrmFacade {
     public List<TrainerResponseDto> getUnassignedTrainers(String username, Credentials credentials) {
         Objects.requireNonNull(username, USERNAME_CAN_NOT_BE_NULL);
 
-        authorizationService.requireTrainerOwner(credentials, username);
+        authorizationService.requireTraineeOwner(credentials, username);
 
-        List<Trainer> trainers = trainerService.getUnassignedTrainers(username);
+        List<Trainer> trainerEntities = trainerService.getUnassignedTrainers(username);
 
-        return trainers.stream()
+        return trainerEntities.stream()
                 .map(trainerMapper::toResponseDto)
                 .toList();
     }
 
-    public void authenticateTrainee(Credentials credentials) {
-        authorizationService.requireTrainee(credentials);
+    public List<TrainingResponseDto> getTraineeTrainings(String username, TraineeTrainingCriteria criteria, Credentials credentials) {
+        authorizationService.requireTraineeOwner(credentials, username);
+
+        return traineeService.findTrainings(username, criteria)
+                .stream()
+                .map(trainingMapper::toResponseDto)
+                .toList();
     }
 
-    public void authenticateTrainer(Credentials credentials) {
-        authorizationService.requireTrainer(credentials);
+    public List<TrainingResponseDto> getTrainerTrainings(String username, TrainerTrainingCriteria criteria, Credentials credentials) {
+        authorizationService.requireTrainerOwner(credentials, username);
+
+        return trainerService.findTrainings(username, criteria)
+                .stream()
+                .map(trainingMapper::toResponseDto)
+                .toList();
+    }
+
+    public void replaceTraineeTrainers(Long traineeId, Set<Long> trainerIds, Credentials credentials) {
+        authorizationService.requireTraineeOwner(credentials, traineeId);
+
+        traineeService.replaceTrainers(traineeId, trainerIds);
     }
 
     public void removeTraineeByUsername(String username, Credentials credentials) {

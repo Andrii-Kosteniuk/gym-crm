@@ -1,15 +1,18 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.TraineeRepository;
-import com.training.gym.dao.TrainerRepository;
-import com.training.gym.dao.TrainingRepository;
-import com.training.gym.dao.UserRepository;
-import com.training.gym.dto.trainee.TraineeTrainingCriteria;
+import com.training.gym.domain.Trainee;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.Training;
+import com.training.gym.domain.User;
+import com.training.gym.domain.criteria.TraineeTrainingFilter;
+import com.training.gym.domain.mapper.TrainingCriteriaMapper;
+import com.training.gym.dto.crireria.TraineeTrainingCriteria;
+import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.model.Trainee;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.Training;
-import com.training.gym.model.User;
+import com.training.gym.repository.TraineeRepository;
+import com.training.gym.repository.TrainerRepository;
+import com.training.gym.repository.TrainingRepository;
+import com.training.gym.repository.UserRepository;
 import com.training.gym.util.PasswordGenerator;
 import com.training.gym.util.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -30,20 +32,23 @@ public class TraineeServiceImpl implements TraineeService {
 
     public static final String TRAINEE_NOT_FOUND = "Trainee not found: ";
     private final TraineeRepository traineeRepository;
-    private final TrainerRepository trainerRepository;
     private final TrainingRepository trainingRepository;
+    private final TrainerRepository trainerRepository;
     private final UserRepository userRepository;
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
     private final PasswordEncoder passwordEncoder;
     private final CredentialService credentialService;
+    private final TrainingCriteriaMapper criteriaMapper;
 
     @Override
     @Transactional
     public RegistrationResult<Trainee> registerTrainee(Trainee trainee) {
         Objects.requireNonNull(trainee, "Trainee must not be null");
 
+
         User user = Objects.requireNonNull(trainee.getUser(), "User must not be null");
+
 
         String username = usernameGenerator.generate(
                 user.getFirstName(),
@@ -69,24 +74,21 @@ public class TraineeServiceImpl implements TraineeService {
     public Trainee updateTrainee(Trainee trainee) {
         Objects.requireNonNull(trainee, "Trainee must not be null");
 
-        User updatedUser = Objects.requireNonNull(trainee.getUser(), "User must not be null");
+        User user = Objects.requireNonNull(trainee.getUser());
 
-        String username = updatedUser.getUserName();
+        String username = user.getUserName();
 
-        Trainee existing = traineeRepository.findByUserName(username)
+        Trainee existingTrainee = traineeRepository.findByUserName(username)
                 .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND + username));
 
-        User existingUser = existing.getUser();
+        existingTrainee.getUser().setFirstName(user.getFirstName());
+        existingTrainee.getUser().setLastName(user.getLastName());
 
-        existingUser.setFirstName(updatedUser.getFirstName());
-        existingUser.setLastName(updatedUser.getLastName());
-
-        existing.setDateOfBirth(trainee.getDateOfBirth());
-        existing.setAddress(trainee.getAddress());
+        Trainee updatedTrainee = traineeRepository.update(existingTrainee);
 
         log.info("Trainee updated: username={}", username);
 
-        return existing;
+        return updatedTrainee;
     }
 
     @Override
@@ -113,10 +115,6 @@ public class TraineeServiceImpl implements TraineeService {
 
         User user = trainee.getUser();
 
-        for (Trainer trainer : new HashSet<>(trainee.getTrainers())) {
-            trainee.removeTrainer(trainer);
-        }
-
         traineeRepository.delete(trainee);
 
         userRepository.delete(user);
@@ -128,40 +126,48 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     @Transactional
     public void activateTrainee(Trainee trainee) {
-        Trainee existing = getTraineeById(Objects.requireNonNull(trainee).getId());
+        log.debug("Training to activate trainee profile: id={}", trainee.getId());
+        Objects.requireNonNull(trainee);
+
+        Trainee existing = getTraineeById(trainee.getId());
 
         if (Boolean.TRUE.equals(existing.getUser().getActive())) {
             throw new IllegalStateException("Trainee is already active");
         }
 
-        existing.getUser().setActive(true);
+        traineeRepository.activateTrainee(trainee);
         log.info("Trainee activated: id={}", existing.getId());
     }
 
     @Override
     @Transactional
     public void deactivateTrainee(Trainee trainee) {
-        Trainee existing = getTraineeById(Objects.requireNonNull(trainee).getId());
+        log.debug("Training to deactivate trainee profile: id={}", trainee.getId());
+        Objects.requireNonNull(trainee);
+
+        Trainee existing = getTraineeById(trainee.getId());
 
         if (Boolean.FALSE.equals(existing.getUser().getActive())) {
             throw new IllegalStateException("Trainee is already inactive");
         }
 
-        existing.getUser().setActive(false);
+        traineeRepository.deactivateTrainee(trainee);
         log.info("Trainee deactivated: id={}", existing.getId());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Training> findTrainings(String username, TraineeTrainingCriteria criteria) {
-        Objects.requireNonNull(criteria, "Criteria must not be null");
-        log.debug("Finding training by specified criteria");
 
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Trainee username must not be blank");
         }
 
-        return trainingRepository.findByTraineeUsername(username, criteria);
+        Objects.requireNonNull(criteria, "Criteria must not be null");
+
+        TraineeTrainingFilter filter = criteriaMapper.toFilter(criteria);
+
+        return trainingRepository.findByTraineeUsername(username.trim(), filter);
     }
 
     @Override
@@ -172,44 +178,34 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
-    public Set<Trainer> replaceTrainers(String username, Set<Long> ids) {
-        Objects.requireNonNull(ids, "Update DTO is required");
+    public void replaceTrainers(Long traineeId, Set<Long> trainerIds) {
+        Objects.requireNonNull(traineeId, "Trainee ID is required");
+        Objects.requireNonNull(trainerIds, "Trainer IDs are required");
 
-        if (username == null
-                || username.isBlank()
-                || ids.stream()
-                .anyMatch(id -> id == null || id <= 0)) {
-            throw new IllegalArgumentException("Invalid trainer assignment request");
+        if (trainerIds
+                .stream()
+                .anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("Trainer IDs must not contain null");
         }
 
-        Set<Trainer> trainers = new HashSet<>();
+        Trainee trainee = traineeRepository.findById(traineeId)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
 
-        for (Long trainerId : ids) {
+        if (Boolean.FALSE.equals(trainee.getUser().getActive())) {
+            throw new BusinessRuleViolationException("Cannot assign trainers to inactive trainee");
+        }
+
+        for (Long trainerId : trainerIds) {
             Trainer trainer = trainerRepository.findById(trainerId)
                     .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerId));
 
-            trainers.add(trainer);
-        }
-
-        Trainee trainee = findByUserName(username);
-
-        Set<Trainer> currentTrainers = new HashSet<>(trainee.getTrainers());
-
-        for (Trainer trainer : currentTrainers) {
-            if (!trainers.contains(trainer)) {
-                trainee.removeTrainer(trainer);
+            if (Boolean.FALSE.equals(trainer.getUser().getActive())) {
+                throw new BusinessRuleViolationException("Cannot assign inactive trainer: " + trainerId);
             }
         }
 
-        for (Trainer trainer : trainers) {
-            if (!currentTrainers.contains(trainer)) {
-                trainee.assignTrainer(trainer);
-            }
-        }
+        traineeRepository.replaceTrainers(traineeId, trainerIds);
 
-        log.info("Updated trainer assignments for trainee with ID={}", trainee.getId());
-
-        return Set.copyOf(trainee.getTrainers());
     }
 
 }

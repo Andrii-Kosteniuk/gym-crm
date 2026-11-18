@@ -1,27 +1,25 @@
-
 package com.training.gym.facade;
 
+import com.training.gym.domain.Trainee;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.User;
+import com.training.gym.domain.mapper.TraineeMapper;
+import com.training.gym.domain.mapper.TrainerMapper;
+import com.training.gym.domain.mapper.TrainingMapper;
 import com.training.gym.dto.auth.ChangePasswordDto;
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.trainer.TrainerResponseDto;
-import com.training.gym.mapper.TraineeMapper;
-import com.training.gym.mapper.TrainerMapper;
-import com.training.gym.mapper.TrainingMapper;
-import com.training.gym.model.Trainee;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.User;
-import com.training.gym.service.ProfileAuthorizationService;
-import com.training.gym.service.TraineeService;
-import com.training.gym.service.TrainerService;
-import com.training.gym.service.TrainingService;
-import com.training.gym.validation.TraineeDtoValidator;
-import com.training.gym.validation.TrainerDtoValidator;
-import com.training.gym.validation.TrainingDtoValidator;
+import com.training.gym.exception.AccessDeniedException;
+import com.training.gym.service.*;
+import com.training.gym.util.validation.TraineeDtoValidator;
+import com.training.gym.util.validation.TrainerDtoValidator;
+import com.training.gym.util.validation.TrainingDtoValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,817 +32,394 @@ class GymCrmFacadeAdditionalTest {
 
     private static final Long TRAINEE_ID = 1L;
     private static final Long TRAINER_ID = 2L;
-
     private static final String TRAINEE_USERNAME = "james.bond";
     private static final String TRAINER_USERNAME = "sara.connor";
 
     @Mock
     private TraineeService traineeService;
-
     @Mock
     private TrainerService trainerService;
-
     @Mock
     private TrainingService trainingService;
-
     @Mock
     private TraineeDtoValidator traineeValidator;
-
     @Mock
     private TrainerDtoValidator trainerValidator;
-
     @Mock
     private TrainingDtoValidator trainingValidator;
-
     @Mock
     private TraineeMapper traineeMapper;
-
     @Mock
     private TrainerMapper trainerMapper;
-
     @Mock
     private TrainingMapper trainingMapper;
-
     @Mock
     private ProfileAuthorizationService authorizationService;
+    @Mock
+    private CredentialService credentialService;
 
     @InjectMocks
     private GymCrmFacade facade;
 
     private Credentials traineeCredentials;
     private Credentials trainerCredentials;
-
     private Trainee jamesBond;
     private Trainer saraConnor;
 
     @BeforeEach
     void setUp() {
-        // Arrange
-        traineeCredentials = new Credentials(
-                TRAINEE_USERNAME, "Password123"
-        );
-
-        trainerCredentials = new Credentials(
-                TRAINER_USERNAME, "Password456"
-        );
+        traineeCredentials = new Credentials(TRAINEE_USERNAME, "Password123");
+        trainerCredentials = new Credentials(TRAINER_USERNAME, "Password456");
 
         User jamesUser = User.builder()
-                .id(TRAINEE_ID)
-                .firstName("James")
-                .lastName("Bond")
-                .userName(TRAINEE_USERNAME)
-                .active(true)
-                .build();
-
+                .id(TRAINEE_ID).firstName("James").lastName("Bond")
+                .userName(TRAINEE_USERNAME).active(true).build();
         User saraUser = User.builder()
-                .id(TRAINER_ID)
-                .firstName("Sara")
-                .lastName("Connor")
-                .userName(TRAINER_USERNAME)
-                .active(true)
-                .build();
+                .id(TRAINER_ID).firstName("Sara").lastName("Connor")
+                .userName(TRAINER_USERNAME).active(true).build();
 
-        jamesBond = Trainee.builder()
-                .id(TRAINEE_ID)
-                .user(jamesUser)
-                .build();
-
-        saraConnor = Trainer.builder()
-                .id(TRAINER_ID)
-                .user(saraUser)
-                .build();
-    }
-
-    @Nested
-    class AuthenticateTraineeTests {
-
-        @Test
-        void shouldAuthenticateTrainee() {
-            // Arrange
-            Credentials credentials = traineeCredentials;
-
-            // Act
-            facade.authenticateTrainee(credentials);
-
-            // Assert
-            verify(authorizationService)
-                    .requireTrainee(credentials);
-            verifyNoInteractions(
-                    traineeService, trainerService
-            );
-        }
-
-        @Test
-        void shouldPropagateAuthenticationFailure() {
-            // Arrange
-            Credentials credentials = traineeCredentials;
-
-            doThrow(new SecurityException("Access denied"))
-                    .when(authorizationService)
-                    .requireTrainee(credentials);
-
-            // Act
-            SecurityException exception = assertThrows(
-                    SecurityException.class,
-                    () -> facade.authenticateTrainee(credentials)
-            );
-
-            // Assert
-            assertEquals("Access denied", exception.getMessage());
-            verifyNoInteractions(
-                    traineeService, trainerService
-            );
-        }
-
-        @Test
-        void shouldDelegateNullCredentialsToAuthorizationService() {
-            // Arrange
-            Credentials credentials = null;
-
-            // Act
-            facade.authenticateTrainee(credentials);
-
-            // Assert
-            verify(authorizationService)
-                    .requireTrainee(null);
-        }
-    }
-
-    @Nested
-    class AuthenticateTrainerTests {
-
-        @Test
-        void shouldAuthenticateTrainer() {
-            // Arrange
-            Credentials credentials = trainerCredentials;
-
-            // Act
-            facade.authenticateTrainer(credentials);
-
-            // Assert
-            verify(authorizationService)
-                    .requireTrainer(credentials);
-            verifyNoInteractions(
-                    traineeService, trainerService
-            );
-        }
-
-        @Test
-        void shouldPropagateAuthenticationFailure() {
-            // Arrange
-            Credentials credentials = trainerCredentials;
-
-            doThrow(new SecurityException("Access denied"))
-                    .when(authorizationService)
-                    .requireTrainer(credentials);
-
-            // Act
-            SecurityException exception = assertThrows(
-                    SecurityException.class,
-                    () -> facade.authenticateTrainer(credentials)
-            );
-
-            // Assert
-            assertEquals("Access denied", exception.getMessage());
-            verifyNoInteractions(
-                    traineeService, trainerService
-            );
-        }
-
-        @Test
-        void shouldDelegateNullCredentialsToAuthorizationService() {
-            // Arrange
-            Credentials credentials = null;
-
-            // Act
-            facade.authenticateTrainer(credentials);
-
-            // Assert
-            verify(authorizationService)
-                    .requireTrainer(null);
-        }
+        jamesBond = Trainee.builder().id(TRAINEE_ID).user(jamesUser).build();
+        saraConnor = Trainer.builder().id(TRAINER_ID).user(saraUser).build();
     }
 
     @Nested
     class GetTraineeByIdTests {
-
         @Test
-        void shouldReturnTraineeAfterAuthorization() {
+        void shouldAuthorizeBeforeReadingAndMappingTrainee() {
             // Arrange
-            TraineeResponseDto expected = mock(
-                    TraineeResponseDto.class
-            );
-
-            when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenReturn(jamesBond);
-
-            when(traineeMapper.toResponseDto(jamesBond))
-                    .thenReturn(expected);
+            TraineeResponseDto expected = mock(TraineeResponseDto.class);
+            when(traineeService.getTraineeById(TRAINEE_ID)).thenReturn(jamesBond);
+            when(traineeMapper.toResponseDto(jamesBond)).thenReturn(expected);
 
             // Act
-            TraineeResponseDto actual = facade.getTraineeById(
-                    TRAINEE_ID, traineeCredentials
-            );
+            TraineeResponseDto actual = facade.getTraineeById(TRAINEE_ID, traineeCredentials);
 
             // Assert
             assertSame(expected, actual);
-
-            var inOrder = inOrder(
-                    traineeService,
-                    authorizationService,
-                    traineeMapper
-            );
-
-            inOrder.verify(traineeService)
-                    .getTraineeById(TRAINEE_ID);
-
-            inOrder.verify(authorizationService)
-                    .requireTraineeOwner(
-                            traineeCredentials, TRAINEE_USERNAME
-                    );
-
-            inOrder.verify(traineeMapper)
-                    .toResponseDto(jamesBond);
+            InOrder order = inOrder(authorizationService, traineeService, traineeMapper);
+            order.verify(authorizationService).requireTraineeOwner(traineeCredentials, TRAINEE_ID);
+            order.verify(traineeService).getTraineeById(TRAINEE_ID);
+            order.verify(traineeMapper).toResponseDto(jamesBond);
+            order.verifyNoMoreInteractions();
         }
 
         @Test
-        void shouldRejectNullTraineeId() {
+        void shouldNotReadTraineeWhenAuthorizationFails() {
             // Arrange
-            Long id = null;
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService).requireTraineeOwner(traineeCredentials, TRAINEE_ID);
 
             // Act
-            NullPointerException exception = assertThrows(
-                    NullPointerException.class,
-                    () -> facade.getTraineeById(
-                            id, traineeCredentials
-                    )
-            );
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.getTraineeById(TRAINEE_ID, traineeCredentials));
 
             // Assert
-            assertEquals(
-                    GymCrmFacade.ID_CAN_NOT_BE_NULL,
-                    exception.getMessage()
-            );
-
-            verifyNoInteractions(
-                    traineeService,
-                    authorizationService,
-                    traineeMapper
-            );
+            verifyNoInteractions(traineeService, traineeMapper);
         }
 
         @Test
-        void shouldNotMapTraineeWhenAuthorizationFails() {
+        void shouldNotMapTraineeWhenLookupFails() {
             // Arrange
             when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenReturn(jamesBond);
+                    .thenThrow(new IllegalArgumentException("Not found"));
 
-            doThrow(new SecurityException("Access denied"))
-                    .when(authorizationService)
-                    .requireTraineeOwner(
-                            traineeCredentials, TRAINEE_USERNAME
-                    );
+            // Act
+            assertThrows(IllegalArgumentException.class,
+                    () -> facade.getTraineeById(TRAINEE_ID, traineeCredentials));
 
-            // Act & Assert
-            assertThrows(
-                    SecurityException.class,
-                    () -> facade.getTraineeById(
-                            TRAINEE_ID, traineeCredentials
-                    )
-            );
-
+            // Assert
+            InOrder order = inOrder(authorizationService, traineeService);
+            order.verify(authorizationService).requireTraineeOwner(traineeCredentials, TRAINEE_ID);
+            order.verify(traineeService).getTraineeById(TRAINEE_ID);
             verifyNoInteractions(traineeMapper);
-        }
-
-        @Test
-        void shouldNotAuthorizeWhenTraineeLookupFails() {
-            // Arrange
-            when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenThrow(
-                            new IllegalArgumentException("Not found")
-                    );
-
-            // Act & Assert
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> facade.getTraineeById(
-                            TRAINEE_ID, traineeCredentials
-                    )
-            );
-
-            verifyNoInteractions(
-                    authorizationService, traineeMapper
-            );
         }
     }
 
     @Nested
     class GetTrainerByIdTests {
-
         @Test
-        void shouldReturnTrainerAfterAuthorization() {
+        void shouldAuthorizeBeforeReadingAndMappingTrainer() {
             // Arrange
-            TrainerResponseDto expected = mock(
-                    TrainerResponseDto.class
-            );
-
-            when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenReturn(saraConnor);
-
-            when(trainerMapper.toResponseDto(saraConnor))
-                    .thenReturn(expected);
+            TrainerResponseDto expected = mock(TrainerResponseDto.class);
+            when(trainerService.getTrainerById(TRAINER_ID)).thenReturn(saraConnor);
+            when(trainerMapper.toResponseDto(saraConnor)).thenReturn(expected);
 
             // Act
-            TrainerResponseDto actual = facade.getTrainerById(
-                    TRAINER_ID, trainerCredentials
-            );
+            TrainerResponseDto actual = facade.getTrainerById(TRAINER_ID, trainerCredentials);
 
             // Assert
             assertSame(expected, actual);
-
-            var inOrder = inOrder(
-                    trainerService,
-                    authorizationService,
-                    trainerMapper
-            );
-
-            inOrder.verify(trainerService)
-                    .getTrainerById(TRAINER_ID);
-
-            inOrder.verify(authorizationService)
-                    .requireTrainerOwner(
-                            trainerCredentials, TRAINER_USERNAME
-                    );
-
-            inOrder.verify(trainerMapper)
-                    .toResponseDto(saraConnor);
+            InOrder order = inOrder(authorizationService, trainerService, trainerMapper);
+            order.verify(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_ID);
+            order.verify(trainerService).getTrainerById(TRAINER_ID);
+            order.verify(trainerMapper).toResponseDto(saraConnor);
+            order.verifyNoMoreInteractions();
         }
 
         @Test
-        void shouldRejectNullTrainerId() {
+        void shouldNotReadTrainerWhenAuthorizationFails() {
             // Arrange
-            Long id = null;
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_ID);
 
-            // Act & Assert
-            assertThrows(
-                    NullPointerException.class,
-                    () -> facade.getTrainerById(
-                            id, trainerCredentials
-                    )
-            );
+            // Act
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.getTrainerById(TRAINER_ID, trainerCredentials));
 
-            verifyNoInteractions(
-                    trainerService,
-                    authorizationService,
-                    trainerMapper
-            );
+            // Assert
+            verifyNoInteractions(trainerService, trainerMapper);
         }
 
         @Test
-        void shouldNotMapTrainerWhenAuthorizationFails() {
+        void shouldNotMapTrainerWhenLookupFails() {
             // Arrange
             when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenReturn(saraConnor);
+                    .thenThrow(new IllegalArgumentException("Not found"));
 
-            doThrow(new SecurityException("Access denied"))
-                    .when(authorizationService)
-                    .requireTrainerOwner(
-                            trainerCredentials, TRAINER_USERNAME
-                    );
+            // Act
+            assertThrows(IllegalArgumentException.class,
+                    () -> facade.getTrainerById(TRAINER_ID, trainerCredentials));
 
-            // Act & Assert
-            assertThrows(
-                    SecurityException.class,
-                    () -> facade.getTrainerById(
-                            TRAINER_ID, trainerCredentials
-                    )
-            );
-
+            // Assert
+            InOrder order = inOrder(authorizationService, trainerService);
+            order.verify(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_ID);
+            order.verify(trainerService).getTrainerById(TRAINER_ID);
             verifyNoInteractions(trainerMapper);
-        }
-
-        @Test
-        void shouldNotAuthorizeWhenTrainerLookupFails() {
-            // Arrange
-            when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenThrow(
-                            new IllegalArgumentException("Not found")
-                    );
-
-            // Act & Assert
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> facade.getTrainerById(
-                            TRAINER_ID, trainerCredentials
-                    )
-            );
-
-            verifyNoInteractions(
-                    authorizationService, trainerMapper
-            );
         }
     }
 
     @Nested
     class GetTrainerByUsernameTests {
-
         @Test
-        void shouldReturnTrainerByUsername() {
+        void shouldAuthorizeBeforeReadingTrainerByUsername() {
             // Arrange
-            TrainerResponseDto expected = mock(
-                    TrainerResponseDto.class
-            );
-
-            when(trainerService.findByUserName(TRAINER_USERNAME))
-                    .thenReturn(saraConnor);
-
-            when(trainerMapper.toResponseDto(saraConnor))
-                    .thenReturn(expected);
+            TrainerResponseDto expected = mock(TrainerResponseDto.class);
+            when(trainerService.findByUserName(TRAINER_USERNAME)).thenReturn(saraConnor);
+            when(trainerMapper.toResponseDto(saraConnor)).thenReturn(expected);
 
             // Act
-            TrainerResponseDto actual =
-                    facade.getTrainerByUserName(
-                            TRAINER_USERNAME, trainerCredentials
-                    );
+            TrainerResponseDto actual = facade.getTrainerByUserName(TRAINER_USERNAME, trainerCredentials);
 
             // Assert
             assertSame(expected, actual);
-
-            var inOrder = inOrder(
-                    trainerService,
-                    authorizationService,
-                    trainerMapper
-            );
-
-            inOrder.verify(trainerService)
-                    .findByUserName(TRAINER_USERNAME);
-
-            inOrder.verify(authorizationService)
-                    .requireTrainerOwner(
-                            trainerCredentials, TRAINER_USERNAME
-                    );
-
-            inOrder.verify(trainerMapper)
-                    .toResponseDto(saraConnor);
+            InOrder order = inOrder(authorizationService, trainerService, trainerMapper);
+            order.verify(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_USERNAME);
+            order.verify(trainerService).findByUserName(TRAINER_USERNAME);
+            order.verify(trainerMapper).toResponseDto(saraConnor);
+            order.verifyNoMoreInteractions();
         }
 
         @Test
-        void shouldRejectNullUsername() {
+        void shouldRejectNullUsernameBeforeCallingDependencies() {
             // Arrange
             String username = null;
 
-            // Act & Assert
-            assertThrows(
-                    NullPointerException.class,
-                    () -> facade.getTrainerByUserName(
-                            username, trainerCredentials
-                    )
-            );
+            // Act
+            NullPointerException exception = assertThrows(NullPointerException.class,
+                    () -> facade.getTrainerByUserName(username, trainerCredentials));
 
-            verifyNoInteractions(
-                    trainerService,
-                    authorizationService,
-                    trainerMapper
-            );
+            // Assert
+            assertEquals(GymCrmFacade.USERNAME_CAN_NOT_BE_NULL, exception.getMessage());
+            verifyNoInteractions(authorizationService, trainerService, trainerMapper);
         }
 
         @Test
-        void shouldNotMapTrainerWhenAuthorizationFails() {
+        void shouldNotReadTrainerWhenAuthorizationFails() {
+            // Arrange
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_USERNAME);
+
+            // Act
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.getTrainerByUserName(TRAINER_USERNAME, trainerCredentials));
+
+            // Assert
+            verifyNoInteractions(trainerService, trainerMapper);
+        }
+
+        @Test
+        void shouldNotMapTrainerWhenUsernameLookupFails() {
             // Arrange
             when(trainerService.findByUserName(TRAINER_USERNAME))
-                    .thenReturn(saraConnor);
+                    .thenThrow(new IllegalArgumentException("Not found"));
 
-            doThrow(new SecurityException("Access denied"))
-                    .when(authorizationService)
-                    .requireTrainerOwner(
-                            trainerCredentials, TRAINER_USERNAME
-                    );
+            // Act
+            assertThrows(IllegalArgumentException.class,
+                    () -> facade.getTrainerByUserName(TRAINER_USERNAME, trainerCredentials));
 
-            // Act & Assert
-            assertThrows(
-                    SecurityException.class,
-                    () -> facade.getTrainerByUserName(
-                            TRAINER_USERNAME, trainerCredentials
-                    )
-            );
-
+            // Assert
+            InOrder order = inOrder(authorizationService, trainerService);
+            order.verify(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_USERNAME);
+            order.verify(trainerService).findByUserName(TRAINER_USERNAME);
             verifyNoInteractions(trainerMapper);
-        }
-
-        @Test
-        void shouldNotAuthorizeWhenUsernameLookupFails() {
-            // Arrange
-            when(trainerService.findByUserName(TRAINER_USERNAME))
-                    .thenThrow(
-                            new IllegalArgumentException("Not found")
-                    );
-
-            // Act & Assert
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> facade.getTrainerByUserName(
-                            TRAINER_USERNAME, trainerCredentials
-                    )
-            );
-
-            verifyNoInteractions(
-                    authorizationService, trainerMapper
-            );
         }
     }
 
     @Nested
     class ChangeTrainerPasswordTests {
-
         @Test
-        void shouldChangeTrainerPasswordAfterAuthorization() {
+        void shouldAuthorizeBeforeChangingPassword() {
             // Arrange
-            ChangePasswordDto dto = new ChangePasswordDto(
-                    "OldPassword123", "NewPassword123"
-            );
+            ChangePasswordDto dto = new ChangePasswordDto("OldPassword123", "NewPassword123");
 
             // Act
-            facade.changeTrainerPassword(
-                    TRAINER_USERNAME, dto, trainerCredentials
-            );
+            facade.changeTrainerPassword(TRAINER_USERNAME, dto, trainerCredentials);
 
             // Assert
-            var inOrder = inOrder(
-                    authorizationService, trainerService
-            );
-
-            inOrder.verify(authorizationService)
-                    .requireTrainerOwner(
-                            trainerCredentials, TRAINER_USERNAME
-                    );
-
-            inOrder.verify(trainerService)
-                    .changePassword(
-                            TRAINER_USERNAME,
-                            "OldPassword123",
-                            "NewPassword123"
-                    );
+            InOrder order = inOrder(authorizationService, trainerService);
+            order.verify(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_USERNAME);
+            order.verify(trainerService).changePassword(
+                    TRAINER_USERNAME, "OldPassword123", "NewPassword123");
+            order.verifyNoMoreInteractions();
         }
 
         @Test
-        void shouldRejectNullPasswordChangeDto() {
+        void shouldRejectNullPasswordChangeDtoBeforeAuthorization() {
             // Arrange
             ChangePasswordDto dto = null;
 
-            // Act & Assert
-            assertThrows(
-                    NullPointerException.class,
-                    () -> facade.changeTrainerPassword(
-                            TRAINER_USERNAME, dto, trainerCredentials
-                    )
-            );
+            // Act
+            NullPointerException exception = assertThrows(NullPointerException.class,
+                    () -> facade.changeTrainerPassword(TRAINER_USERNAME, dto, trainerCredentials));
 
-            verifyNoInteractions(
-                    authorizationService, trainerService
-            );
+            // Assert
+            assertEquals("Password change DTO is required", exception.getMessage());
+            verifyNoInteractions(authorizationService, trainerService);
         }
 
         @Test
         void shouldNotChangePasswordWhenAuthorizationFails() {
             // Arrange
-            ChangePasswordDto dto = new ChangePasswordDto(
-                    "OldPassword123", "NewPassword123"
-            );
+            ChangePasswordDto dto = new ChangePasswordDto("OldPassword123", "NewPassword123");
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_USERNAME);
 
-            doThrow(new SecurityException("Access denied"))
-                    .when(authorizationService)
-                    .requireTrainerOwner(
-                            trainerCredentials, TRAINER_USERNAME
-                    );
+            // Act
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.changeTrainerPassword(TRAINER_USERNAME, dto, trainerCredentials));
 
-            // Act & Assert
-            assertThrows(
-                    SecurityException.class,
-                    () -> facade.changeTrainerPassword(
-                            TRAINER_USERNAME, dto, trainerCredentials
-                    )
-            );
-
+            // Assert
             verifyNoInteractions(trainerService);
         }
 
         @Test
-        void shouldPropagatePasswordChangeFailure() {
+        void shouldPropagatePasswordChangeFailureAfterAuthorization() {
             // Arrange
-            ChangePasswordDto dto = new ChangePasswordDto(
-                    "OldPassword123", "NewPassword123"
-            );
-
+            ChangePasswordDto dto = new ChangePasswordDto("OldPassword123", "NewPassword123");
             doThrow(new IllegalArgumentException("Invalid password"))
-                    .when(trainerService)
-                    .changePassword(
-                            TRAINER_USERNAME,
-                            "OldPassword123",
-                            "NewPassword123"
-                    );
+                    .when(trainerService).changePassword(
+                            TRAINER_USERNAME, "OldPassword123", "NewPassword123");
 
-            // Act & Assert
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> facade.changeTrainerPassword(
-                            TRAINER_USERNAME, dto, trainerCredentials
-                    )
-            );
+            // Act
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                    () -> facade.changeTrainerPassword(TRAINER_USERNAME, dto, trainerCredentials));
 
-            verify(authorizationService)
-                    .requireTrainerOwner(
-                            trainerCredentials, TRAINER_USERNAME
-                    );
+            // Assert
+            assertEquals("Invalid password", exception.getMessage());
+            InOrder order = inOrder(authorizationService, trainerService);
+            order.verify(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_USERNAME);
+            order.verify(trainerService).changePassword(
+                    TRAINER_USERNAME, "OldPassword123", "NewPassword123");
         }
     }
 
     @Nested
     class DeactivateTraineeTests {
-
         @Test
-        void shouldDeactivateTraineeAfterAuthorization() {
+        void shouldDeactivateTraineeOnlyAfterOwnerCheck() {
             // Arrange
-            when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenReturn(jamesBond);
+            when(traineeService.getTraineeById(TRAINEE_ID)).thenReturn(jamesBond);
 
             // Act
-            facade.deActivateTrainee(
-                    TRAINEE_ID, traineeCredentials
-            );
+            facade.deActivateTrainee(TRAINEE_ID, traineeCredentials);
 
             // Assert
-            var inOrder = inOrder(
-                    traineeService, authorizationService
-            );
-
-            inOrder.verify(traineeService)
-                    .getTraineeById(TRAINEE_ID);
-
-            inOrder.verify(authorizationService)
-                    .requireTraineeOwner(
-                            traineeCredentials, TRAINEE_USERNAME
-                    );
-
-            inOrder.verify(traineeService)
-                    .deactivateTrainee(jamesBond);
+            InOrder order = inOrder(authorizationService, traineeService);
+            order.verify(authorizationService).requireTraineeOwner(traineeCredentials, TRAINEE_ID);
+            order.verify(traineeService).getTraineeById(TRAINEE_ID);
+            order.verify(traineeService).deactivateTrainee(jamesBond);
+            order.verifyNoMoreInteractions();
         }
 
         @Test
-        void shouldRejectNullTraineeId() {
+        void shouldNotReadOrDeactivateTraineeWhenAuthorizationFails() {
             // Arrange
-            Long id = null;
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService).requireTraineeOwner(traineeCredentials, TRAINEE_ID);
 
-            // Act & Assert
-            assertThrows(
-                    NullPointerException.class,
-                    () -> facade.deActivateTrainee(
-                            id, traineeCredentials
-                    )
-            );
+            // Act
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.deActivateTrainee(TRAINEE_ID, traineeCredentials));
 
-            verifyNoInteractions(
-                    traineeService, authorizationService
-            );
-        }
-
-        @Test
-        void shouldNotDeactivateUnauthorizedTrainee() {
-            // Arrange
-            when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenReturn(jamesBond);
-
-            doThrow(new SecurityException("Access denied"))
-                    .when(authorizationService)
-                    .requireTraineeOwner(
-                            traineeCredentials, TRAINEE_USERNAME
-                    );
-
-            // Act & Assert
-            assertThrows(
-                    SecurityException.class,
-                    () -> facade.deActivateTrainee(
-                            TRAINEE_ID, traineeCredentials
-                    )
-            );
-
-            verify(traineeService, never())
-                    .deactivateTrainee(any());
+            // Assert
+            verifyNoInteractions(traineeService);
         }
 
         @Test
         void shouldNotDeactivateMissingTrainee() {
             // Arrange
             when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenThrow(
-                            new IllegalArgumentException("Not found")
-                    );
+                    .thenThrow(new IllegalArgumentException("Not found"));
 
-            // Act & Assert
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> facade.deActivateTrainee(
-                            TRAINEE_ID, traineeCredentials
-                    )
-            );
+            // Act
+            assertThrows(IllegalArgumentException.class,
+                    () -> facade.deActivateTrainee(TRAINEE_ID, traineeCredentials));
 
-            verifyNoInteractions(authorizationService);
-            verify(traineeService, never())
-                    .deactivateTrainee(any());
+            // Assert
+            InOrder order = inOrder(authorizationService, traineeService);
+            order.verify(authorizationService).requireTraineeOwner(traineeCredentials, TRAINEE_ID);
+            order.verify(traineeService).getTraineeById(TRAINEE_ID);
+            verify(traineeService, never()).deactivateTrainee(any());
         }
     }
 
     @Nested
     class DeactivateTrainerTests {
-
         @Test
-        void shouldDeactivateTrainerAfterAuthorization() {
+        void shouldDeactivateTrainerOnlyAfterOwnerCheck() {
             // Arrange
-            when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenReturn(saraConnor);
+            when(trainerService.getTrainerById(TRAINER_ID)).thenReturn(saraConnor);
 
             // Act
-            facade.deActivateTrainer(
-                    TRAINER_ID, trainerCredentials
-            );
+            facade.deActivateTrainer(TRAINER_ID, trainerCredentials);
 
             // Assert
-            var inOrder = inOrder(
-                    trainerService, authorizationService
-            );
-
-            inOrder.verify(trainerService)
-                    .getTrainerById(TRAINER_ID);
-
-            inOrder.verify(authorizationService)
-                    .requireTrainerOwner(
-                            trainerCredentials, TRAINER_USERNAME
-                    );
-
-            inOrder.verify(trainerService)
-                    .deactivateTrainer(saraConnor);
+            InOrder order = inOrder(authorizationService, trainerService);
+            order.verify(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_ID);
+            order.verify(trainerService).getTrainerById(TRAINER_ID);
+            order.verify(trainerService).deactivateTrainer(saraConnor);
+            order.verifyNoMoreInteractions();
         }
 
         @Test
-        void shouldRejectNullTrainerId() {
+        void shouldNotReadOrDeactivateTrainerWhenAuthorizationFails() {
             // Arrange
-            Long id = null;
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_ID);
 
-            // Act & Assert
-            assertThrows(
-                    NullPointerException.class,
-                    () -> facade.deActivateTrainer(
-                            id, trainerCredentials
-                    )
-            );
+            // Act
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.deActivateTrainer(TRAINER_ID, trainerCredentials));
 
-            verifyNoInteractions(
-                    trainerService, authorizationService
-            );
-        }
-
-        @Test
-        void shouldNotDeactivateUnauthorizedTrainer() {
-            // Arrange
-            when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenReturn(saraConnor);
-
-            doThrow(new SecurityException("Access denied"))
-                    .when(authorizationService)
-                    .requireTrainerOwner(
-                            trainerCredentials, TRAINER_USERNAME
-                    );
-
-            // Act & Assert
-            assertThrows(
-                    SecurityException.class,
-                    () -> facade.deActivateTrainer(
-                            TRAINER_ID, trainerCredentials
-                    )
-            );
-
-            verify(trainerService, never())
-                    .deactivateTrainer(any());
+            // Assert
+            verifyNoInteractions(trainerService);
         }
 
         @Test
         void shouldNotDeactivateMissingTrainer() {
             // Arrange
             when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenThrow(
-                            new IllegalArgumentException("Not found")
-                    );
+                    .thenThrow(new IllegalArgumentException("Not found"));
 
-            // Act & Assert
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> facade.deActivateTrainer(
-                            TRAINER_ID, trainerCredentials
-                    )
-            );
+            // Act
+            assertThrows(IllegalArgumentException.class,
+                    () -> facade.deActivateTrainer(TRAINER_ID, trainerCredentials));
 
-            verifyNoInteractions(authorizationService);
-            verify(trainerService, never())
-                    .deactivateTrainer(any());
+            // Assert
+            InOrder order = inOrder(authorizationService, trainerService);
+            order.verify(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_ID);
+            order.verify(trainerService).getTrainerById(TRAINER_ID);
+            verify(trainerService, never()).deactivateTrainer(any());
         }
     }
 }

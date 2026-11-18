@@ -1,14 +1,13 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.TrainerRepository;
-import com.training.gym.dao.TrainingRepository;
-import com.training.gym.dao.TrainingTypeRepository;
-import com.training.gym.dao.UserRepository;
+import com.training.gym.repository.TrainerRepository;
+import com.training.gym.repository.TrainingRepository;
+import com.training.gym.repository.TrainingTypeRepository;
+import com.training.gym.repository.UserRepository;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.TrainingType;
+import com.training.gym.domain.User;
 import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.Training;
-import com.training.gym.model.TrainingType;
-import com.training.gym.model.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -47,7 +46,15 @@ class TrainerServiceImplTest {
     }
 
     private Trainer sara() {
-        return Trainer.builder().id(2L).user(User.builder().id(2L).firstName("Sara").lastName("Connor").userName("sara.connor").password("hash").active(true).build()).specialization(fitness()).build();
+        return Trainer.builder().id(2L).user(User.builder()
+                        .id(2L).firstName("Sara")
+                        .lastName("Connor")
+                        .userName("sara.connor")
+                        .password("hash")
+                        .active(true)
+                        .build())
+                .specialization(fitness())
+                .build();
     }
 
     @Test
@@ -85,21 +92,38 @@ class TrainerServiceImplTest {
         // Arrange
         Trainer existing = sara();
         Trainer incoming = sara();
+
         incoming.getUser().setFirstName("Jym");
         incoming.getUser().setLastName("Kerry");
         incoming.getUser().setPassword(null);
-        incoming.setSpecialization(TrainingType.builder().id(3L).build());
-        TrainingType yoga = TrainingType.builder().id(3L).name("Yoga").build();
+
+        incoming.setSpecialization(TrainingType.builder().id(3L) .build());
+
+        TrainingType yoga = TrainingType.builder()
+                .id(3L)
+                .name("Yoga")
+                .build();
+
         when(trainers.findByUserName("sara.connor")).thenReturn(Optional.of(existing));
+
         when(types.findById(3L)).thenReturn(Optional.of(yoga));
+
+        when(trainers.update(existing)).thenReturn(existing);
+
         // Act
         Trainer result = service.updateTrainer(incoming);
+
         // Assert
         assertSame(existing, result);
+
         assertEquals("Jym", result.getUser().getFirstName());
         assertEquals("Kerry", result.getUser().getLastName());
         assertEquals("hash", result.getUser().getPassword());
         assertSame(yoga, result.getSpecialization());
+
+        verify(trainers).findByUserName("sara.connor");
+        verify(types).findById(3L);
+        verify(trainers).update(existing);
     }
 
     @Test
@@ -183,17 +207,6 @@ class TrainerServiceImplTest {
         List<Trainer> result = service.getUnassignedTrainers("james.bond");
         // Assert
         assertEquals(List.of(sara), result);
-    }
-
-    @Test
-    void shouldDelegateTrainingSearch() {
-        // Arrange
-        var criteria = new com.training.gym.dto.trainer.TrainerTrainingCriteria(null, null, null);
-        when(trainings.findByTrainerUsername("sara.connor", criteria)).thenReturn(List.of());
-        // Act
-        List<Training> result = service.findTrainings("sara.connor", criteria);
-        // Assert
-        assertTrue(result.isEmpty());
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.training.gym.validation;
 
 import com.training.gym.dto.training.CreateTrainingDto;
+import com.training.gym.util.validation.TrainingDtoValidator;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;

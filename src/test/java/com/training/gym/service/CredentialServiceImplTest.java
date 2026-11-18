@@ -1,8 +1,8 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.UserRepository;
+import com.training.gym.repository.UserRepository;
+import com.training.gym.domain.User;
 import com.training.gym.exception.AuthenticationFailedException;
-import com.training.gym.model.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -80,7 +80,11 @@ class CredentialServiceImplTest {
         // Act
         service.changePassword("james.bond", "old-secret", "new-secret");
         // Assert
-        assertEquals("new-hash", james.getPassword());
+        verify(encoder).matches("old-secret", "hash");
+        verify(encoder).matches("new-secret", "hash");
+        verify(encoder).encode("new-secret");
+
+        assertEquals("hash", james.getPassword());
         assertEquals("james.bond", james.getUserName());
     }
 

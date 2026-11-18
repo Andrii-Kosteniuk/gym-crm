@@ -1,5 +1,12 @@
 package com.training.gym.facade;
 
+import com.training.gym.domain.Trainee;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.Training;
+import com.training.gym.domain.User;
+import com.training.gym.domain.mapper.TraineeMapper;
+import com.training.gym.domain.mapper.TrainerMapper;
+import com.training.gym.domain.mapper.TrainingMapper;
 import com.training.gym.dto.auth.ChangePasswordDto;
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.auth.RegistrationResponseDto;
@@ -8,19 +15,13 @@ import com.training.gym.dto.trainee.UpdateTraineeDto;
 import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
 import com.training.gym.dto.training.CreateTrainingDto;
-import com.training.gym.mapper.TraineeMapper;
-import com.training.gym.mapper.TrainerMapper;
-import com.training.gym.mapper.TrainingMapper;
-import com.training.gym.model.Trainee;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.Training;
-import com.training.gym.model.User;
 import com.training.gym.service.*;
-import com.training.gym.validation.TraineeDtoValidator;
-import com.training.gym.validation.TrainerDtoValidator;
-import com.training.gym.validation.TrainingDtoValidator;
+import com.training.gym.util.validation.TraineeDtoValidator;
+import com.training.gym.util.validation.TrainerDtoValidator;
+import com.training.gym.util.validation.TrainingDtoValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,9 +35,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class GymCrmFacadeTest {
     @Mock
-    TraineeService trainees;
+    TraineeService traineeService;
     @Mock
-    TrainerService trainers;
+    TrainerService trainerService;
     @Mock
     TrainingService trainings;
     @Mock
@@ -53,6 +54,8 @@ class GymCrmFacadeTest {
     TrainingMapper trainingMapper;
     @Mock
     ProfileAuthorizationService authorization;
+    @Mock
+    CredentialService credentialService;
     @InjectMocks
     GymCrmFacade facade;
 
@@ -60,12 +63,28 @@ class GymCrmFacadeTest {
         return new Credentials("james.bond", "secret");
     }
 
+    private Credentials sarahCredentials() {
+        return new Credentials("sarah.connor", "secret");
+    }
+
     private Trainee james() {
-        return Trainee.builder().id(1L).user(User.builder().id(1L).firstName("James").lastName("Bond").userName("james.bond").build()).build();
+        return Trainee.builder().id(1L)
+                .user(User.builder()
+                        .id(1L)
+                        .firstName("James")
+                        .lastName("Bond")
+                        .userName("james.bond")
+                        .build()).build();
     }
 
     private Trainer sara() {
-        return Trainer.builder().id(2L).user(User.builder().id(2L).firstName("Sara").lastName("Connor").userName("sara.connor").build()).build();
+        return Trainer.builder().id(2L)
+                .user(User.builder()
+                        .id(2L)
+                        .firstName("Sara")
+                        .lastName("Connor")
+                        .userName("sara.connor")
+                        .build()).build();
     }
 
     @Test
@@ -74,7 +93,7 @@ class GymCrmFacadeTest {
         CreateTraineeDto dto = new CreateTraineeDto("James", "Bond", LocalDate.of(1990, 4, 13), null);
         Trainee james = james();
         when(traineeMapper.toTrainee(dto)).thenReturn(james);
-        when(trainees.registerTrainee(james)).thenReturn(new RegistrationResult<>(james, "raw-password"));
+        when(traineeService.registerTrainee(james)).thenReturn(new RegistrationResult<>(james, "raw-password"));
         // Act
         RegistrationResponseDto result = facade.createTrainee(dto);
         // Assert
@@ -90,7 +109,7 @@ class GymCrmFacadeTest {
         CreateTrainerDto dto = new CreateTrainerDto("Sara", "Connor", 1L);
         Trainer sara = sara();
         when(trainerMapper.toTrainer(dto)).thenReturn(sara);
-        when(trainers.registerTrainer(sara)).thenReturn(new RegistrationResult<>(sara, "raw-password"));
+        when(trainerService.registerTrainer(sara)).thenReturn(new RegistrationResult<>(sara, "raw-password"));
         // Act
         RegistrationResponseDto result = facade.createTrainer(dto);
         // Assert
@@ -102,91 +121,176 @@ class GymCrmFacadeTest {
     @Test
     void shouldAuthorizeBeforeReadingTrainee() {
         // Arrange
+        String username = "james.bond";
         Credentials credentials = jamesCredentials();
         Trainee james = james();
-        when(trainees.findByUserName("james.bond")).thenReturn(james);
+
+        when(traineeService.findByUserName(username)).thenReturn(james);
+
         // Act
-        facade.getTraineeByUserName("james.bond", credentials);
+        facade.getTraineeByUserName(username, credentials);
+
         // Assert
-        var order = inOrder(authorization, trainees);
-        order.verify(authorization).requireTraineeOwner(credentials, "james.bond");
-        order.verify(trainees).findByUserName("james.bond");
+        InOrder order = inOrder(authorization, traineeService);
+
+        order.verify(authorization).requireTraineeOwner(credentials, username);
+
+        order.verify(traineeService).findByUserName(username);
+
+        order.verifyNoMoreInteractions();
     }
 
     @Test
     void shouldAuthorizeBeforeUpdatingTrainee() {
         // Arrange
+        String username = "james.bond";
         Credentials credentials = jamesCredentials();
-        UpdateTraineeDto dto = new UpdateTraineeDto("James", "Bond", "james.bond", LocalDate.of(1990, 4, 13), null);
+
+        UpdateTraineeDto dto = new UpdateTraineeDto(
+                1L,
+                "James",
+                "Bond",
+                username
+        );
+
+        Trainee mappedTrainee = james();
+
+        when(traineeMapper.toUpdateTrainee(dto)).thenReturn(mappedTrainee);
+
+        when(traineeService.updateTrainee(mappedTrainee)).thenReturn(mappedTrainee);
+
         // Act
         facade.updateTrainee(dto, credentials);
+
         // Assert
-        verify(traineeValidator).validateUpdate(dto);
-        verify(authorization).requireTraineeOwner(credentials, "james.bond");
-        verify(traineeMapper).toUpdateTrainee(dto);
+        InOrder order = inOrder(authorization, traineeService);
+
+        order.verify(authorization).requireTraineeOwner(credentials, username);
+
+        order.verify(traineeService).updateTrainee(mappedTrainee);
+
+        order.verifyNoMoreInteractions();
     }
 
     @Test
     void shouldAuthorizeBeforeUpdatingTrainer() {
         // Arrange
-        Credentials credentials = new Credentials("sara.connor", "secret");
-        UpdateTrainerDto dto = new UpdateTrainerDto("Sara", "Connor", "sara.connor", 1L);
+        String username = "sarah.connor";
+        Credentials credentials = sarahCredentials();
+
+        UpdateTrainerDto dto = new UpdateTrainerDto(
+                "Sara",
+                "Connor",
+                username,
+                1L
+        );
+
+        Trainer mappedTrainer = sara();
+
+        when(trainerMapper.updateTrainer(dto)).thenReturn(mappedTrainer);
+
+        when(trainerService.updateTrainer(mappedTrainer)).thenReturn(mappedTrainer);
+
         // Act
         facade.updateTrainer(dto, credentials);
+
         // Assert
-        verify(trainerValidator).validateUpdate(dto);
-        verify(authorization).requireTrainerOwner(credentials, "sara.connor");
-        verify(trainerMapper).updateTrainer(dto);
+        InOrder order = inOrder(authorization, trainerService);
+
+        order.verify(authorization).requireTrainerOwner(credentials, username);
+
+        order.verify(trainerService).updateTrainer(mappedTrainer);
+
+        order.verifyNoMoreInteractions();
     }
 
     @Test
     void shouldAuthorizeBeforeDeletingTrainee() {
         // Arrange
+        String username = "james.bond";
         Credentials credentials = jamesCredentials();
+
         // Act
-        facade.removeTraineeByUsername("james.bond", credentials);
+        facade.removeTraineeByUsername(username, credentials);
+
         // Assert
-        var order = inOrder(authorization, trainees);
-        order.verify(authorization).requireTraineeOwner(credentials, "james.bond");
-        order.verify(trainees).removeTraineeByUsername("james.bond");
+        InOrder order = inOrder(authorization, traineeService);
+
+        order.verify(authorization).requireTraineeOwner(credentials, username);
+
+        order.verify(traineeService).removeTraineeByUsername(username);
+
+        order.verifyNoMoreInteractions();
     }
 
     @Test
-    void shouldAuthorizePasswordChange() {
+    void shouldAuthorizeBeforeChangingTraineePassword() {
         // Arrange
+        String username = "james.bond";
         Credentials credentials = jamesCredentials();
+
         ChangePasswordDto dto = new ChangePasswordDto("old", "new");
+
         // Act
-        facade.changeTraineePassword("james.bond", dto, credentials);
+        facade.changeTraineePassword(username, dto, credentials);
+
         // Assert
-        verify(authorization).requireTraineeOwner(credentials, "james.bond");
-        verify(trainees).changePassword("james.bond", "old", "new");
+        InOrder order = inOrder(authorization, traineeService);
+
+        order.verify(authorization).requireTraineeOwner(credentials, username);
+
+        order.verify(traineeService).changePassword(username, "old", "new");
+
+        order.verifyNoMoreInteractions();
     }
+
 
     @Test
     void shouldActivateTraineeOnlyAfterOwnerCheck() {
         // Arrange
+        Long traineeId = 1L;
         Credentials credentials = jamesCredentials();
         Trainee james = james();
-        when(trainees.getTraineeById(1L)).thenReturn(james);
+
+        when(traineeService.getTraineeById(traineeId)).thenReturn(james);
+
         // Act
-        facade.activateTrainee(1L, credentials);
+        facade.activateTrainee(traineeId, credentials);
+
         // Assert
-        verify(authorization).requireTraineeOwner(credentials, "james.bond");
-        verify(trainees).activateTrainee(james);
+        InOrder order = inOrder(authorization, traineeService);
+
+        order.verify(authorization).requireTraineeOwner(credentials, traineeId);
+
+        order.verify(traineeService).getTraineeById(traineeId);
+
+        order.verify(traineeService).activateTrainee(james);
+
+        order.verifyNoMoreInteractions();
     }
 
     @Test
     void shouldActivateTrainerOnlyAfterOwnerCheck() {
         // Arrange
+        Long trainerId = 2L;
         Credentials credentials = new Credentials("sara.connor", "secret");
         Trainer sara = sara();
-        when(trainers.getTrainerById(2L)).thenReturn(sara);
+
+        when(trainerService.getTrainerById(trainerId)).thenReturn(sara);
+
         // Act
-        facade.activateTrainer(2L, credentials);
+        facade.activateTrainer(trainerId, credentials);
+
         // Assert
-        verify(authorization).requireTrainerOwner(credentials, "sara.connor");
-        verify(trainers).activateTrainer(sara);
+        InOrder order = inOrder(authorization, trainerService);
+
+        order.verify(authorization).requireTrainerOwner(credentials, trainerId);
+
+        order.verify(trainerService).getTrainerById(trainerId);
+
+        order.verify(trainerService).activateTrainer(sara);
+
+        order.verifyNoMoreInteractions();
     }
 
     @Test
@@ -196,7 +300,7 @@ class GymCrmFacadeTest {
         Training training = Training.builder().build();
         when(trainingMapper.toTraining(dto)).thenReturn(training);
         // Act
-        facade.createTraining(dto);
+        facade.createTraining(dto, jamesCredentials());
         // Assert
         verify(trainingValidator).validateCreate(dto);
         verify(trainings).createTraining(training);
@@ -207,7 +311,7 @@ class GymCrmFacadeTest {
         // Arrange
         Long id = null;
         // Act / Assert
-        assertThrows(NullPointerException.class, () -> facade.getTrainingById(id));
+        assertThrows(NullPointerException.class, () -> facade.getTrainingById(id, jamesCredentials()));
         verifyNoInteractions(trainings);
     }
 

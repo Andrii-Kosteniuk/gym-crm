@@ -1,6 +1,7 @@
 package com.training.gym.service;
 
-import com.training.gym.model.User;
+
+import com.training.gym.domain.User;
 
 public interface CredentialService {
 

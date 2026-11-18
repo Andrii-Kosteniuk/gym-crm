@@ -1,8 +1,8 @@
 package com.training.gym.service;
 
-import com.training.gym.dto.trainer.TrainerTrainingCriteria;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.Training;
+import com.training.gym.domain.Trainer;
+import com.training.gym.domain.Training;
+import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 
 import java.util.List;
 

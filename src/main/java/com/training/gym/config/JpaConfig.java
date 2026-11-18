@@ -40,7 +40,7 @@ public class JpaConfig {
 
         factory.setDataSource(dataSource);
         factory.setJpaVendorAdapter(adapter);
-        factory.setPackagesToScan("com.training.gym.model");
+        factory.setPackagesToScan("com.training.gym.persistence");
         factory.setJpaProperties(properties);
 
         return factory;

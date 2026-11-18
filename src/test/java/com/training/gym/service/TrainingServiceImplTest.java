@@ -1,14 +1,11 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.TraineeRepository;
-import com.training.gym.dao.TrainerRepository;
-import com.training.gym.dao.TrainingRepository;
-import com.training.gym.dao.TrainingTypeRepository;
+import com.training.gym.domain.*;
 import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.model.Trainee;
-import com.training.gym.model.Trainer;
-import com.training.gym.model.Training;
-import com.training.gym.model.TrainingType;
+import com.training.gym.repository.TraineeRepository;
+import com.training.gym.repository.TrainerRepository;
+import com.training.gym.repository.TrainingRepository;
+import com.training.gym.repository.TrainingTypeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,39 +33,63 @@ class TrainingServiceImplTest {
     @InjectMocks
     TrainingServiceImpl service;
 
-    private Training input() {
-        return Training.builder().trainee(Trainee.builder().id(1L).build())
+    private Training training() {
+        return Training.builder()
+                .trainee(Trainee.builder().id(1L).build())
                 .trainer(Trainer.builder().id(2L).build())
-                .trainingType(TrainingType.builder().id(3L).build())
-                .trainingName("Fitness session").trainingDate(LocalDate.of(2026, 11, 15))
+                .trainingType(TrainingType.builder()
+                        .id(3L)
+                        .build())
+                .trainingName("Fitness session").trainingDate(LocalDate.now().plusDays(1))
                 .trainingDuration(Duration.ofMinutes(45)).build();
     }
 
     @Test
     void shouldPersistTrainingWithResolvedReferences() {
         // Arrange
-        Training input = input();
-        Trainee james = Trainee.builder().id(1L).build();
-        Trainer sara = Trainer.builder().id(2L).build();
-        TrainingType fitness = TrainingType.builder().id(3L).name("Fitness").build();
+        Training training = training();
+
+        TrainingType fitness = TrainingType.builder()
+                .id(3L)
+                .name("Fitness")
+                .build();
+
+        User user = User.builder()
+                .active(true)
+                .build();
+
+        Trainee james = Trainee.builder()
+                .id(1L)
+                .user(user)
+                .build();
+
+        Trainer sara = Trainer.builder()
+                .id(2L)
+                .user(user)
+                .specialization(fitness)
+                .build();
+
+
+
         when(trainees.findById(1L)).thenReturn(Optional.of(james));
         when(trainers.findById(2L)).thenReturn(Optional.of(sara));
         when(types.findById(3L)).thenReturn(Optional.of(fitness));
-        when(trainings.save(input)).thenReturn(input);
+
+        when(trainings.save(training)).thenReturn(training);
         // Act
-        Training result = service.createTraining(input);
+        Training result = service.createTraining(training);
         // Assert
-        assertSame(input, result);
+        assertSame(training, result);
         assertSame(james, result.getTrainee());
         assertSame(sara, result.getTrainer());
         assertSame(fitness, result.getTrainingType());
-        verify(trainings).save(input);
+        verify(trainings).save(training);
     }
 
     @Test
     void shouldRejectMissingTrainee() {
         // Arrange
-        Training input = input();
+        Training input = training();
         when(trainees.findById(1L)).thenReturn(Optional.empty());
         // Act / Assert
         assertThrows(EntityNotFoundException.class, () -> service.createTraining(input));
@@ -78,7 +99,7 @@ class TrainingServiceImplTest {
     @Test
     void shouldRejectMissingTrainer() {
         // Arrange
-        Training input = input();
+        Training input = training();
         when(trainees.findById(1L)).thenReturn(Optional.of(Trainee.builder().id(1L).build()));
         when(trainers.findById(2L)).thenReturn(Optional.empty());
         // Act / Assert
@@ -89,7 +110,7 @@ class TrainingServiceImplTest {
     @Test
     void shouldRejectMissingTrainingType() {
         // Arrange
-        Training input = input();
+        Training input = training();
         when(trainees.findById(1L)).thenReturn(Optional.of(Trainee.builder().id(1L).build()));
         when(trainers.findById(2L)).thenReturn(Optional.of(Trainer.builder().id(2L).build()));
         when(types.findById(3L)).thenReturn(Optional.empty());
@@ -101,7 +122,7 @@ class TrainingServiceImplTest {
     @Test
     void shouldFindTrainingById() {
         // Arrange
-        Training stored = input();
+        Training stored = training();
         when(trainings.findById(7L)).thenReturn(Optional.of(stored));
         // Act
         Training actual = service.getTrainingById(7L);
