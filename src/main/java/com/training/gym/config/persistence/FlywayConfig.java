@@ -1,4 +1,4 @@
-package com.training.gym.config;
+package com.training.gym.config.persistence;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;

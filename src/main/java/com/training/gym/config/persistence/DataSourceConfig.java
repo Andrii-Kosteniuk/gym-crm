@@ -1,4 +1,4 @@
-package com.training.gym.config;
+package com.training.gym.config.persistence;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;

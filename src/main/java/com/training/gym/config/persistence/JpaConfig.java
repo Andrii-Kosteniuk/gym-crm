@@ -1,4 +1,4 @@
-package com.training.gym.config;
+package com.training.gym.config.persistence;
 
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +40,7 @@ public class JpaConfig {
 
         factory.setDataSource(dataSource);
         factory.setJpaVendorAdapter(adapter);
-        factory.setPackagesToScan("com.training.gym.persistence");
+        factory.setPackagesToScan("com.training.gym.persistence.entity");
         factory.setJpaProperties(properties);
 
         return factory;

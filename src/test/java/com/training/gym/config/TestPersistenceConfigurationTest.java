@@ -1,5 +1,8 @@
 package com.training.gym.config;
 
+import com.training.gym.config.app.ApplicationPropertiesConfig;
+import com.training.gym.config.persistence.DataSourceConfig;
+import com.training.gym.config.persistence.FlywayConfig;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -8,7 +11,6 @@ import javax.sql.DataSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Boots only the test infrastructure: no production PostgreSQL dependency. */
 class TestPersistenceConfigurationTest {
     @Test
     void h2DataSourceAndFlywayStartWithTestProfile() throws Exception {

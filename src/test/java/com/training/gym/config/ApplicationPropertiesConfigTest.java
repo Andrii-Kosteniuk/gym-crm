@@ -1,5 +1,6 @@
 package com.training.gym.config;
 
+import com.training.gym.config.app.ApplicationPropertiesConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import static org.junit.jupiter.api.Assertions.*;
