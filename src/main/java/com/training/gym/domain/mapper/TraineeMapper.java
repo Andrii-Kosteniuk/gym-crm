@@ -27,6 +27,7 @@ public interface TraineeMapper {
     Trainee toTrainee(CreateTraineeDto dto);
 
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "user.firstName", source = "firstName")
     @Mapping(target = "user.lastName", source = "lastName")
     @Mapping(target = "user.userName", source = "userName")
