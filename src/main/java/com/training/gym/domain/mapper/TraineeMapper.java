@@ -32,8 +32,8 @@ public interface TraineeMapper {
     @Mapping(target = "user.userName", source = "userName")
     @Mapping(target = "user.password", ignore = true)
     @Mapping(target = "user.active", ignore = true)
-    @Mapping(target = "dateOfBirth", ignore = true)
-    @Mapping(target = "address", ignore = true)
+    @Mapping(target = "dateOfBirth", source = "dateOfBirth")
+    @Mapping(target = "address", source = "address")
     @Mapping(target = "trainers", ignore = true)
     @Mapping(target = "trainings", ignore = true)
     Trainee toUpdateTrainee(UpdateTraineeDto dto);
@@ -44,7 +44,5 @@ public interface TraineeMapper {
     @Mapping(target = "active", source = "user.active")
     TraineeResponseDto toResponseDto(Trainee trainee);
 
-    @Mapping(target = "buildNumber", source = "buildingNumber")
-    @Mapping(target = "zipcode", source = "zipCode")
     AddressResponse toAddressResponse(Address address);
 }
