@@ -151,7 +151,8 @@ class GymCrmFacadeTest {
                 1L,
                 "James",
                 "Bond",
-                username
+                username,
+                null,null
         );
 
         Trainee mappedTrainee = james();

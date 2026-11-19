@@ -2,14 +2,18 @@ package com.training.gym.facade;
 
 import com.training.gym.domain.model.Trainee;
 import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.Training;
 import com.training.gym.domain.model.User;
 import com.training.gym.domain.mapper.TraineeMapper;
 import com.training.gym.domain.mapper.TrainerMapper;
 import com.training.gym.domain.mapper.TrainingMapper;
 import com.training.gym.dto.auth.ChangePasswordDto;
 import com.training.gym.dto.auth.Credentials;
+import com.training.gym.dto.crireria.TraineeTrainingCriteria;
+import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.trainer.TrainerResponseDto;
+import com.training.gym.dto.training.TrainingResponseDto;
 import com.training.gym.exception.AccessDeniedException;
 import com.training.gym.service.*;
 import com.training.gym.util.validation.TraineeDtoValidator;
@@ -23,6 +27,9 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -422,4 +429,286 @@ class GymCrmFacadeAdditionalTest {
             verify(trainerService, never()).deactivateTrainer(any());
         }
     }
+
+
+    @Nested
+    class TrainingLookupTests {
+
+        @Test
+        void getTrainingByIdAuthenticatesAndMapsResult() {
+            Long id = 10L;
+            Training training = mock(Training.class);
+            TrainingResponseDto response = mock(TrainingResponseDto.class);
+
+            when(trainingService.getTrainingById(id)).thenReturn(training);
+            when(trainingMapper.toResponseDto(training)).thenReturn(response);
+
+            assertSame(response, facade.getTrainingById(id, traineeCredentials));
+
+            InOrder order = inOrder(
+                    credentialService, trainingService, trainingMapper);
+
+            order.verify(credentialService)
+                    .authenticate("james.bond", "Password123");
+            order.verify(trainingService).getTrainingById(id);
+            order.verify(trainingMapper).toResponseDto(training);
+            order.verifyNoMoreInteractions();
+        }
+
+        @Test
+        void getTrainingByIdRejectsNullId() {
+            assertThrows(NullPointerException.class,
+                    () -> facade.getTrainingById(null, traineeCredentials));
+
+            verifyNoInteractions(
+                    credentialService, trainingService, trainingMapper);
+        }
+
+        @Test
+        void getTrainingByIdWicksNotReadWhenAuthenticationFails() {
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(credentialService)
+                    .authenticate("james.bond", "Password123");
+
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.getTrainingById(10L, traineeCredentials));
+
+            verifyNoInteractions(trainingService, trainingMapper);
+        }
+    }
+
+    @Nested
+    class UnassignedTrainerTests {
+
+        @Test
+        void returnsMappedUnassignedTrainers() {
+            TrainerResponseDto response = mock(TrainerResponseDto.class);
+
+            when(trainerService.getUnassignedTrainers(TRAINEE_USERNAME))
+                    .thenReturn(List.of(saraConnor));
+            when(trainerMapper.toResponseDto(saraConnor))
+                    .thenReturn(response);
+
+            assertEquals(
+                    List.of(response),
+                    facade.getUnassignedTrainers(
+                            TRAINEE_USERNAME, traineeCredentials));
+
+            InOrder order = inOrder(
+                    authorizationService, trainerService, trainerMapper);
+
+            order.verify(authorizationService)
+                    .requireTraineeOwner(
+                            traineeCredentials, TRAINEE_USERNAME);
+            order.verify(trainerService)
+                    .getUnassignedTrainers(TRAINEE_USERNAME);
+            order.verify(trainerMapper).toResponseDto(saraConnor);
+        }
+
+        @Test
+        void returnsEmptyListWhenNoTrainersAvailable() {
+            when(trainerService.getUnassignedTrainers(TRAINEE_USERNAME))
+                    .thenReturn(List.of());
+
+            assertTrue(facade.getUnassignedTrainers(
+                    TRAINEE_USERNAME, traineeCredentials).isEmpty());
+
+            verifyNoInteractions(trainerMapper);
+        }
+
+        @Test
+        void rejectsNullUsername() {
+            assertThrows(NullPointerException.class,
+                    () -> facade.getUnassignedTrainers(
+                            null, traineeCredentials));
+
+            verifyNoInteractions(
+                    authorizationService, trainerService, trainerMapper);
+        }
+
+        @Test
+        void deniesUnauthorizedAccess() {
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService)
+                    .requireTraineeOwner(
+                            traineeCredentials, TRAINEE_USERNAME);
+
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.getUnassignedTrainers(
+                            TRAINEE_USERNAME, traineeCredentials));
+
+            verifyNoInteractions(trainerService, trainerMapper);
+        }
+    }
+
+    @Nested
+    class TrainingSearchTests {
+
+        @Test
+        void returnsMappedTraineeTrainings() {
+            var criteria = new TraineeTrainingCriteria(
+                    null, null, null, null);
+
+            Training training = mock(Training.class);
+            TrainingResponseDto response = mock(TrainingResponseDto.class);
+
+            when(traineeService.findTrainings(TRAINEE_USERNAME, criteria))
+                    .thenReturn(List.of(training));
+            when(trainingMapper.toResponseDto(training))
+                    .thenReturn(response);
+
+            assertEquals(
+                    List.of(response),
+                    facade.getTraineeTrainings(
+                            TRAINEE_USERNAME, criteria, traineeCredentials));
+
+            InOrder order = inOrder(
+                    authorizationService, traineeService, trainingMapper);
+
+            order.verify(authorizationService)
+                    .requireTraineeOwner(
+                            traineeCredentials, TRAINEE_USERNAME);
+            order.verify(traineeService)
+                    .findTrainings(TRAINEE_USERNAME, criteria);
+            order.verify(trainingMapper).toResponseDto(training);
+        }
+
+        @Test
+        void returnsMappedTrainerTrainings() {
+            var criteria = new TrainerTrainingCriteria(
+                    null, null, null);
+
+            Training training = mock(Training.class);
+            TrainingResponseDto response = mock(TrainingResponseDto.class);
+
+            when(trainerService.findTrainings(TRAINER_USERNAME, criteria))
+                    .thenReturn(List.of(training));
+            when(trainingMapper.toResponseDto(training))
+                    .thenReturn(response);
+
+            assertEquals(
+                    List.of(response),
+                    facade.getTrainerTrainings(
+                            TRAINER_USERNAME, criteria, trainerCredentials));
+
+            InOrder order = inOrder(
+                    authorizationService, trainerService, trainingMapper);
+
+            order.verify(authorizationService)
+                    .requireTrainerOwner(
+                            trainerCredentials, TRAINER_USERNAME);
+            order.verify(trainerService)
+                    .findTrainings(TRAINER_USERNAME, criteria);
+            order.verify(trainingMapper).toResponseDto(training);
+        }
+
+        @Test
+        void returnsEmptyListsWhenNoTrainingsMatch() {
+            var traineeCriteria = new TraineeTrainingCriteria(
+                    null, null, null, null);
+            var trainerCriteria = new TrainerTrainingCriteria(
+                    null, null, null);
+
+            when(traineeService.findTrainings(
+                    TRAINEE_USERNAME, traineeCriteria))
+                    .thenReturn(List.of());
+
+            when(trainerService.findTrainings(
+                    TRAINER_USERNAME, trainerCriteria))
+                    .thenReturn(List.of());
+
+            assertTrue(facade.getTraineeTrainings(
+                    TRAINEE_USERNAME, traineeCriteria,
+                    traineeCredentials).isEmpty());
+
+            assertTrue(facade.getTrainerTrainings(
+                    TRAINER_USERNAME, trainerCriteria,
+                    trainerCredentials).isEmpty());
+
+            verifyNoInteractions(trainingMapper);
+        }
+
+        @Test
+        void rejectsUnauthorizedTraineeSearch() {
+            var criteria = new TraineeTrainingCriteria(
+                    null, null, null, null);
+
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService)
+                    .requireTraineeOwner(
+                            traineeCredentials, TRAINEE_USERNAME);
+
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.getTraineeTrainings(
+                            TRAINEE_USERNAME, criteria,
+                            traineeCredentials));
+
+            verifyNoInteractions(traineeService, trainingMapper);
+        }
+
+        @Test
+        void rejectsUnauthorizedTrainerSearch() {
+            var criteria = new TrainerTrainingCriteria(
+                    null, null, null);
+
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService)
+                    .requireTrainerOwner(
+                            trainerCredentials, TRAINER_USERNAME);
+
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.getTrainerTrainings(
+                            TRAINER_USERNAME, criteria,
+                            trainerCredentials));
+
+            verifyNoInteractions(trainerService, trainingMapper);
+        }
+    }
+
+    @Nested
+    class ReplaceTrainersTests {
+
+        @Test
+        void authorizesBeforeReplacingTrainers() {
+            Set<Long> ids = Set.of(2L, 3L);
+
+            facade.replaceTraineeTrainers(
+                    TRAINEE_ID, ids, traineeCredentials);
+
+            InOrder order = inOrder(
+                    authorizationService, traineeService);
+
+            order.verify(authorizationService)
+                    .requireTraineeOwner(traineeCredentials, TRAINEE_ID);
+            order.verify(traineeService)
+                    .replaceTrainers(TRAINEE_ID, ids);
+            order.verifyNoMoreInteractions();
+        }
+
+        @Test
+        void allowsReplacingWithEmptySet() {
+            Set<Long> ids = Set.of();
+
+            facade.replaceTraineeTrainers(
+                    TRAINEE_ID, ids, traineeCredentials);
+
+            verify(traineeService).replaceTrainers(TRAINEE_ID, ids);
+        }
+
+        @Test
+        void WicksNotModifyTrainersWhenUnauthorized() {
+            Set<Long> ids = Set.of(2L);
+
+            doThrow(new AccessDeniedException("Denied"))
+                    .when(authorizationService)
+                    .requireTraineeOwner(traineeCredentials, TRAINEE_ID);
+
+            assertThrows(AccessDeniedException.class,
+                    () -> facade.replaceTraineeTrainers(
+                            TRAINEE_ID, ids, traineeCredentials));
+
+            verifyNoInteractions(traineeService);
+        }
+    }
+
 }

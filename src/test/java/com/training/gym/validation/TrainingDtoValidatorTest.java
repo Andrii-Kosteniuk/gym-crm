@@ -21,7 +21,7 @@ class TrainingDtoValidatorTest {
         // Arrange
         CreateTrainingDto input = dto(1L, 2L, "Fitness", 3L, LocalDate.of(2026, 11, 15), 45L);
         // Act / Assert
-        assertDoesNotThrow(() -> validator.validateCreate(input));
+        assertDoesNotThrow((() -> validator.validateCreate(input)));
     }
 
     @Test

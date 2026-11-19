@@ -1,19 +1,32 @@
 package com.training.gym.service;
 
-import com.training.gym.dto.auth.RegistrationResult;
+import com.training.gym.domain.criteria.TrainerTrainingFilter;
+import com.training.gym.domain.mapper.TrainingCriteriaMapper;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.Training;
+import com.training.gym.domain.model.TrainingType;
+import com.training.gym.domain.model.User;
+import com.training.gym.dto.crireria.TrainerTrainingCriteria;
+import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.persistence.entity.TrainerEntity;
+import com.training.gym.persistence.entity.TrainingEntity;
+import com.training.gym.persistence.entity.TrainingTypeEntity;
+import com.training.gym.persistence.entity.UserEntity;
 import com.training.gym.repository.TrainerRepository;
 import com.training.gym.repository.TrainingRepository;
 import com.training.gym.repository.TrainingTypeRepository;
 import com.training.gym.repository.UserRepository;
-import com.training.gym.domain.model.Trainer;
-import com.training.gym.domain.model.TrainingType;
-import com.training.gym.domain.model.User;
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.service.mapper.TrainerPersistenceMapper;
+import com.training.gym.service.mapper.TrainingPersistenceMapper;
+import com.training.gym.service.mapper.TrainingTypePersistenceMapper;
+import com.training.gym.util.PasswordGenerator;
+import com.training.gym.util.UsernameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,199 +37,175 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TrainerServiceImplTest {
     @Mock
-    TrainerRepository trainers;
+    TrainerRepository trainerRepository;
     @Mock
-    TrainingRepository trainings;
+    TrainingRepository trainingRepository;
     @Mock
-    UserRepository users;
+    UserRepository userRepository;
     @Mock
-    TrainingTypeRepository types;
+    UsernameGenerator usernameGenerator;
     @Mock
-    com.training.gym.util.UsernameGenerator usernameGenerator;
+    PasswordGenerator passwordGenerator;
     @Mock
-    com.training.gym.util.PasswordGenerator passwordGenerator;
+    TrainingTypeRepository trainingTypeRepository;
     @Mock
-    org.springframework.security.crypto.password.PasswordEncoder encoder;
+    PasswordEncoder passwordEncoder;
     @Mock
-    CredentialService credentials;
+    CredentialService credentialService;
+    @Mock
+    TrainingCriteriaMapper criteriaMapper;
+    @Mock
+    TrainerPersistenceMapper trainerMapper;
+    @Mock
+    TrainingPersistenceMapper trainingMapper;
+    @Mock
+    TrainingTypePersistenceMapper trainingTypeMapper;
     @InjectMocks
     TrainerServiceImpl service;
 
-    private TrainingType fitness() {
-        return TrainingType.builder().id(1L).name("Fitness").build();
+    private Trainer domain() {
+        return Trainer.builder().id(2L).user(User.builder().firstName("Sara").lastName("Connor")
+                .userName("sara.connor").build()).specialization(TrainingType.builder().id(3L).build()).build();
     }
 
-    private Trainer sara() {
-        return Trainer.builder().id(2L).user(User.builder()
-                        .id(2L).firstName("Sara")
-                        .lastName("Connor")
-                        .userName("sara.connor")
-                        .password("hash")
-                        .active(true)
-                        .build())
-                .specialization(fitness())
-                .build();
-    }
-
-    @Test
-    void shouldRegisterTrainerAndResolveSpecialization() {
-        // Arrange
-        Trainer sara = sara();
-        TrainingType type = fitness();
-        when(usernameGenerator.generate(eq("Sara"), eq("Connor"), any())).thenReturn("sara.connor");
-        when(passwordGenerator.generate()).thenReturn("raw-secret");
-        when(encoder.encode("raw-secret")).thenReturn("encoded");
-        when(types.findById(1L)).thenReturn(Optional.of(type));
-        when(trainers.save(sara)).thenReturn(sara);
-        // Act
-        RegistrationResult<Trainer> result = service.registerTrainer(sara);
-        // Assert
-        assertEquals("raw-secret", result.initialPassword());
-        assertEquals("encoded", sara.getUser().getPassword());
-        assertSame(type, sara.getSpecialization());
+    private TrainerEntity entity(boolean active) {
+        UserEntity user = new UserEntity();
+        user.setActive(active);
+        user.setFirstName("Sara");
+        user.setLastName("Connor");
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setId(2L);
+        trainer.setUserEntity(user);
+        return trainer;
     }
 
     @Test
-    void shouldRejectUnknownSpecializationDuringRegistration() {
-        // Arrange
-        Trainer sara = sara();
+    void registrationConvertsSpecializationAndPersistsEntity() {
+        Trainer trainer = domain();
+        TrainerEntity trainerEntity = entity(true);
+        Trainer domainTrainer = domain();
+        TrainingTypeEntity typeEntity = new TrainingTypeEntity();
+        typeEntity.setId(3L);
+        TrainingType typeDomain = TrainingType.builder().id(3L).name("Fitness").build();
         when(usernameGenerator.generate(eq("Sara"), eq("Connor"), any())).thenReturn("sara.connor");
         when(passwordGenerator.generate()).thenReturn("secret");
-        when(types.findById(1L)).thenReturn(Optional.empty());
-        // Act / Assert
-        assertThrows(EntityNotFoundException.class, () -> service.registerTrainer(sara));
-        verify(trainers, never()).save(any());
+        when(passwordEncoder.encode("secret")).thenReturn("hash");
+        when(trainingTypeRepository.findById(3L)).thenReturn(Optional.of(typeEntity));
+        when(trainingTypeMapper.toTrainingTypeDomain(typeEntity)).thenReturn(typeDomain);
+        when(trainerMapper.toEntity(trainer)).thenReturn(trainerEntity);
+        when(trainerRepository.save(trainerEntity)).thenReturn(trainerEntity);
+        when(trainerMapper.toTrainerDomain(trainerEntity)).thenReturn(domainTrainer);
+        var result = service.registerTrainer(trainer);
+        assertSame(domainTrainer, result.profile());
+        assertEquals("secret", result.initialPassword());
+        assertSame(typeDomain, trainer.getSpecialization());
+        assertEquals("hash", trainer.getUser().getPassword());
+        verify(trainerRepository).save(trainerEntity);
     }
 
     @Test
-    void shouldUpdateNamesAndSpecializationWithoutChangingPassword() {
-        // Arrange
-        Trainer existing = sara();
-        Trainer incoming = sara();
-
-        incoming.getUser().setFirstName("Jym");
-        incoming.getUser().setLastName("Kerry");
-        incoming.getUser().setPassword(null);
-
-        incoming.setSpecialization(TrainingType.builder().id(3L) .build());
-
-        TrainingType yoga = TrainingType.builder()
-                .id(3L)
-                .name("Yoga")
-                .build();
-
-        when(trainers.findByUserName("sara.connor")).thenReturn(Optional.of(existing));
-
-        when(types.findById(3L)).thenReturn(Optional.of(yoga));
-
-        when(trainers.update(existing)).thenReturn(existing);
-
-        // Act
-        Trainer result = service.updateTrainer(incoming);
-
-        // Assert
-        assertSame(existing, result);
-
-        assertEquals("Jym", result.getUser().getFirstName());
-        assertEquals("Kerry", result.getUser().getLastName());
-        assertEquals("hash", result.getUser().getPassword());
-        assertSame(yoga, result.getSpecialization());
-
-        verify(trainers).findByUserName("sara.connor");
-        verify(types).findById(3L);
-        verify(trainers).update(existing);
+    void registrationRejectsInvalidRequestsAndUnknownSpecialization() {
+        assertThrows(NullPointerException.class, () -> service.registerTrainer(null));
+        assertThrows(NullPointerException.class, () -> service.registerTrainer(Trainer.builder().build()));
+        assertThrows(NullPointerException.class, () -> service.registerTrainer(Trainer.builder().user(User.builder().build()).build()));
+        when(usernameGenerator.generate(eq("Sara"), eq("Connor"), any())).thenReturn("sara.connor");
+        assertThrows(EntityNotFoundException.class, () -> service.registerTrainer(domain()));
+        verify(trainerRepository, never()).save(any());
     }
 
     @Test
-    void shouldRejectUnknownTrainerUpdate() {
-        // Arrange
-        Trainer incoming = sara();
-        when(trainers.findByUserName("sara.connor")).thenReturn(Optional.empty());
-        // Act / Assert
-        assertThrows(EntityNotFoundException.class, () -> service.updateTrainer(incoming));
+    void updateModifiesManagedEntityThenMapsToDomain() {
+        Trainer trainer = domain();
+        TrainerEntity existing = entity(true);
+        Trainer domain = domain();
+        TrainingTypeEntity specialization = new TrainingTypeEntity();
+        specialization.setId(3L);
+        when(trainerRepository.findByUserName("sara.connor")).thenReturn(Optional.of(existing));
+        when(trainingTypeRepository.findById(3L)).thenReturn(Optional.of(specialization));
+        when(trainerRepository.update(existing)).thenReturn(existing);
+        when(trainerMapper.toTrainerDomain(existing)).thenReturn(domain);
+        assertSame(domain, service.updateTrainer(trainer));
+        assertSame(specialization, existing.getSpecialization());
+        verify(trainerRepository).update(existing);
     }
 
     @Test
-    void shouldRetrieveTrainerById() {
-        // Arrange
-        Trainer sara = sara();
-        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
-        // Act
-        Trainer result = service.getTrainerById(2L);
-        // Assert
-        assertSame(sara, result);
+    void updateRejectsInvalidAndMissingTrainer() {
+        assertThrows(NullPointerException.class, () -> service.updateTrainer(null));
+        assertThrows(NullPointerException.class, () -> service.updateTrainer(Trainer.builder().build()));
+        assertThrows(EntityNotFoundException.class, () -> service.updateTrainer(domain()));
+        verify(trainerRepository, never()).update(any());
     }
 
     @Test
-    void shouldRejectUnknownTrainerId() {
-        // Arrange
-        when(trainers.findById(404L)).thenReturn(Optional.empty());
-        // Act / Assert
-        assertThrows(EntityNotFoundException.class, () -> service.getTrainerById(404L));
+    void lookupsConvertEntitiesToDomain() {
+        TrainerEntity saved = entity(true);
+        Trainer domain = domain();
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(saved));
+        when(trainerRepository.findByUserName("sara.connor")).thenReturn(Optional.of(saved));
+        when(trainerMapper.toTrainerDomain(saved)).thenReturn(domain);
+        assertSame(domain, service.getTrainerById(2L));
+        assertSame(domain, service.findByUserName("sara.connor"));
     }
 
     @Test
-    void shouldRejectRepeatedActivation() {
-        // Arrange
-        Trainer sara = sara();
-        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
-        // Act / Assert
-        assertThrows(IllegalStateException.class, () -> service.activateTrainer(sara));
-        verify(trainers, never()).activateTrainer(any());
+    void missingAndNullLookupsAreRejected() {
+        assertThrows(NullPointerException.class, () -> service.getTrainerById(null));
+        assertThrows(NullPointerException.class, () -> service.findByUserName(null));
+        assertThrows(EntityNotFoundException.class, () -> service.getTrainerById(2L));
+        assertThrows(EntityNotFoundException.class, () -> service.findByUserName("missing"));
     }
 
     @Test
-    void shouldActivateInactiveTrainer() {
-        // Arrange
-        Trainer sara = sara();
-        sara.getUser().setActive(false);
-        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
-        // Act
-        service.activateTrainer(sara);
-        // Assert
-        verify(trainers).activateTrainer(sara);
+    void activationChecksStoredStateAndUsesManagedEntities() {
+        Trainer trainer = domain();
+        TrainerEntity inactive = entity(false);
+        TrainerEntity active = entity(true);
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(inactive), Optional.of(active), Optional.of(active), Optional.of(inactive));
+        service.activateTrainer(trainer);
+        assertThrows(IllegalStateException.class, () -> service.activateTrainer(trainer));
+        service.deactivateTrainer(trainer);
+        assertThrows(IllegalStateException.class, () -> service.deactivateTrainer(trainer));
+        verify(trainerRepository).activateTrainer(inactive);
+        verify(trainerRepository).deactivateTrainer(active);
     }
 
     @Test
-    void shouldDeactivateActiveTrainer() {
-        // Arrange
-        Trainer sara = sara();
-        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
-        // Act
-        service.deactivateTrainer(sara);
-        // Assert
-        verify(trainers).deactivateTrainer(sara);
+    void activationRejectsInvalidAndMissingProfiles() {
+        assertThrows(NullPointerException.class, () -> service.activateTrainer(null));
+        assertThrows(NullPointerException.class, () -> service.deactivateTrainer(null));
+        assertThrows(EntityNotFoundException.class, () -> service.activateTrainer(domain()));
+        assertThrows(EntityNotFoundException.class, () -> service.deactivateTrainer(domain()));
     }
 
     @Test
-    void shouldRejectRepeatedDeactivation() {
-        // Arrange
-        Trainer sara = sara();
-        sara.getUser().setActive(false);
-        when(trainers.findById(2L)).thenReturn(Optional.of(sara));
-        // Act / Assert
-        assertThrows(IllegalStateException.class, () -> service.deactivateTrainer(sara));
-        verify(trainers, never()).deactivateTrainer(any());
+    void searchAndUnassignedListMapEntities() {
+        TrainerTrainingCriteria criteria = new TrainerTrainingCriteria(null, null, null);
+        TrainerTrainingFilter filter = new TrainerTrainingFilter(null, null, null);
+        TrainingEntity training = new TrainingEntity();
+        Training result = Training.builder().build();
+        when(criteriaMapper.toFilter(criteria)).thenReturn(filter);
+        when(trainingRepository.findByTrainerUsername("sara.connor", filter)).thenReturn(List.of(training));
+        when(trainingMapper.toTrainingDomain(training)).thenReturn(result);
+        assertEquals(List.of(result), service.findTrainings(" sara.connor ", criteria));
+        TrainerEntity stored = entity(true);
+        Trainer trainer = domain();
+        when(trainerRepository.findUnassignedTrainers("james.bond")).thenReturn(List.of(stored));
+        when(trainerMapper.toTrainerDomain(stored)).thenReturn(trainer);
+        assertEquals(List.of(trainer), service.getUnassignedTrainers("james.bond"));
     }
 
     @Test
-    void shouldFindUnassignedTrainers() {
-        // Arrange
-        Trainer sara = sara();
-        when(trainers.findUnassignedTrainers("james.bond")).thenReturn(List.of(sara));
-        // Act
-        List<Trainer> result = service.getUnassignedTrainers("james.bond");
-        // Assert
-        assertEquals(List.of(sara), result);
+    void searchRejectsInvalidArguments() {
+        TrainerTrainingCriteria criteria = new TrainerTrainingCriteria(null, null, null);
+        assertThrows(IllegalArgumentException.class, () -> service.findTrainings(" ", criteria));
+        assertThrows(NullPointerException.class, () -> service.findTrainings("sara.connor", null));
+        assertThrows(NullPointerException.class, () -> service.getUnassignedTrainers(null));
     }
 
     @Test
-    void shouldDelegatePasswordChange() {
-        // Arrange
-        String username = "sara.connor";
-        // Act
-        service.changePassword(username, "old", "new");
-        // Assert
-        verify(credentials).changePassword(username, "old", "new");
+    void passwordChangeDelegates() {
+        service.changePassword("sara.connor", "old", "new");
+        verify(credentialService).changePassword("sara.connor", "old", "new");
     }
 }

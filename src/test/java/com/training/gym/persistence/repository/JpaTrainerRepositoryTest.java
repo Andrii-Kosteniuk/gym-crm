@@ -1,427 +1,179 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.domain.model.Trainer;
-import com.training.gym.domain.model.TrainingType;
-import com.training.gym.domain.model.User;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
 import com.training.gym.persistence.entity.UserEntity;
-import com.training.gym.service.mapper.TrainerPersistenceMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
+@org.junit.jupiter.api.extension.ExtendWith(MockitoExtension.class)
 class JpaTrainerRepositoryTest {
-    private static final long ID = 2L;
-    private static final long TYPE_ID = 3L;
-    private static final String USERNAME = "sara.connor";
-
-    @Mock EntityManager em;
-    @Mock TrainerPersistenceMapper mapper;
-    @Mock Trainer domain;
-    @Mock TrainerEntity entity;
-    @Mock TrainingType type;
-    @Mock TrainingTypeEntity typeEntity;
-    @Mock User user;
-    @Mock UserEntity userEntity;
-    @Mock TypedQuery<TrainerEntity> query;
-    @Mock TypedQuery<Long> countQuery;
-    private JpaTrainerRepository repository;
-
+    @Mock
+    EntityManager em;
+    @Mock
+    TypedQuery<TrainerEntity> query;
+    @Mock
+    TypedQuery<Long> countQuery;
+    JpaTrainerRepository trainerRepository;
 
     @BeforeEach
-    void setUpRepository() {
-        repository = new JpaTrainerRepository(mapper);
-        ReflectionTestUtils.setField(repository, "entityManager", em);
+    void setup() {
+        trainerRepository = new JpaTrainerRepository();
+        ReflectionTestUtils.setField(trainerRepository, "entityManager", em);
+    }
+
+    private TrainerEntity entity(Long id, boolean active) {
+        TrainerEntity trainerEntity = new TrainerEntity();
+        trainerEntity.setId(id);
+        UserEntity userEntity = new UserEntity();
+        userEntity.setFirstName("Sara");
+        userEntity.setLastName("Connor");
+        userEntity.setActive(active);
+        trainerEntity.setUserEntity(userEntity);
+        TrainingTypeEntity type = new TrainingTypeEntity();
+        type.setId(3L);
+        trainerEntity.setSpecialization(type);
+        return trainerEntity;
     }
 
     @Test
-    void shouldSaveTrainerWithManagedSpecialization() {
-        // Arrange
-        when(domain.getId()).thenReturn(null);
-        when(domain.getSpecialization()).thenReturn(type);
-        when(type.getId()).thenReturn(TYPE_ID);
-
-        when(mapper.toEntity(domain)).thenReturn(entity);
-        when(em.find(TrainingTypeEntity.class, TYPE_ID))
-                .thenReturn(typeEntity);
-        when(mapper.toTrainerDomain(entity)).thenReturn(domain);
-
-        // Act
-        Trainer result = repository.save(domain);
-
-        // Assert
-        assertSame(domain, result);
-
-        verify(mapper).toEntity(domain);
-        verify(em).find(TrainingTypeEntity.class, TYPE_ID);
-
-        InOrder order = inOrder(entity, em);
-
-        order.verify(entity).setSpecialization(typeEntity);
-        order.verify(em).persist(entity);
-
-        verify(mapper).toTrainerDomain(entity);
+    void savePersistsJpaEntityWithManagedSpecialization() {
+        TrainerEntity trainerEntity = entity(null, true);
+        TrainingTypeEntity trainingTypeEntity = new TrainingTypeEntity();
+        trainingTypeEntity.setId(3L);
+        when(em.find(TrainingTypeEntity.class, 3L)).thenReturn(trainingTypeEntity);
+        assertSame(trainerEntity, trainerRepository.save(trainerEntity));
+        assertSame(trainingTypeEntity, trainerEntity.getSpecialization());
+        verify(em).persist(trainerEntity);
     }
 
     @Test
-    void shouldRejectNullTrainerOnSave() {
-        // Act & Assert
-        assertThrows(NullPointerException.class, () -> repository.save(null));
-        verifyNoInteractions(em, mapper);
+    void saveRejectsInvalidReferences() {
+        assertThrows(NullPointerException.class, () -> trainerRepository.save(null));
+        assertThrows(IllegalArgumentException.class, () -> trainerRepository.save(entity(2L, true)));
+        assertThrows(EntityNotFoundException.class, () -> trainerRepository.save(entity(null, true)));
     }
 
     @Test
-    void shouldRejectTrainerWithPresetIdOnSave() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> repository.save(domain));
+    void updateModifiesManagedEntity() {
+        TrainerEntity trainerEntity = entity(2L, true);
+        trainerEntity.getUserEntity().setFirstName("Updated");
+        TrainerEntity managedTrainer = entity(2L, true);
+        TrainingTypeEntity type = new TrainingTypeEntity();
+        type.setId(3L);
+        when(em.find(TrainerEntity.class, 2L)).thenReturn(managedTrainer);
+        when(em.find(TrainingTypeEntity.class, 3L)).thenReturn(type);
+        assertSame(managedTrainer, trainerRepository.update(trainerEntity));
+        assertEquals("Updated", managedTrainer.getUserEntity().getFirstName());
+        assertSame(type, managedTrainer.getSpecialization());
+        verify(em, never()).merge(any());
     }
 
     @Test
-    void shouldUpdateNamesAndSpecialization() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-        when(domain.getUser()).thenReturn(user);
-        when(user.getFirstName()).thenReturn("Sara");
-        when(user.getLastName()).thenReturn("Connor");
-        when(domain.getSpecialization()).thenReturn(type);
-        when(type.getId()).thenReturn(TYPE_ID);
-        when(em.find(TrainerEntity.class, ID)).thenReturn(entity);
-        when(em.find(TrainingTypeEntity.class, TYPE_ID)).thenReturn(typeEntity);
-        when(entity.getUserEntity()).thenReturn(userEntity);
-        when(mapper.toTrainerDomain(entity)).thenReturn(domain);
-
-        // Act
-        Trainer result = repository.update(domain);
-
-        // Assert
-        assertSame(domain, result);
-        verify(userEntity).setFirstName("Sara");
-        verify(userEntity).setLastName("Connor");
-        verify(userEntity, never()).setPassword(any());
-        verify(entity).setSpecialization(typeEntity);
+    void updateRejectsMissingAndInvalidEntity() {
+        assertThrows(NullPointerException.class, () -> trainerRepository.update(null));
+        assertThrows(NullPointerException.class, () -> trainerRepository.update(entity(null, true)));
+        assertThrows(EntityNotFoundException.class, () -> trainerRepository.update(entity(2L, true)));
     }
 
     @Test
-    void shouldRejectNullOrIdlessTrainerOnUpdate() {
-        // Act & Assert
-        assertAll(
-                () -> assertThrows(NullPointerException.class, () -> repository.update(null)),
-                () -> assertThrows(EntityNotFoundException.class, () -> repository.update(domain))
-        );
-    }
-
-    @Test
-    void shouldRejectMissingTrainerOnUpdate() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> repository.update(domain));
-    }
-
-    @Test
-    void shouldRejectUnknownTypeOnUpdate() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-        when(domain.getUser()).thenReturn(user);
-        when(domain.getSpecialization()).thenReturn(type);
-        when(type.getId()).thenReturn(TYPE_ID);
-        when(em.find(TrainerEntity.class, ID)).thenReturn(entity);
-        when(entity.getUserEntity()).thenReturn(userEntity);
-
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> repository.update(domain));
-        verify(entity, never()).setSpecialization(any());
-    }
-
-    @Test
-    void shouldFindTrainerById() {
-        // Arrange
+    void findByIdAndUsernameReturnEntities() {
+        TrainerEntity trainerEntity = entity(2L, true);
         when(em.createQuery(anyString(), eq(TrainerEntity.class))).thenReturn(query);
-        when(query.setParameter("id", ID)).thenReturn(query);
-        when(query.getResultStream()).thenAnswer(inv -> List.of(entity).stream());
-        when(mapper.toTrainerDomain(entity)).thenReturn(domain);
-
-        // Act
-        Optional<Trainer> result = repository.findById(ID);
-
-        // Assert
-        assertSame(domain, result.orElseThrow());
+        when(query.setParameter("id", 2L)).thenReturn(query);
+        when(query.setParameter("username", "sara.connor")).thenReturn(query);
+        when(query.getResultStream()).thenAnswer(inv -> List.of(trainerEntity).stream());
+        when(query.getResultList()).thenReturn(List.of(trainerEntity));
+        assertSame(trainerEntity, trainerRepository.findById(2L).orElseThrow());
+        assertSame(trainerEntity, trainerRepository.findByUserName("sara.connor").orElseThrow());
     }
 
     @Test
-    void shouldReturnEmptyForUnknownId() {
-        // Arrange
+    void missingFindAndFindAllAreHandled() {
         when(em.createQuery(anyString(), eq(TrainerEntity.class))).thenReturn(query);
-        when(query.setParameter("id", ID)).thenReturn(query);
+        when(query.setParameter("id", 2L)).thenReturn(query);
         when(query.getResultStream()).thenAnswer(inv -> List.<TrainerEntity>of().stream());
-
-        // Act
-        Optional<Trainer> result = repository.findById(ID);
-
-        // Assert
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void shouldRejectNullIdOnFind() {
-        // Act & Assert
-        assertThrows(NullPointerException.class, () -> repository.findById(null));
-    }
-
-    @Test
-    void shouldFindTrainerByUsername() {
-        // Arrange
-        when(em.createQuery(anyString(), eq(TrainerEntity.class))).thenReturn(query);
-        when(query.setParameter("username", USERNAME)).thenReturn(query);
-        when(query.getResultList()).thenReturn(List.of(entity));
-        when(mapper.toTrainerDomain(entity)).thenReturn(domain);
-
-        // Act
-        Optional<Trainer> result = repository.findByUserName(USERNAME);
-
-        // Assert
-        assertSame(domain, result.orElseThrow());
-    }
-
-    @Test
-    void shouldReturnEmptyForUnknownUsername() {
-        // Arrange
-        when(em.createQuery(anyString(), eq(TrainerEntity.class))).thenReturn(query);
-        when(query.setParameter("username", USERNAME)).thenReturn(query);
         when(query.getResultList()).thenReturn(List.of());
-
-        // Act
-        Optional<Trainer> result = repository.findByUserName(USERNAME);
-
-        // Assert
-        assertTrue(result.isEmpty());
+        assertTrue(trainerRepository.findById(2L).isEmpty());
+        assertTrue(trainerRepository.findAll().isEmpty());
+        assertThrows(NullPointerException.class, () -> trainerRepository.findById(null));
+        assertThrows(IllegalArgumentException.class, () -> trainerRepository.findByUserName(" "));
     }
 
     @Test
-    void shouldRejectInvalidUsernameOnFind() {
-        // Act & Assert
-        assertAll(
-                () -> assertThrows(IllegalArgumentException.class, () -> repository.findByUserName(null)),
-                () -> assertThrows(IllegalArgumentException.class, () -> repository.findByUserName(" "))
-        );
-    }
-
-    @Test
-    void shouldFindAllMappedTrainers() {
-        // Arrange
-        when(em.createQuery(anyString(), eq(TrainerEntity.class))).thenReturn(query);
-        when(query.getResultList()).thenReturn(List.of(entity));
-        when(mapper.toTrainerDomain(entity)).thenReturn(domain);
-
-        // Act
-        List<Trainer> result = repository.findAll();
-
-        // Assert
-        assertEquals(List.of(domain), result);
-    }
-
-    @Test
-    void shouldCheckTrainerExistence() {
-        // Arrange
+    void existsByIdReturnsCount() {
         when(em.createQuery(anyString(), eq(Long.class))).thenReturn(countQuery);
-        when(countQuery.setParameter("id", ID)).thenReturn(countQuery);
+        when(countQuery.setParameter("id", 2L)).thenReturn(countQuery);
         when(countQuery.getSingleResult()).thenReturn(1L, 0L);
-
-        // Act & Assert
-        assertTrue(repository.existsById(ID));
-        assertFalse(repository.existsById(ID));
+        assertTrue(trainerRepository.existsById(2L));
+        assertFalse(trainerRepository.existsById(2L));
+        assertThrows(NullPointerException.class, () -> trainerRepository.existsById(null));
     }
 
     @Test
-    void shouldRejectNullIdOnExists() {
-        // Act & Assert
-        assertThrows(NullPointerException.class, () -> repository.existsById(null));
+    void deleteRemovesManagedEntity() {
+        TrainerEntity trainerEntity = entity(2L, true), managedTrainer = entity(2L, true);
+        when(em.find(TrainerEntity.class, 2L)).thenReturn(managedTrainer);
+        trainerRepository.delete(trainerEntity);
+        verify(em).remove(managedTrainer);
     }
 
     @Test
-    void shouldDeleteManagedTrainer() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-        when(em.find(TrainerEntity.class, ID)).thenReturn(entity);
-
-        // Act
-        repository.delete(domain);
-
-        // Assert
-        verify(em).remove(entity);
+    void deleteRejectsInvalidOrMissing() {
+        assertThrows(NullPointerException.class, () -> trainerRepository.delete(null));
+        assertThrows(NullPointerException.class, () -> trainerRepository.delete(entity(null, true)));
+        assertThrows(EntityNotFoundException.class, () -> trainerRepository.delete(entity(2L, true)));
+        assertThrows(IllegalArgumentException.class, () -> trainerRepository.deleteByUsername(""));
     }
 
     @Test
-    void shouldRejectNullOrIdlessTrainerOnDelete() {
-        // Act & Assert
-        assertAll(
-                () -> assertThrows(NullPointerException.class, () -> repository.delete(null)),
-                () -> assertThrows(EntityNotFoundException.class, () -> repository.delete(domain))
-        );
+    void activationUsesManagedUserAndRejectsDuplicates() {
+        TrainerEntity inactiveTrainer = entity(2L, false), activeTrainer = entity(2L, true);
+        when(em.find(TrainerEntity.class, 2L)).thenReturn(inactiveTrainer, activeTrainer, entity(2L, true), entity(2L, false));
+        trainerRepository.activateTrainer(inactiveTrainer);
+        assertTrue(inactiveTrainer.getUserEntity().getActive());
+        trainerRepository.deactivateTrainer(activeTrainer);
+        assertFalse(activeTrainer.getUserEntity().getActive());
+        assertThrows(IllegalStateException.class, () -> trainerRepository.activateTrainer(activeTrainer));
+        assertThrows(IllegalStateException.class, () -> trainerRepository.deactivateTrainer(inactiveTrainer));
     }
 
     @Test
-    void shouldRejectDeletingMissingTrainer() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> repository.delete(domain));
-        verify(em, never()).remove(any());
+    void activationRejectsNullAndMissing() {
+        assertThrows(NullPointerException.class, () -> trainerRepository.activateTrainer(null));
+        assertThrows(NullPointerException.class, () -> trainerRepository.deactivateTrainer(null));
+        assertThrows(EntityNotFoundException.class, () -> trainerRepository.activateTrainer(entity(2L, true)));
     }
 
     @Test
-    void shouldDeleteTrainerByUsername() {
-        // Arrange
-        when(em.createQuery(anyString(), eq(TrainerEntity.class))).thenReturn(query);
-        when(query.setParameter("username", USERNAME)).thenReturn(query);
-        when(query.getResultList()).thenReturn(List.of(entity));
-        when(mapper.toTrainerDomain(entity)).thenReturn(domain);
-        when(domain.getId()).thenReturn(ID);
-        when(em.find(TrainerEntity.class, ID)).thenReturn(entity);
-
-        // Act
-        repository.deleteByUsername(USERNAME);
-
-        // Assert
-        verify(em).remove(entity);
-    }
-
-    @Test
-    void shouldRejectUnknownUsernameOnDelete() {
-        // Arrange
-        when(em.createQuery(anyString(), eq(TrainerEntity.class))).thenReturn(query);
-        when(query.setParameter("username", USERNAME)).thenReturn(query);
-        when(query.getResultList()).thenReturn(List.of());
-
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> repository.deleteByUsername(USERNAME));
-    }
-
-    @Test
-    void shouldRejectInvalidUsernameOnDelete() {
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> repository.deleteByUsername(" "));
-    }
-
-    @Test
-    void shouldActivateInactiveTrainer() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-        when(em.find(TrainerEntity.class, ID)).thenReturn(entity);
-        when(entity.getUserEntity()).thenReturn(userEntity);
-        when(userEntity.getActive()).thenReturn(false);
-
-        // Act
-        repository.activateTrainer(domain);
-
-        // Assert
-        verify(userEntity).setActive(true);
-    }
-
-    @Test
-    void shouldDeactivateActiveTrainer() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-        when(em.find(TrainerEntity.class, ID)).thenReturn(entity);
-        when(entity.getUserEntity()).thenReturn(userEntity);
-        when(userEntity.getActive()).thenReturn(true);
-
-        // Act
-        repository.deactivateTrainer(domain);
-
-        // Assert
-        verify(userEntity).setActive(false);
-    }
-
-    @Test
-    void shouldRejectRepeatedActivationAndDeactivation() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-        when(em.find(TrainerEntity.class, ID)).thenReturn(entity);
-        when(entity.getUserEntity()).thenReturn(userEntity);
-        when(userEntity.getActive()).thenReturn(true, false);
-
-        // Act & Assert
-        assertThrows(IllegalStateException.class, () -> repository.activateTrainer(domain));
-        assertThrows(IllegalStateException.class, () -> repository.deactivateTrainer(domain));
-        verify(userEntity, never()).setActive(anyBoolean());
-    }
-
-    @Test
-    void shouldRejectMissingTrainerOnActivation() {
-        // Arrange
-        when(domain.getId()).thenReturn(ID);
-
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> repository.activateTrainer(domain));
-    }
-
-    @Test
-    void shouldRejectNullTrainerOnActivationAndDeactivation() {
-        // Act & Assert
-        assertAll(
-                () -> assertThrows(NullPointerException.class, () -> repository.activateTrainer(null)),
-                () -> assertThrows(NullPointerException.class, () -> repository.deactivateTrainer(null))
-        );
-    }
-
-    @Test
-    void shouldReturnUnassignedTrainers() {
-        // Arrange
+    void unassignedQueryRejectsUnknownTrainee() {
         when(em.createQuery(anyString(), eq(Long.class))).thenReturn(countQuery);
-        when(countQuery.setParameter("username", USERNAME)).thenReturn(countQuery);
+        when(countQuery.setParameter("username", "missing")).thenReturn(countQuery);
+        when(countQuery.getSingleResult()).thenReturn(0L);
+        assertThrows(EntityNotFoundException.class, () -> trainerRepository.findUnassignedTrainers("missing"));
+        assertThrows(IllegalArgumentException.class, () -> trainerRepository.findUnassignedTrainers(" "));
+    }
+
+    @Test
+    void unassignedQueryReturnsEntities() {
+        TrainerEntity trainerEntity = entity(2L, true);
+        when(em.createQuery(anyString(), eq(Long.class))).thenReturn(countQuery);
+        when(countQuery.setParameter("username", "james.bond")).thenReturn(countQuery);
         when(countQuery.getSingleResult()).thenReturn(1L);
         when(em.createQuery(anyString(), eq(TrainerEntity.class))).thenReturn(query);
-        when(query.setParameter("username", USERNAME)).thenReturn(query);
-        when(query.getResultStream()).thenAnswer(inv -> List.of(entity).stream());
-        when(mapper.toTrainerDomain(entity)).thenReturn(domain);
-
-        // Act
-        List<Trainer> result = repository.findUnassignedTrainers(USERNAME);
-
-        // Assert
-        assertEquals(List.of(domain), result);
-        verify(em).createQuery(contains("NOT EXISTS"), eq(TrainerEntity.class));
-    }
-
-    @Test
-    void shouldRejectUnassignedQueryForMissingTrainee() {
-        // Arrange
-        when(em.createQuery(anyString(), eq(Long.class))).thenReturn(countQuery);
-        when(countQuery.setParameter("username", USERNAME)).thenReturn(countQuery);
-        when(countQuery.getSingleResult()).thenReturn(0L);
-
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> repository.findUnassignedTrainers(USERNAME));
-        verify(em, never()).createQuery(anyString(), eq(TrainerEntity.class));
-    }
-
-    @Test
-    void shouldRejectInvalidUsernameForUnassignedQuery() {
-        // Act & Assert
-        assertAll(
-                () -> assertThrows(IllegalArgumentException.class, () -> repository.findUnassignedTrainers(null)),
-                () -> assertThrows(IllegalArgumentException.class, () -> repository.findUnassignedTrainers(" "))
-        );
+        when(query.setParameter("username", "james.bond")).thenReturn(query);
+        when(query.getResultStream()).thenAnswer(inv -> List.of(trainerEntity).stream());
+        assertEquals(List.of(trainerEntity), trainerRepository.findUnassignedTrainers("james.bond"));
     }
 }

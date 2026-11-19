@@ -1,17 +1,21 @@
 package com.training.gym.service;
 
-import com.training.gym.repository.UserRepository;
 import com.training.gym.domain.model.User;
 import com.training.gym.exception.AuthenticationFailedException;
+import com.training.gym.persistence.entity.UserEntity;
+import com.training.gym.repository.UserRepository;
+import com.training.gym.service.mapper.UserPersistenceMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -19,104 +23,82 @@ class CredentialServiceImplTest {
     @Mock
     UserRepository users;
     @Mock
-    org.springframework.security.crypto.password.PasswordEncoder encoder;
+    PasswordEncoder encoder;
+    @Mock
+    UserPersistenceMapper mapper;
     @InjectMocks
     CredentialServiceImpl service;
 
-    private User james() {
-        return User.builder().id(1L).firstName("James").lastName("Bond").userName("james.bond").password("hash").active(true).build();
+    private UserEntity stored() {
+        UserEntity entity = new UserEntity();
+        entity.setId(1L);
+        entity.setUserName("james.bond");
+        entity.setPassword("hash");
+        entity.setActive(true);
+        return entity;
     }
 
     @Test
-    void shouldAuthenticateCorrectPassword() {
-        // Arrange
-        User james = james();
-        when(users.findByUsername("james.bond")).thenReturn(Optional.of(james));
+    void authenticateReturnsDomainNotJpaEntity() {
+        UserEntity stored = stored();
+        User result = User.builder().id(1L).password("hash").build();
+        when(users.findByUsername("james.bond")).thenReturn(Optional.of(stored));
         when(encoder.matches("secret", "hash")).thenReturn(true);
-        // Act
-        User result = service.authenticate("james.bond", "secret");
-        // Assert
-        assertSame(james, result);
-        verify(encoder).matches("secret", "hash");
+        when(mapper.toUserDomain(stored)).thenReturn(result);
+        assertSame(result, service.authenticate("james.bond", "secret"));
     }
 
     @Test
-    void shouldRejectUnknownAccount() {
-        // Arrange
-        when(users.findByUsername("james.bond")).thenReturn(Optional.empty());
-        // Act / Assert
-        assertThrows(AuthenticationFailedException.class, () -> service.authenticate("james.bond", "secret"));
-        verifyNoInteractions(encoder);
-    }
-
-    @Test
-    void shouldRejectIncorrectPassword() {
-        // Arrange
-        when(users.findByUsername("james.bond")).thenReturn(Optional.of(james()));
-        // Act / Assert
-        assertThrows(AuthenticationFailedException.class, () -> service.authenticate("james.bond", "wrong"));
-    }
-
-    @Test
-    void shouldRejectMissingCredentialsWithoutQuery() {
-        // Arrange
-        String[] invalid = {null, "", " "};
-        // Act / Assert
-        for (String value : invalid) {
-            assertThrows(AuthenticationFailedException.class, () -> service.authenticate(value, "secret"));
-            assertThrows(AuthenticationFailedException.class, () -> service.authenticate("james.bond", value));
+    void authenticationRejectsInvalidCredentials() {
+        for (String invalid : new String[]{"", " "}) {
+            assertThrows(AuthenticationFailedException.class, () -> service.authenticate(invalid, "password"));
+            assertThrows(AuthenticationFailedException.class, () -> service.authenticate("james.bond", invalid));
         }
-        verifyNoInteractions(users, encoder);
+        assertThrows(AuthenticationFailedException.class, () -> service.authenticate(null, "password"));
+        assertThrows(AuthenticationFailedException.class, () -> service.authenticate("james.bond", null));
+        assertThrows(AuthenticationFailedException.class, () -> service.authenticate("missing", "password"));
     }
 
     @Test
-    void shouldReplacePasswordHash() {
-        // Arrange
-        User james = james();
-        when(users.findByUsername("james.bond")).thenReturn(Optional.of(james));
-        when(encoder.matches("old-secret", "hash")).thenReturn(true);
-        when(encoder.matches("new-secret", "hash")).thenReturn(false);
-        when(encoder.encode("new-secret")).thenReturn("new-hash");
-        // Act
-        service.changePassword("james.bond", "old-secret", "new-secret");
-        // Assert
-        verify(encoder).matches("old-secret", "hash");
-        verify(encoder).matches("new-secret", "hash");
-        verify(encoder).encode("new-secret");
-
-        assertEquals("hash", james.getPassword());
-        assertEquals("james.bond", james.getUserName());
+    void authenticationRejectsInactiveAccount() {
+        UserEntity entity = stored();
+        entity.setActive(false);
+        when(users.findByUsername("james.bond")).thenReturn(Optional.of(entity));
+        assertThrows(AuthenticationFailedException.class, () -> service.authenticate("james.bond", "secret"));
+        verifyNoInteractions(encoder, mapper);
     }
 
     @Test
-    void shouldRejectShortNewPasswordBeforeAuthentication() {
-        // Arrange
-        String tooShort = "12345";
-        // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> service.changePassword("james.bond", "old", tooShort));
-        verifyNoInteractions(users, encoder);
+    void authenticationRejectsIncorrectPassword() {
+        when(users.findByUsername("james.bond")).thenReturn(Optional.of(stored()));
+        assertThrows(AuthenticationFailedException.class, () -> service.authenticate("james.bond", "bad"));
+        verifyNoInteractions(mapper);
     }
 
     @Test
-    void shouldRejectReusedPassword() {
-        // Arrange
-        User james = james();
-        when(users.findByUsername("james.bond")).thenReturn(Optional.of(james));
-        when(encoder.matches("secret123", "hash")).thenReturn(true);
-        // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> service.changePassword("james.bond", "secret123", "secret123"));
-        assertEquals("hash", james.getPassword());
-        verify(encoder, never()).encode(anyString());
+    void changePasswordUpdatesJpaEntityThroughRepository() {
+        UserEntity entity = stored();
+        User domain = User.builder().id(1L).password("hash").build();
+        when(users.findByUsername("james.bond")).thenReturn(Optional.of(entity));
+        when(encoder.matches("old-pass", "hash")).thenReturn(true);
+        when(mapper.toUserDomain(entity)).thenReturn(domain);
+        when(encoder.matches("new-pass", "hash")).thenReturn(false);
+        when(encoder.encode("new-pass")).thenReturn("new-hash");
+        service.changePassword("james.bond", "old-pass", "new-pass");
+        verify(users).updatePassword(1L, "new-hash");
     }
 
     @Test
-    void shouldNotChangePasswordWhenOldPasswordIsWrong() {
-        // Arrange
-        User james = james();
-        when(users.findByUsername("james.bond")).thenReturn(Optional.of(james));
-        // Act / Assert
-        assertThrows(AuthenticationFailedException.class, () -> service.changePassword("james.bond", "wrong", "new-secret"));
-        assertEquals("hash", james.getPassword());
-        verify(encoder, never()).encode(anyString());
+    void changePasswordRejectsWeakAndReusedPassword() {
+        assertThrows(IllegalArgumentException.class, () -> service.changePassword("james.bond", "old", null));
+        assertThrows(IllegalArgumentException.class, () -> service.changePassword("james.bond", "old", "short"));
+        UserEntity entity = stored();
+        User domain = User.builder().id(1L).password("hash").build();
+        when(users.findByUsername("james.bond")).thenReturn(Optional.of(entity));
+        when(encoder.matches("old-pass", "hash")).thenReturn(true);
+        when(encoder.matches("new-pass", "hash")).thenReturn(true);
+        when(mapper.toUserDomain(entity)).thenReturn(domain);
+        assertThrows(IllegalArgumentException.class, () -> service.changePassword("james.bond", "old-pass", "new-pass"));
+        verify(users, never()).updatePassword(anyLong(), anyString());
     }
 }
