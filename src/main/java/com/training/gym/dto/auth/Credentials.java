@@ -1,7 +1,9 @@
 package com.training.gym.dto.auth;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record Credentials (
-        String username,
-        String password
+        @NotBlank String username,
+        @NotBlank String password
 ) {
 }
