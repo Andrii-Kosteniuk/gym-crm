@@ -1,14 +1,13 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.TrainingType;
-import com.training.gym.domain.User;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.TrainingType;
+import com.training.gym.domain.model.User;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
 import com.training.gym.persistence.entity.UserEntity;
-import com.training.gym.persistence.mapper.TrainerPersistenceMapper;
-import com.training.gym.persistence.repository.JpaTrainerRepository;
+import com.training.gym.service.mapper.TrainerPersistenceMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;

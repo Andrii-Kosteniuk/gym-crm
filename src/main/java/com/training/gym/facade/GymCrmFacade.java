@@ -1,14 +1,15 @@
 package com.training.gym.facade;
 
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.Training;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.Training;
 import com.training.gym.domain.mapper.TraineeMapper;
 import com.training.gym.domain.mapper.TrainerMapper;
 import com.training.gym.domain.mapper.TrainingMapper;
 import com.training.gym.dto.auth.ChangePasswordDto;
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.auth.RegistrationResponseDto;
+import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.dto.trainee.CreateTraineeDto;

@@ -1,7 +1,7 @@
-package com.training.gym.persistence.mapper;
+package com.training.gym.service.mapper;
 
 import com.training.gym.persistence.entity.TrainingEntity;
-import com.training.gym.domain.Training;
+import com.training.gym.domain.model.Training;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -15,8 +15,8 @@ public interface TrainingPersistenceMapper {
     Training toTrainingDomain(TrainingEntity entity);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "traineeEntity", ignore = true)
-    @Mapping(target = "trainerEntity", ignore = true)
-    @Mapping(target = "trainingTypeEntity", ignore = true)
+    @Mapping(target = "traineeEntity", source = "trainee")
+    @Mapping(target = "trainerEntity", source = "trainer")
+    @Mapping(target = "trainingTypeEntity", source = "trainingType")
     TrainingEntity toTrainingEntity(Training training);
 }

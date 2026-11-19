@@ -1,6 +1,6 @@
 package com.training.gym.service;
 
-import com.training.gym.domain.Training;
+import com.training.gym.domain.model.Training;
 
 public interface TrainingService {
     Training createTraining(Training training);

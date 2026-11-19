@@ -1,12 +1,9 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.TrainingType;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
 import com.training.gym.persistence.entity.UserEntity;
-import com.training.gym.persistence.mapper.TrainerPersistenceMapper;
 import com.training.gym.repository.TrainerRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -29,17 +26,14 @@ public class JpaTrainerRepository implements TrainerRepository {
     @PersistenceContext
     private EntityManager entityManager;
 
-    private final TrainerPersistenceMapper trainerMapper;
-
     @Override
-    public Trainer save(Trainer trainer) {
+    public TrainerEntity save(TrainerEntity trainer) {
         Objects.requireNonNull(trainer, TRAINER_MUST_NOT_BE_NULL);
 
         if (trainer.getId() != null) {
-            throw new IllegalArgumentException("Cannot persist a Trainer with an existing ID");
+            throw new IllegalArgumentException("Cannot persist a trainer with an existing ID");
         }
 
-        TrainerEntity entity = trainerMapper.toEntity(trainer);
 
         TrainingTypeEntity specialization = entityManager.find(
                 TrainingTypeEntity.class,
@@ -49,15 +43,15 @@ public class JpaTrainerRepository implements TrainerRepository {
             throw new EntityNotFoundException("Training type not found");
         }
 
-        entity.setSpecialization(specialization);
+        trainer.setSpecialization(specialization);
 
-        entityManager.persist(entity);
+        entityManager.persist(trainer);
 
-        return trainerMapper.toTrainerDomain(entity);
+        return trainer;
     }
 
     @Override
-    public Trainer update(Trainer trainer) {
+    public TrainerEntity update(TrainerEntity trainer) {
         Objects.requireNonNull(trainer, TRAINER_MUST_NOT_BE_NULL);
 
         Long id = Objects.requireNonNull(trainer.getId(), NOT_NULL_ID_MESSAGE);
@@ -68,12 +62,12 @@ public class JpaTrainerRepository implements TrainerRepository {
             throw new EntityNotFoundException("Trainer not found: " + id);
         }
 
-        entity.getUserEntity().setFirstName(trainer.getUser().getFirstName());
+        entity.getUserEntity().setFirstName(trainer.getUserEntity().getFirstName());
 
-        entity.getUserEntity().setLastName(trainer.getUser().getLastName());
+        entity.getUserEntity().setLastName(trainer.getUserEntity().getLastName());
 
 
-        TrainingType specialization = trainer.getSpecialization();
+        TrainingTypeEntity specialization = trainer.getSpecialization();
 
         TrainingTypeEntity managedType = entityManager.find(TrainingTypeEntity.class, specialization.getId());
 
@@ -83,11 +77,11 @@ public class JpaTrainerRepository implements TrainerRepository {
 
         entity.setSpecialization(managedType);
 
-        return trainerMapper.toTrainerDomain(entity);
+        return trainer;
     }
 
     @Override
-    public Optional<Trainer> findById(Long id) {
+    public Optional<TrainerEntity> findById(Long id) {
         Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
 
         return entityManager.createQuery("""
@@ -97,14 +91,13 @@ public class JpaTrainerRepository implements TrainerRepository {
                         JOIN FETCH t.specialization
                         WHERE t.id = :id
                         """, TrainerEntity.class)
-                .setParameter("id", id
-                ).getResultStream()
-                .map(trainerMapper::toTrainerDomain)
+                .setParameter("id", id)
+                .getResultStream()
                 .findFirst();
     }
 
     @Override
-    public Optional<Trainer> findByUserName(String username) {
+    public Optional<TrainerEntity> findByUserName(String username) {
         validateUsername(username);
 
         return entityManager.createQuery("""
@@ -117,12 +110,11 @@ public class JpaTrainerRepository implements TrainerRepository {
                 .setParameter(USERNAME, username)
                 .getResultList()
                 .stream()
-                .map(trainerMapper::toTrainerDomain)
                 .findFirst();
     }
 
     @Override
-    public void delete(Trainer trainer) {
+    public void delete(TrainerEntity trainer) {
         Objects.requireNonNull(trainer, TRAINER_MUST_NOT_BE_NULL);
 
         Long id = Objects.requireNonNull(trainer.getId(), NOT_NULL_ID_MESSAGE);
@@ -140,26 +132,26 @@ public class JpaTrainerRepository implements TrainerRepository {
     public void deleteByUsername(String username) {
         validateUsername(username);
 
-        Trainer trainer = findByUserName(username)
+        TrainerEntity trainer = findByUserName(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
 
         delete(trainer);
     }
 
     @Override
-    public void activateTrainer(Trainer trainer) {
+    public void activateTrainer(TrainerEntity trainer) {
         Objects.requireNonNull(trainer, TRAINER_MUST_NOT_BE_NULL);
         changeActive(trainer.getId(), true);
     }
 
     @Override
-    public void deactivateTrainer(Trainer trainer) {
+    public void deactivateTrainer(TrainerEntity trainer) {
         Objects.requireNonNull(trainer, TRAINER_MUST_NOT_BE_NULL);
         changeActive(trainer.getId(), false);
     }
 
     @Override
-    public List<Trainer> findAll() {
+    public List<TrainerEntity> findAll() {
         return entityManager.createQuery("""
                         SELECT t
                         FROM TrainerEntity t
@@ -167,7 +159,6 @@ public class JpaTrainerRepository implements TrainerRepository {
                         ORDER BY t.id
                         """, TrainerEntity.class).getResultList()
                 .stream()
-                .map(trainerMapper::toTrainerDomain)
                 .toList();
     }
 
@@ -176,10 +167,10 @@ public class JpaTrainerRepository implements TrainerRepository {
         Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
 
         Long count = entityManager.createQuery("""
-                SELECT COUNT(t)
-                FROM TrainerEntity t
-                WHERE t.id = :id
-                """, Long.class)
+                        SELECT COUNT(t)
+                        FROM TrainerEntity t
+                        WHERE t.id = :id
+                        """, Long.class)
                 .setParameter("id", id)
                 .getSingleResult();
 
@@ -187,7 +178,7 @@ public class JpaTrainerRepository implements TrainerRepository {
     }
 
     @Override
-    public List<Trainer> findUnassignedTrainers(String username) {
+    public List<TrainerEntity> findUnassignedTrainers(String username) {
         validateUsername(username);
 
         boolean exists = entityManager.createQuery("""
@@ -200,8 +191,7 @@ public class JpaTrainerRepository implements TrainerRepository {
                 .getSingleResult() > 0;
 
         if (!exists) {
-            throw new EntityNotFoundException(
-                    "Trainee not found: " + username);
+            throw new EntityNotFoundException("Trainee not found: " + username);
         }
 
         return entityManager.createQuery("""
@@ -219,7 +209,6 @@ public class JpaTrainerRepository implements TrainerRepository {
                         """, TrainerEntity.class)
                 .setParameter(USERNAME, username)
                 .getResultStream()
-                .map(trainerMapper::toTrainerDomain)
                 .toList();
     }
 

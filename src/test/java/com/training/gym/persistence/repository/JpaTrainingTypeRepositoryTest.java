@@ -1,9 +1,8 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.domain.TrainingType;
+import com.training.gym.domain.model.TrainingType;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
-import com.training.gym.persistence.mapper.TrainingTypePersistenceMapper;
-import com.training.gym.persistence.repository.JpaTrainingTypeRepository;
+import com.training.gym.service.mapper.TrainingTypePersistenceMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +38,7 @@ class JpaTrainingTypeRepositoryTest {
     void shouldFindTrainingTypeById() {
         // Arrange
         when(em.find(TrainingTypeEntity.class, 3L)).thenReturn(entity);
-        when(mapper.toTrainingDomain(entity)).thenReturn(domain);
+        when(mapper.toTrainingTypeDomain(entity)).thenReturn(domain);
 
         // Act
         Optional<TrainingType> actual = repository.findById(3L);
@@ -72,8 +71,8 @@ class JpaTrainingTypeRepositoryTest {
         TrainingType otherDomain = mock(TrainingType.class);
         when(em.createQuery(anyString(), eq(TrainingTypeEntity.class))).thenReturn(query);
         when(query.getResultList()).thenReturn(List.of(entity, otherEntity));
-        when(mapper.toTrainingDomain(entity)).thenReturn(domain);
-        when(mapper.toTrainingDomain(otherEntity)).thenReturn(otherDomain);
+        when(mapper.toTrainingTypeDomain(entity)).thenReturn(domain);
+        when(mapper.toTrainingTypeDomain(otherEntity)).thenReturn(otherDomain);
 
         // Act
         List<TrainingType> actual = repository.findAll();

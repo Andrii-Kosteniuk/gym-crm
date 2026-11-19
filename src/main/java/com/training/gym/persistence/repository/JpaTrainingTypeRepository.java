@@ -1,8 +1,6 @@
 package com.training.gym.persistence.repository;
 
 import com.training.gym.persistence.entity.TrainingTypeEntity;
-import com.training.gym.persistence.mapper.TrainingTypePersistenceMapper;
-import com.training.gym.domain.TrainingType;
 import com.training.gym.repository.TrainingTypeRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -21,26 +19,25 @@ public class JpaTrainingTypeRepository implements TrainingTypeRepository {
     @PersistenceContext
     private EntityManager entityManager;
 
-    private final TrainingTypePersistenceMapper trainingTypeMapper;
-
     @Override
-    public Optional<TrainingType> findById(Long id) {
+    public Optional<TrainingTypeEntity> findById(Long id) {
         Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
 
-        return Optional.ofNullable(entityManager.find(TrainingTypeEntity.class, id))
-                .map(trainingTypeMapper::toTrainingDomain);
+        TrainingTypeEntity trainingType = entityManager.find(TrainingTypeEntity.class, id);
+
+        return Optional.ofNullable(trainingType);
     }
 
     @Override
-    public List<TrainingType> findAll() {
+    public List<TrainingTypeEntity> findAll() {
+
         return entityManager.createQuery("""
-                SELECT t
-                FROM TrainingTypeEntity t
-                ORDER BY t.name
-                """, TrainingTypeEntity.class)
+                        SELECT t
+                        FROM TrainingTypeEntity t
+                        ORDER BY t.name
+                        """, TrainingTypeEntity.class)
                 .getResultList()
                 .stream()
-                .map(trainingTypeMapper::toTrainingDomain)
                 .toList();
     }
 }

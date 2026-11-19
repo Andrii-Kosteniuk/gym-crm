@@ -1,9 +1,9 @@
-package com.training.gym.persistence.mapper;
+package com.training.gym.service.mapper;
 
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.TrainingType;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.TrainingType;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

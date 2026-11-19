@@ -1,8 +1,8 @@
 package com.training.gym.service;
 
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.Training;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Training;
+import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 
 

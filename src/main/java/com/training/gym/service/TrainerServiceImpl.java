@@ -1,17 +1,24 @@
 package com.training.gym.service;
 
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.Training;
-import com.training.gym.domain.TrainingType;
-import com.training.gym.domain.User;
 import com.training.gym.domain.criteria.TrainerTrainingFilter;
 import com.training.gym.domain.mapper.TrainingCriteriaMapper;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.Training;
+import com.training.gym.domain.model.User;
+import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.persistence.entity.TrainerEntity;
+import com.training.gym.persistence.entity.TrainingEntity;
+import com.training.gym.persistence.entity.TrainingTypeEntity;
+import com.training.gym.persistence.entity.UserEntity;
 import com.training.gym.repository.TrainerRepository;
 import com.training.gym.repository.TrainingRepository;
 import com.training.gym.repository.TrainingTypeRepository;
 import com.training.gym.repository.UserRepository;
+import com.training.gym.service.mapper.TrainerPersistenceMapper;
+import com.training.gym.service.mapper.TrainingPersistenceMapper;
+import com.training.gym.service.mapper.TrainingTypePersistenceMapper;
 import com.training.gym.util.PasswordGenerator;
 import com.training.gym.util.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +35,9 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class TrainerServiceImpl implements TrainerService {
 
-    public static final String TRAINER_NOT_FOUND = "Trainer not found: ";
+    public static final String NOT_FOUND_ID = "Trainer with ID %d not found";
+    public static final String NOT_FOUND_USERNAME = "Trainer with username %s not found";
+
     private final TrainerRepository trainerRepository;
     private final TrainingRepository trainingRepository;
     private final UserRepository userRepository;
@@ -38,6 +47,9 @@ public class TrainerServiceImpl implements TrainerService {
     private final PasswordEncoder passwordEncoder;
     private final CredentialService credentialService;
     private final TrainingCriteriaMapper criteriaMapper;
+    private final TrainerPersistenceMapper trainerMapper;
+    private final TrainingPersistenceMapper trainingMapper;
+    private final TrainingTypePersistenceMapper trainingTypeMapper;
 
 
     @Override
@@ -59,21 +71,19 @@ public class TrainerServiceImpl implements TrainerService {
 
         Long specializationId = trainer.getSpecialization().getId();
 
-        TrainingType specialization = trainingTypeRepository
-                .findById(specializationId)
-                .orElseThrow(() -> new EntityNotFoundException("Training type not found: " + specializationId));
+        TrainingTypeEntity specialization = getSpecialization(specializationId);
 
         user.setUserName(username);
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setActive(true);
 
-        trainer.setSpecialization(specialization);
+        trainer.setSpecialization(trainingTypeMapper.toTrainingTypeDomain(specialization));
 
-        Trainer saved = trainerRepository.save(trainer);
+        TrainerEntity savedTrainer = trainerRepository.save(trainerMapper.toEntity(trainer));
 
         log.info("Trainer registered: username={}", username);
 
-        return new RegistrationResult<>(saved, rawPassword);
+        return new RegistrationResult<>(trainerMapper.toTrainerDomain(savedTrainer), rawPassword);
     }
 
     @Override
@@ -85,27 +95,24 @@ public class TrainerServiceImpl implements TrainerService {
 
         String username = updatedUser.getUserName();
 
-        Trainer existing = trainerRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(TRAINER_NOT_FOUND + username));
+        TrainerEntity existingTrainer = trainerRepository.findByUserName(username)
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID + username));
 
         Long specializationId = Objects.requireNonNull(trainer.getSpecialization(), "Specialization is required").getId();
 
-        TrainingType specialization = trainingTypeRepository
-                .findById(specializationId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Training type not found: " + specializationId
-                ));
+        TrainingTypeEntity specialization = getSpecialization(specializationId);
 
-        User existingUser = existing.getUser();
+        UserEntity existingUser = existingTrainer.getUserEntity();
 
         existingUser.setFirstName(updatedUser.getFirstName());
         existingUser.setLastName(updatedUser.getLastName());
+        existingTrainer.setSpecialization(specialization);
 
-        existing.setSpecialization(specialization);
+        TrainerEntity updatedTrainer = trainerRepository.update(existingTrainer);
 
         log.info("Trainer updated: username={}", username);
 
-        return trainerRepository.update(existing);
+        return trainerMapper.toTrainerDomain(updatedTrainer);
     }
 
     @Override
@@ -114,25 +121,30 @@ public class TrainerServiceImpl implements TrainerService {
         Objects.requireNonNull(id, "Id can not be null");
         log.debug("Retrieving trainer profile: id={}", id);
 
-        return trainerRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer with id %d not found".formatted(id)));
+        TrainerEntity trainerEntity = trainerRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(id)));
+
+        return trainerMapper.toTrainerDomain(trainerEntity);
     }
 
     @Override
     public Trainer findByUserName(String username) {
         Objects.requireNonNull(username, "Username can not be null");
-        return trainerRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer with username %s not found".formatted(username)));
+
+        TrainerEntity trainerEntity = trainerRepository.findByUserName(username)
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
+
+        return trainerMapper.toTrainerDomain(trainerEntity);
     }
 
     @Transactional
     public void activateTrainer(Trainer trainer) {
         Objects.requireNonNull(trainer, "Trainer is required");
 
-        Trainer managedTrainer = trainerRepository.findById(trainer.getId())
-                .orElseThrow(() -> new EntityNotFoundException(TRAINER_NOT_FOUND + trainer.getId()));
+        TrainerEntity managedTrainer = trainerRepository.findById(trainer.getId())
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(trainer.getId())));
 
-        if (Boolean.TRUE == managedTrainer.getUser().getActive())
+        if (Boolean.TRUE == managedTrainer.getUserEntity().getActive())
             throw new IllegalStateException("Trainer is already active.");
 
         trainerRepository.activateTrainer(managedTrainer);
@@ -144,10 +156,10 @@ public class TrainerServiceImpl implements TrainerService {
     public void deactivateTrainer(Trainer trainer) {
         Objects.requireNonNull(trainer, "Trainer is required");
 
-        Trainer managedTrainer = trainerRepository.findById(trainer.getId())
-                .orElseThrow(() -> new EntityNotFoundException(TRAINER_NOT_FOUND + trainer.getId()));
+        TrainerEntity managedTrainer = trainerRepository.findById(trainer.getId())
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID + trainer.getId()));
 
-        if (Boolean.FALSE == managedTrainer.getUser().getActive())
+        if (Boolean.FALSE == managedTrainer.getUserEntity().getActive())
             throw new IllegalStateException("Trainer is already deactivated.");
 
         trainerRepository.deactivateTrainer(managedTrainer);
@@ -166,7 +178,11 @@ public class TrainerServiceImpl implements TrainerService {
 
         TrainerTrainingFilter filter = criteriaMapper.toFilter(criteria);
 
-        return trainingRepository.findByTrainerUsername(username.trim(), filter);
+        List<TrainingEntity> trainers = trainingRepository.findByTrainerUsername(username.trim(), filter);
+
+        return trainers.stream()
+                .map(trainingMapper::toTrainingDomain)
+                .toList();
     }
 
     @Override
@@ -174,7 +190,11 @@ public class TrainerServiceImpl implements TrainerService {
     public List<Trainer> getUnassignedTrainers(String username) {
         Objects.requireNonNull(username, "Trainee username must not be null");
 
-        return trainerRepository.findUnassignedTrainers(username);
+        List<TrainerEntity> trainers = trainerRepository.findUnassignedTrainers(username);
+
+        return trainers.stream()
+                .map(trainerMapper::toTrainerDomain)
+                .toList();
     }
 
 
@@ -182,5 +202,12 @@ public class TrainerServiceImpl implements TrainerService {
     @Transactional
     public void changePassword(String username, String oldPassword, String newPassword) {
         credentialService.changePassword(username, oldPassword, newPassword);
+    }
+
+    private TrainingTypeEntity getSpecialization(Long specializationId) {
+        return trainingTypeRepository
+                .findById(specializationId)
+                .orElseThrow(() -> new EntityNotFoundException("Training type not found"));
+
     }
 }

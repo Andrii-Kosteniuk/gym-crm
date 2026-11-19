@@ -1,11 +1,9 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.domain.Trainee;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.UserEntity;
-import com.training.gym.persistence.mapper.TraineePersistenceMapper;
 import com.training.gym.repository.TraineeRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -26,45 +24,41 @@ public class JpaTraineeRepository implements TraineeRepository {
     @PersistenceContext
     private EntityManager entityManager;
 
-    private final TraineePersistenceMapper traineeMapper;
-
     @Override
-    public Trainee save(Trainee trainee) {
+    public TraineeEntity save(TraineeEntity trainee) {
         Objects.requireNonNull(trainee);
 
         if (trainee.getId() != null) {
-            throw new IllegalArgumentException("Cannot persist a Trainer with an existing ID");
+            throw new IllegalArgumentException("Cannot persist a trainee with an existing ID");
         }
 
-        TraineeEntity entity = traineeMapper.toEntity(trainee);
+        entityManager.persist(trainee);
 
-        entityManager.persist(entity);
-
-        return traineeMapper.toTraineeDomain(entity);
+        return trainee;
     }
 
     @Override
-    public Trainee update(Trainee trainee) {
+    public TraineeEntity update(TraineeEntity trainee) {
         Objects.requireNonNull(trainee, "Trainee is required");
         Objects.requireNonNull(trainee.getId(), "Trainee ID is required");
-        Objects.requireNonNull(trainee.getUser(), "User is required");
+        Objects.requireNonNull(trainee.getUserEntity(), "User is required");
 
-        TraineeEntity entity = entityManager.find(
+        TraineeEntity traineeEntity = entityManager.find(
                 TraineeEntity.class, trainee.getId());
 
-        if (entity == null) {
+        if (traineeEntity == null) {
             throw new EntityNotFoundException("Trainee not found: " + trainee.getId());
         }
 
-        entity.getUserEntity().setFirstName(trainee.getUser().getFirstName());
+        traineeEntity.getUserEntity().setFirstName(trainee.getUserEntity().getFirstName());
 
-        entity.getUserEntity().setLastName(trainee.getUser().getLastName());
+        traineeEntity.getUserEntity().setLastName(trainee.getUserEntity().getLastName());
 
-        return traineeMapper.toTraineeDomain(entity);
+        return traineeEntity;
     }
 
     @Override
-    public Optional<Trainee> findById(Long id) {
+    public Optional<TraineeEntity> findById(Long id) {
         Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
 
         return entityManager.createQuery("""
@@ -72,11 +66,14 @@ public class JpaTraineeRepository implements TraineeRepository {
                 FROM TraineeEntity t
                 JOIN FETCH t.userEntity
                 WHERE t.id = :id
-                """, TraineeEntity.class).setParameter("id", id).getResultList().stream().map(traineeMapper::toTraineeDomain).findFirst();
+                """, TraineeEntity.class)
+                .setParameter("id", id)
+                .getResultList().stream()
+                .findFirst();
     }
 
     @Override
-    public Optional<Trainee> findByUserName(String username) {
+    public Optional<TraineeEntity> findByUserName(String username) {
         validateUsername(username);
 
         return entityManager.createQuery("""
@@ -88,18 +85,17 @@ public class JpaTraineeRepository implements TraineeRepository {
                 .setParameter(USERNAME, username)
                 .getResultList()
                 .stream()
-                .map(traineeMapper::toTraineeDomain)
                 .findFirst();
     }
 
     @Override
-    public List<Trainee> findAll() {
+    public List<TraineeEntity> findAll() {
         return entityManager.createQuery("""
                         SELECT t FROM TraineeEntity t
                         JOIN FETCH t.userEntity
                         """, TraineeEntity.class)
-                .getResultList().stream()
-                .map(traineeMapper::toTraineeDomain)
+                .getResultList()
+                .stream()
                 .toList();
     }
 
@@ -111,13 +107,15 @@ public class JpaTraineeRepository implements TraineeRepository {
                 SELECT COUNT(t)
                 FROM TraineeEntity t
                 WHERE t.id = :id
-                """, Long.class).setParameter("id", id).getSingleResult();
+                """, Long.class)
+                .setParameter("id", id)
+                .getSingleResult();
 
         return count > 0;
     }
 
     @Override
-    public void delete(Trainee trainee) {
+    public void delete(TraineeEntity trainee) {
         Objects.requireNonNull(trainee, TRAINEE_MUST_NOT_BE_NULL);
 
         Long id = Objects.requireNonNull(trainee.getId(), NOT_NULL_ID_MESSAGE);
@@ -135,20 +133,20 @@ public class JpaTraineeRepository implements TraineeRepository {
     public void deleteByUsername(String username) {
         validateUsername(username);
 
-        Trainee trainee = findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
+        TraineeEntity trainee = findByUserName(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
 
         delete(trainee);
     }
 
     @Override
-    public void activateTrainee(Trainee trainee) {
+    public void activateTrainee(TraineeEntity trainee) {
         Objects.requireNonNull(trainee, TRAINEE_MUST_NOT_BE_NULL);
         changeActive(trainee.getId(), true);
     }
 
     @Override
-    public void deactivateTrainee(Trainee trainee) {
+    public void deactivateTrainee(TraineeEntity trainee) {
         Objects.requireNonNull(trainee, TRAINEE_MUST_NOT_BE_NULL);
         changeActive(trainee.getId(), false);
     }

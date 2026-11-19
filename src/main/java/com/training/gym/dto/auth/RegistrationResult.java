@@ -1,4 +1,4 @@
-package com.training.gym.service;
+package com.training.gym.dto.auth;
 
 public record RegistrationResult<T>(
         T profile,

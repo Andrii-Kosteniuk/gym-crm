@@ -1,8 +1,6 @@
 package com.training.gym.persistence.repository;
 
 import com.training.gym.persistence.entity.*;
-import com.training.gym.persistence.mapper.TrainingPersistenceMapper;
-import com.training.gym.domain.Training;
 import com.training.gym.repository.TrainingRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
@@ -11,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import com.training.gym.domain.criteria.TraineeTrainingFilter;
 import com.training.gym.domain.criteria.TrainerTrainingFilter;
-
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Join;
@@ -34,23 +31,20 @@ public class JpaTrainingRepository implements TrainingRepository {
     @PersistenceContext
     private EntityManager entityManager;
 
-    private final TrainingPersistenceMapper trainingMapper;
-
     @Override
-    public Training save(Training training) {
+    public TrainingEntity save(TrainingEntity training) {
         Objects.requireNonNull(training, TRAINING_MUST_NOT_BE_NULL);
 
         if (training.getId() != null) {
             throw new IllegalArgumentException("New training must not have an ID");
         }
 
-        TrainingEntity entity = trainingMapper.toTrainingEntity(training);
 
-        Long traineeId = Objects.requireNonNull(training.getTrainee().getId(), "Trainee ID must not be null");
+        Long traineeId = Objects.requireNonNull(training.getTraineeEntity().getId(), "Trainee ID must not be null");
 
-        Long trainerId = Objects.requireNonNull(training.getTrainer().getId(), "Trainer ID must not be null");
+        Long trainerId = Objects.requireNonNull(training.getTrainerEntity().getId(), "Trainer ID must not be null");
 
-        Long typeId = Objects.requireNonNull(training.getTrainingType().getId(), "Training type ID must not be null");
+        Long typeId = Objects.requireNonNull(training.getTrainingTypeEntity().getId(), "Training type ID must not be null");
 
         TraineeEntity traineeEntity = entityManager.find(TraineeEntity.class, traineeId);
 
@@ -64,19 +58,17 @@ public class JpaTrainingRepository implements TrainingRepository {
             throw new EntityNotFoundException("Referenced training entity not found");
         }
 
-        entity.setTraineeEntity(traineeEntity);
-        entity.setTrainerEntity(trainerEntity);
-        entity.setTrainingTypeEntity(typeEntity);
+        training.setTraineeEntity(traineeEntity);
+        training.setTrainerEntity(trainerEntity);
+        training.setTrainingTypeEntity(typeEntity);
 
-        entityManager.persist(entity);
-
-        training.setId(entity.getId());
+        entityManager.persist(training);
 
         return training;
     }
 
     @Override
-    public Optional<Training> findById(Long id) {
+    public Optional<TrainingEntity> findById(Long id) {
         Objects.requireNonNull(id, ID_MUST_NOT_BE_NULL);
 
         return entityManager.createQuery("""
@@ -89,19 +81,19 @@ public class JpaTrainingRepository implements TrainingRepository {
                         """, TrainingEntity.class).setParameter("id", id)
                 .getResultList()
                 .stream()
-                .map(trainingMapper::toTrainingDomain)
                 .findFirst();
     }
 
     @Override
-    public List<Training> findAll() {
+    public List<TrainingEntity> findAll() {
         return entityManager.createQuery("""
                         SELECT t
                         FROM TrainingEntity t
                         ORDER BY t.trainingDate DESC, t.id DESC
-                        """, TrainingEntity.class).getResultList()
+                        """, TrainingEntity.class)
+                .getResultList()
                 .stream()
-                .map(trainingMapper::toTrainingDomain).toList();
+                .toList();
     }
 
     @Override
@@ -120,7 +112,7 @@ public class JpaTrainingRepository implements TrainingRepository {
     }
 
     @Override
-    public List<Training> findByTraineeUsername(String username, TraineeTrainingFilter filter) {
+    public List<TrainingEntity> findByTraineeUsername(String username, TraineeTrainingFilter filter) {
         validateUsername(username);
 
         Objects.requireNonNull(filter, "Filter must not be null");
@@ -208,12 +200,11 @@ public class JpaTrainingRepository implements TrainingRepository {
 
         return entityManager.createQuery(cq)
                 .getResultStream()
-                .map(trainingMapper::toTrainingDomain)
                 .toList();
     }
 
     @Override
-    public List<Training> findByTrainerUsername(String username, TrainerTrainingFilter filter) {
+    public List<TrainingEntity> findByTrainerUsername(String username, TrainerTrainingFilter filter) {
         validateUsername(username);
         Objects.requireNonNull(filter, "Filter must not be null");
 
@@ -288,7 +279,6 @@ public class JpaTrainingRepository implements TrainingRepository {
 
         return entityManager.createQuery(cq)
                 .getResultStream()
-                .map(trainingMapper::toTrainingDomain)
                 .toList();
     }
 

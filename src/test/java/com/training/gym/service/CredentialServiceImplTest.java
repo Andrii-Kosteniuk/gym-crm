@@ -1,7 +1,7 @@
 package com.training.gym.service;
 
 import com.training.gym.repository.UserRepository;
-import com.training.gym.domain.User;
+import com.training.gym.domain.model.User;
 import com.training.gym.exception.AuthenticationFailedException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

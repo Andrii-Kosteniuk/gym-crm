@@ -1,9 +1,9 @@
 package com.training.gym.domain.mapper;
 
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.Training;
-import com.training.gym.domain.TrainingType;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.Training;
+import com.training.gym.domain.model.TrainingType;
 import com.training.gym.dto.training.CreateTrainingDto;
 import com.training.gym.dto.training.TrainingResponseDto;
 import com.training.gym.dto.training.TrainingTypeResponseDto;

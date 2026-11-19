@@ -1,13 +1,17 @@
 package com.training.gym.service;
 
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.User;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.User;
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.exception.AccessDeniedException;
 import com.training.gym.exception.AuthenticationFailedException;
+import com.training.gym.persistence.entity.TraineeEntity;
+import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.repository.TraineeRepository;
 import com.training.gym.repository.TrainerRepository;
+import com.training.gym.service.mapper.TraineePersistenceMapper;
+import com.training.gym.service.mapper.TrainerPersistenceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +28,8 @@ public class ProfileAuthorizationService {
     private final CredentialService credentialService;
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
+    private final TraineePersistenceMapper traineeMapper;
+    private final TrainerPersistenceMapper trainerMapper;
 
 
     public void requireTraineeOwner(Credentials credentials, Long traineeId) {
@@ -61,11 +67,15 @@ public class ProfileAuthorizationService {
     }
 
     private Trainee requireTrainee(Credentials credentials) {
-        return requireProfile(credentials, traineeRepository::findByUserName);
+        TraineeEntity traineeEntity = requireProfile(credentials, traineeRepository::findByUserName);
+
+        return traineeMapper.toTraineeDomain(traineeEntity);
     }
 
     private Trainer requireTrainer(Credentials credentials) {
-        return requireProfile(credentials, trainerRepository::findByUserName);
+        TrainerEntity trainerEntity = requireProfile(credentials, trainerRepository::findByUserName);
+
+        return trainerMapper.toTrainerDomain(trainerEntity);
     }
 
     private void verifyOwnership(String authenticatedUsername, String requestedUsername) {

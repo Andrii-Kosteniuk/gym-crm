@@ -1,15 +1,14 @@
 package com.training.gym.service;
 
 import com.training.gym.domain.criteria.TraineeTrainingFilter;
-import com.training.gym.dto.crireria.TraineeTrainingCriteria;
+import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.repository.TraineeRepository;
 import com.training.gym.repository.TrainerRepository;
 import com.training.gym.repository.TrainingRepository;
 import com.training.gym.repository.UserRepository;
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.Training;
-import com.training.gym.domain.User;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.User;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.util.PasswordGenerator;
 import com.training.gym.util.UsernameGenerator;
@@ -22,7 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 

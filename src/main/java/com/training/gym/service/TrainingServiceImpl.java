@@ -1,15 +1,23 @@
 package com.training.gym.service;
 
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.Training;
-import com.training.gym.domain.TrainingType;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.Training;
+import com.training.gym.domain.model.TrainingType;
 import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.persistence.entity.TraineeEntity;
+import com.training.gym.persistence.entity.TrainerEntity;
+import com.training.gym.persistence.entity.TrainingEntity;
+import com.training.gym.persistence.entity.TrainingTypeEntity;
 import com.training.gym.repository.TraineeRepository;
 import com.training.gym.repository.TrainerRepository;
 import com.training.gym.repository.TrainingRepository;
 import com.training.gym.repository.TrainingTypeRepository;
+import com.training.gym.service.mapper.TraineePersistenceMapper;
+import com.training.gym.service.mapper.TrainerPersistenceMapper;
+import com.training.gym.service.mapper.TrainingPersistenceMapper;
+import com.training.gym.service.mapper.TrainingTypePersistenceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +36,10 @@ public class TrainingServiceImpl implements TrainingService {
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
     private final TrainingTypeRepository trainingTypeRepository;
+    private final TrainingPersistenceMapper trainingMapper;
+    private final TraineePersistenceMapper traineeMapper;
+    private final TrainerPersistenceMapper trainerMapper;
+    private final TrainingTypePersistenceMapper trainingTypeMapper;
 
     @Override
     @Transactional
@@ -37,35 +49,44 @@ public class TrainingServiceImpl implements TrainingService {
         validateTrainingReferences(training);
 
 
-        Trainee trainee = traineeRepository.findById(training.getTrainee().getId())
+        TraineeEntity trainee = traineeRepository.findById(training.getTrainee().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
 
-        Trainer trainer = trainerRepository.findById(training.getTrainer().getId())
+        TrainerEntity trainer = trainerRepository.findById(training.getTrainer().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found"));
 
 
-        TrainingType type = trainingTypeRepository.findById(training.getTrainingType().getId())
+        TrainingTypeEntity trainingType = trainingTypeRepository.findById(training.getTrainingType().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Training type not found"));
 
-        validateParticipants(trainee, trainer);
-        validateSpecialization(training, trainer);
+        Trainee traineeDomain = traineeMapper.toTraineeDomain(trainee);
+        Trainer trainerDomain = trainerMapper.toTrainerDomain(trainer);
+        TrainingType trainingTypeDomain = trainingTypeMapper.toTrainingTypeDomain(trainingType);
 
-        training.setTrainee(trainee);
-        training.setTrainer(trainer);
-        training.setTrainingType(type);
+        validateParticipants(traineeDomain, trainerDomain);
+        validateSpecialization(training, trainerDomain);
 
-        Training savedTraining = trainingRepository.save(training);
+        training.setTrainee(traineeDomain);
+        training.setTrainer(trainerDomain);
+        training.setTrainingType(trainingTypeDomain);
+
+        TrainingEntity trainingEntity = trainingMapper.toTrainingEntity(training);
+
+        TrainingEntity savedTraining = trainingRepository.save(trainingEntity);
 
         log.info("Training created: id={}", savedTraining.getId());
-        return savedTraining;
+        return trainingMapper.toTrainingDomain(savedTraining);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Training getTrainingById(Long id) {
         log.debug("Retrieving training: id={}", id);
-        return trainingRepository.findById(id)
+
+        TrainingEntity trainingEntity = trainingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Training with id %d not found".formatted(id)));
+
+        return trainingMapper.toTrainingDomain(trainingEntity);
     }
 
     private void validateParticipants(Trainee trainee, Trainer trainer) {

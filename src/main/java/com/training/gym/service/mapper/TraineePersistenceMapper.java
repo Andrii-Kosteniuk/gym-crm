@@ -1,10 +1,10 @@
-package com.training.gym.persistence.mapper;
+package com.training.gym.service.mapper;
 
 
+import com.training.gym.domain.model.Address;
+import com.training.gym.domain.model.Trainee;
 import com.training.gym.persistence.entity.AddressEntity;
 import com.training.gym.persistence.entity.TraineeEntity;
-import com.training.gym.domain.Address;
-import com.training.gym.domain.Trainee;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -24,5 +24,16 @@ public interface TraineePersistenceMapper {
     @Mapping(target = "trainingEntities", ignore = true)
     TraineeEntity toEntity(Trainee entity);
 
-    AddressEntity toEntity(Address address);
+    default AddressEntity mapAddress(Address address) {
+        if (address == null) {
+            return null;
+        }
+        AddressEntity addressEntity = new AddressEntity();
+        addressEntity.setCity(address.getCity());
+        addressEntity.setStreet(address.getStreet());
+        addressEntity.setBuildingNumber(address.getBuildingNumber());
+        addressEntity.setZipCode(address.getZipCode());
+
+        return addressEntity;
+    }
 }

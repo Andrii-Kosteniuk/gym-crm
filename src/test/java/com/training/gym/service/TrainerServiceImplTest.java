@@ -1,12 +1,13 @@
 package com.training.gym.service;
 
+import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.repository.TrainerRepository;
 import com.training.gym.repository.TrainingRepository;
 import com.training.gym.repository.TrainingTypeRepository;
 import com.training.gym.repository.UserRepository;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.TrainingType;
-import com.training.gym.domain.User;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.TrainingType;
+import com.training.gym.domain.model.User;
 import com.training.gym.exception.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

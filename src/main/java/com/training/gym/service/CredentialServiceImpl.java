@@ -1,8 +1,10 @@
 package com.training.gym.service;
 
-import com.training.gym.domain.User;
+import com.training.gym.domain.model.User;
 import com.training.gym.exception.AuthenticationFailedException;
+import com.training.gym.persistence.entity.UserEntity;
 import com.training.gym.repository.UserRepository;
+import com.training.gym.service.mapper.UserPersistenceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +18,7 @@ public class CredentialServiceImpl implements CredentialService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserPersistenceMapper mapper;
 
     @Override
     public User authenticate(String username, String password) {
@@ -26,7 +29,7 @@ public class CredentialServiceImpl implements CredentialService {
             throw new AuthenticationFailedException();
         }
 
-        User user = userRepository
+        UserEntity user = userRepository
                 .findByUsername(username)
                 .orElseThrow(AuthenticationFailedException::new);
 
@@ -37,7 +40,7 @@ public class CredentialServiceImpl implements CredentialService {
             throw new AuthenticationFailedException();
         }
 
-        return user;
+        return mapper.toUserDomain(user);
     }
 
     @Override

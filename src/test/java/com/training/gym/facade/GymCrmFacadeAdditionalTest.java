@@ -1,8 +1,8 @@
 package com.training.gym.facade;
 
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.User;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.User;
 import com.training.gym.domain.mapper.TraineeMapper;
 import com.training.gym.domain.mapper.TrainerMapper;
 import com.training.gym.domain.mapper.TrainingMapper;

@@ -1,18 +1,17 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.Training;
-import com.training.gym.domain.TrainingType;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.Training;
+import com.training.gym.domain.model.TrainingType;
 import com.training.gym.domain.criteria.TraineeTrainingFilter;
 import com.training.gym.domain.criteria.TrainerTrainingFilter;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
-import com.training.gym.persistence.mapper.TrainingPersistenceMapper;
+import com.training.gym.service.mapper.TrainingPersistenceMapper;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;

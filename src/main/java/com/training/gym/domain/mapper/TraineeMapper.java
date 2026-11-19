@@ -1,7 +1,7 @@
 package com.training.gym.domain.mapper;
 
-import com.training.gym.domain.Address;
-import com.training.gym.domain.Trainee;
+import com.training.gym.domain.model.Address;
+import com.training.gym.domain.model.Trainee;
 import com.training.gym.dto.AddressResponse;
 import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;

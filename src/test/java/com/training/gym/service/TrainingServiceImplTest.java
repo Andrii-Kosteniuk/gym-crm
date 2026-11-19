@@ -1,6 +1,6 @@
 package com.training.gym.service;
 
-import com.training.gym.domain.*;
+import com.training.gym.domain.model.*;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.repository.TraineeRepository;
 import com.training.gym.repository.TrainerRepository;

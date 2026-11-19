@@ -1,16 +1,16 @@
 package com.training.gym.repository;
 
 
-import com.training.gym.domain.TrainingType;
+import com.training.gym.persistence.entity.TrainingTypeEntity;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface TrainingTypeRepository {
 
-    Optional<TrainingType> findById(Long id);
+    Optional<TrainingTypeEntity> findById(Long id);
 
-    List<TrainingType> findAll();
+    List<TrainingTypeEntity> findAll();
 
 }
 

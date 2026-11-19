@@ -1,9 +1,7 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.domain.User;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.persistence.entity.UserEntity;
-import com.training.gym.persistence.mapper.UserPersistenceMapper;
 import com.training.gym.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -21,8 +19,6 @@ public class JpaUserRepository implements UserRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
-
-    private final UserPersistenceMapper userMapper;
 
     @Override
     public boolean existsByUsername(String username) {
@@ -42,7 +38,7 @@ public class JpaUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<User> findByUsername(String username) {
+    public Optional<UserEntity> findByUsername(String username) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException(USERNAME_MUST_NOT_BE_BLANK);
         }
@@ -55,7 +51,6 @@ public class JpaUserRepository implements UserRepository {
                 .setParameter("username", username)
                 .getResultList()
                 .stream()
-                .map(userMapper::toUserDomain)
                 .findFirst();
     }
 
@@ -77,7 +72,7 @@ public class JpaUserRepository implements UserRepository {
     }
 
     @Override
-    public void delete(User user) {
+    public void delete(UserEntity user) {
         Objects.requireNonNull(user, "User must not be null");
 
         Long id = Objects.requireNonNull(user.getId(), "User ID must not be null");

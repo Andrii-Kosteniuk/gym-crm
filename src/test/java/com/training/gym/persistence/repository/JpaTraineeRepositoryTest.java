@@ -1,14 +1,12 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.User;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.User;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.UserEntity;
-import com.training.gym.persistence.mapper.TraineePersistenceMapper;
-import com.training.gym.persistence.repository.JpaTraineeRepository;
+import com.training.gym.service.mapper.TraineePersistenceMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +42,7 @@ class JpaTraineeRepositoryTest {
 
     @BeforeEach
     void setUpRepository() {
-        repository = new JpaTraineeRepository(mapper);
+        repository = new JpaTraineeRepository();
         ReflectionTestUtils.setField(repository, "entityManager", em);
     }
 

@@ -1,18 +1,24 @@
 package com.training.gym.service;
 
-import com.training.gym.domain.Trainee;
-import com.training.gym.domain.Trainer;
-import com.training.gym.domain.Training;
-import com.training.gym.domain.User;
 import com.training.gym.domain.criteria.TraineeTrainingFilter;
 import com.training.gym.domain.mapper.TrainingCriteriaMapper;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Training;
+import com.training.gym.domain.model.User;
+import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.persistence.entity.TraineeEntity;
+import com.training.gym.persistence.entity.TrainerEntity;
+import com.training.gym.persistence.entity.TrainingEntity;
+import com.training.gym.persistence.entity.UserEntity;
 import com.training.gym.repository.TraineeRepository;
 import com.training.gym.repository.TrainerRepository;
 import com.training.gym.repository.TrainingRepository;
 import com.training.gym.repository.UserRepository;
+import com.training.gym.service.mapper.TraineePersistenceMapper;
+import com.training.gym.service.mapper.TrainingPersistenceMapper;
 import com.training.gym.util.PasswordGenerator;
 import com.training.gym.util.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +36,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class TraineeServiceImpl implements TraineeService {
 
-    public static final String TRAINEE_NOT_FOUND = "Trainee not found: ";
+    public static final String TRAINEE_NOT_FOUND_USERNAME = "Trainee with %s username not found";
+    public static final String NOT_FOUND_ID = "Trainee with id %d not found";
+
     private final TraineeRepository traineeRepository;
     private final TrainingRepository trainingRepository;
     private final TrainerRepository trainerRepository;
@@ -40,15 +48,15 @@ public class TraineeServiceImpl implements TraineeService {
     private final PasswordEncoder passwordEncoder;
     private final CredentialService credentialService;
     private final TrainingCriteriaMapper criteriaMapper;
+    private final TraineePersistenceMapper traineeMapper;
+    private final TrainingPersistenceMapper trainingMapper;
 
     @Override
     @Transactional
     public RegistrationResult<Trainee> registerTrainee(Trainee trainee) {
         Objects.requireNonNull(trainee, "Trainee must not be null");
 
-
         User user = Objects.requireNonNull(trainee.getUser(), "User must not be null");
-
 
         String username = usernameGenerator.generate(
                 user.getFirstName(),
@@ -62,11 +70,11 @@ public class TraineeServiceImpl implements TraineeService {
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setActive(true);
 
-        Trainee saved = traineeRepository.save(trainee);
+        TraineeEntity saved = traineeRepository.save(traineeMapper.toEntity(trainee));
 
         log.info("Trainee registered: username={}", username);
 
-        return new RegistrationResult<>(saved, rawPassword);
+        return new RegistrationResult<>(traineeMapper.toTraineeDomain(saved), rawPassword);
     }
 
     @Override
@@ -78,17 +86,19 @@ public class TraineeServiceImpl implements TraineeService {
 
         String username = user.getUserName();
 
-        Trainee existingTrainee = traineeRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND + username));
+        TraineeEntity existingTrainee = traineeRepository.findByUserName(username)
+                .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND_USERNAME.formatted(username)));
 
-        existingTrainee.getUser().setFirstName(user.getFirstName());
-        existingTrainee.getUser().setLastName(user.getLastName());
+        existingTrainee.getUserEntity().setFirstName(user.getFirstName());
+        existingTrainee.getUserEntity().setLastName(user.getLastName());
+        existingTrainee.setDateOfBirth(trainee.getDateOfBirth());
+        existingTrainee.setAddressEntity(traineeMapper.mapAddress(trainee.getAddress()));
 
-        Trainee updatedTrainee = traineeRepository.update(existingTrainee);
+        TraineeEntity updatedTrainee = traineeRepository.update(existingTrainee);
 
         log.info("Trainee updated: username={}", username);
 
-        return updatedTrainee;
+        return traineeMapper.toTraineeDomain(updatedTrainee);
     }
 
     @Override
@@ -96,62 +106,73 @@ public class TraineeServiceImpl implements TraineeService {
         Objects.requireNonNull(id, "Id can not be null");
         log.debug("Retrieving trainee profile: id={}", id);
 
-        return traineeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee with id %d not found".formatted(id)));
+        TraineeEntity traineeEntity = traineeRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(id)));
+
+        return traineeMapper.toTraineeDomain(traineeEntity);
     }
 
     @Override
     public Trainee findByUserName(String username) {
         Objects.requireNonNull(username, "Username can not be null");
-        return traineeRepository.findByUserName(username)
+
+        TraineeEntity traineeEntity = traineeRepository.findByUserName(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee with username %s not found".formatted(username)));
+
+        return traineeMapper.toTraineeDomain(traineeEntity);
     }
 
 
     @Override
     @Transactional
     public void removeTraineeByUsername(String username) {
-        Trainee trainee = findByUserName(username);
 
-        User user = trainee.getUser();
+        TraineeEntity trainee = traineeRepository.findByUserName(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee with username %s not found".formatted(username)));
+
+        UserEntity user = trainee.getUserEntity();
 
         traineeRepository.delete(trainee);
 
         userRepository.delete(user);
 
-        log.info("Trainee deleted: username={}", username);
+        log.info("Trainee profile has been removed: username={}", username);
     }
 
 
     @Override
     @Transactional
     public void activateTrainee(Trainee trainee) {
-        log.debug("Training to activate trainee profile: id={}", trainee.getId());
         Objects.requireNonNull(trainee);
+        log.debug("Training to activate trainee profile: id={}", trainee.getId());
 
-        Trainee existing = getTraineeById(trainee.getId());
+        TraineeEntity existing = traineeRepository.findById(trainee.getId())
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(trainee.getId())));
 
-        if (Boolean.TRUE.equals(existing.getUser().getActive())) {
-            throw new IllegalStateException("Trainee is already active");
+        if (Boolean.TRUE.equals(existing.getUserEntity().getActive())) {
+            throw new IllegalStateException("Trainee profile is already active.");
         }
 
-        traineeRepository.activateTrainee(trainee);
+        traineeRepository.activateTrainee(traineeMapper.toEntity(trainee));
+
         log.info("Trainee activated: id={}", existing.getId());
     }
 
     @Override
     @Transactional
     public void deactivateTrainee(Trainee trainee) {
-        log.debug("Training to deactivate trainee profile: id={}", trainee.getId());
         Objects.requireNonNull(trainee);
+        log.debug("Training to deactivate trainee profile: id={}", trainee.getId());
 
-        Trainee existing = getTraineeById(trainee.getId());
+        TraineeEntity existing = traineeRepository.findById(trainee.getId())
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(trainee.getId())));
 
-        if (Boolean.FALSE.equals(existing.getUser().getActive())) {
+        if (Boolean.FALSE.equals(existing.getUserEntity().getActive())) {
             throw new IllegalStateException("Trainee is already inactive");
         }
 
-        traineeRepository.deactivateTrainee(trainee);
+        traineeRepository.deactivateTrainee(traineeMapper.toEntity(trainee));
+
         log.info("Trainee deactivated: id={}", existing.getId());
     }
 
@@ -167,7 +188,11 @@ public class TraineeServiceImpl implements TraineeService {
 
         TraineeTrainingFilter filter = criteriaMapper.toFilter(criteria);
 
-        return trainingRepository.findByTraineeUsername(username.trim(), filter);
+        List<TrainingEntity> trainees = trainingRepository.findByTraineeUsername(username.trim(), filter);
+
+        return trainees.stream()
+                .map(trainingMapper::toTrainingDomain)
+                .toList();
     }
 
     @Override
@@ -188,18 +213,18 @@ public class TraineeServiceImpl implements TraineeService {
             throw new IllegalArgumentException("Trainer IDs must not contain null");
         }
 
-        Trainee trainee = traineeRepository.findById(traineeId)
+        TraineeEntity trainee = traineeRepository.findById(traineeId)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
 
-        if (Boolean.FALSE.equals(trainee.getUser().getActive())) {
+        if (Boolean.FALSE.equals(trainee.getUserEntity().getActive())) {
             throw new BusinessRuleViolationException("Cannot assign trainers to inactive trainee");
         }
 
         for (Long trainerId : trainerIds) {
-            Trainer trainer = trainerRepository.findById(trainerId)
-                    .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerId));
+            TrainerEntity trainer = trainerRepository.findById(trainerId)
+                    .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(trainerId)));
 
-            if (Boolean.FALSE.equals(trainer.getUser().getActive())) {
+            if (Boolean.FALSE.equals(trainer.getUserEntity().getActive())) {
                 throw new BusinessRuleViolationException("Cannot assign inactive trainer: " + trainerId);
             }
         }

@@ -1,23 +1,31 @@
 package com.training.gym.repository;
 
-import com.training.gym.domain.Trainer;
+import com.training.gym.persistence.entity.TrainerEntity;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface TrainerRepository extends CrudRepository<Trainer, Long> {
+public interface TrainerRepository {
 
-    Trainer update(Trainer trainer);
+    TrainerEntity save(TrainerEntity trainerEntity);
 
-    Optional<Trainer> findByUserName(String username);
+    TrainerEntity update(TrainerEntity trainerEntity);
 
-    void delete(Trainer trainer);
+    Optional<TrainerEntity> findById(Long id);
+
+    Optional<TrainerEntity> findByUserName(String username);
+
+    void delete(TrainerEntity trainerEntity);
 
     void deleteByUsername(String username);
 
-    void activateTrainer(Trainer trainer);
+    void activateTrainer(TrainerEntity trainerEntity);
 
-    void deactivateTrainer(Trainer trainer);
+    void deactivateTrainer(TrainerEntity trainerEntity);
 
-    List<Trainer> findUnassignedTrainers(String username);
+    List<TrainerEntity> findAll();
+
+    boolean existsById(Long id);
+
+    List<TrainerEntity> findUnassignedTrainers(String username);
 }
