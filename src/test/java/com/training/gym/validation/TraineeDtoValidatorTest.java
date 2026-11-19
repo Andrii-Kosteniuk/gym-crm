@@ -56,7 +56,7 @@ class TraineeDtoValidatorTest {
     @Test
     void shouldRejectMissingUpdateUsername() {
         // Arrange
-        UpdateTraineeDto dto = new UpdateTraineeDto(1L, "James", "Bond", " ", null, null);
+        UpdateTraineeDto dto = new UpdateTraineeDto("James", "Bond", " ", null, null);
         // Act / Assert
         assertThrows(IllegalArgumentException.class, () -> validator.validateUpdate(dto));
     }
@@ -64,7 +64,7 @@ class TraineeDtoValidatorTest {
     @Test
     void shouldAcceptValidUpdate() {
         // Arrange
-        UpdateTraineeDto dto = new UpdateTraineeDto(2L,"Jym", "Kerry", "james.bond", null, null);
+        UpdateTraineeDto dto = new UpdateTraineeDto("Jym", "Kerry", "james.bond", null, null);
         // Act / Assert
         assertDoesNotThrow(() -> validator.validateUpdate(dto));
     }

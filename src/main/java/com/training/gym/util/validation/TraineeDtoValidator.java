@@ -29,7 +29,6 @@ public final class TraineeDtoValidator {
     public void validateUpdate(UpdateTraineeDto dto) {
         requireNotNull(dto, "UpdateTraineeDto");
 
-        requirePositiveId(dto.id(), "Trainee ID");
         requireNotBlank(dto.firstName(), "First name");
         requireNotBlank(dto.lastName(), "Last name");
         requireNotBlank(dto.userName(), "Username");

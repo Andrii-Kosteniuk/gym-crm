@@ -1,8 +1,7 @@
 package com.training.gym.dto.auth;
 
-public record RegistrationResponseDto(
+public record AuthenticationResponse(
 
-        Long id,
         String username,
         String password
 ) {
