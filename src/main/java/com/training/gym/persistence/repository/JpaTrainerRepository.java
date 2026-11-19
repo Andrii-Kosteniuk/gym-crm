@@ -77,7 +77,7 @@ public class JpaTrainerRepository implements TrainerRepository {
 
         entity.setSpecialization(managedType);
 
-        return trainer;
+        return entity;
     }
 
     @Override
