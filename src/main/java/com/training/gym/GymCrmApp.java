@@ -5,6 +5,7 @@ import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.auth.RegistrationResponseDto;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
+import com.training.gym.dto.trainee.AddressDto;
 import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
@@ -95,7 +96,15 @@ public final class GymCrmApp {
                             traineeByUserName.id(),
                             "Updated Trainee name",
                             "Updated Trainee last name",
-                            traineeByUserName.userName()
+                            traineeByUserName.userName(),
+                            traineeByUserName.dateOfBirth(),
+                            new AddressDto(
+                                    "Wroclaw",
+                                    "Some street",
+                                    1,
+                                    "12-345"
+                            )
+
                     ),
                     traineeCredentials
             );
@@ -139,8 +148,8 @@ public final class GymCrmApp {
 
             System.out.println("Unassigned trainers: " +
                     facade.getUnassignedTrainers(
-                    traineeByUserName.userName(),
-                    traineeCredentials));
+                            traineeByUserName.userName(),
+                            traineeCredentials));
 
             // 6. Activate / deactivate profiles
 //            System.out.println("\n========== ACTIVATION ==========");
