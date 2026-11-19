@@ -1,20 +1,22 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.TraineeRepository;
-import com.training.gym.dao.TrainerRepository;
-import com.training.gym.dao.TrainingRepository;
-import com.training.gym.dto.training.CreateTrainingDto;
+import com.training.gym.domain.model.*;
+import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.mapper.TrainingMapper;
-import com.training.gym.model.Training;
-import com.training.gym.model.TrainingType;
-import com.training.gym.util.IdGenerator;
-import com.training.gym.validation.TrainingDtoValidator;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
+import com.training.gym.persistence.entity.TraineeEntity;
+import com.training.gym.persistence.entity.TrainerEntity;
+import com.training.gym.persistence.entity.TrainingEntity;
+import com.training.gym.persistence.entity.TrainingTypeEntity;
+import com.training.gym.repository.TraineeRepository;
+import com.training.gym.repository.TrainerRepository;
+import com.training.gym.repository.TrainingRepository;
+import com.training.gym.repository.TrainingTypeRepository;
+import com.training.gym.service.mapper.TraineePersistenceMapper;
+import com.training.gym.service.mapper.TrainerPersistenceMapper;
+import com.training.gym.service.mapper.TrainingPersistenceMapper;
+import com.training.gym.service.mapper.TrainingTypePersistenceMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,362 +25,146 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TrainingServiceImplTest {
-
-    private static final Long TRAINING_ID = 1L;
-    private static final Long TRAINEE_ID = 1L;
-    private static final Long TRAINER_ID = 1L;
-
     @Mock
-    private TrainingRepository trainingRepository;
-
+    TrainingRepository trainingRepository;
     @Mock
-    private TraineeRepository traineeRepository;
-
+    TraineeRepository traineeRepository;
     @Mock
-    private TrainerRepository trainerRepository;
-
+    TrainerRepository trainerRepository;
     @Mock
-    private IdGenerator idGenerator;
-
+    TrainingTypeRepository trainingTypeRepository;
     @Mock
-    private TrainingMapper trainingMapper;
-
+    TrainingPersistenceMapper trainingMapper;
     @Mock
-    private TrainingDtoValidator dtoValidator;
-
-
+    TraineePersistenceMapper traineeMapper;
+    @Mock
+    TrainerPersistenceMapper trainerMapper;
+    @Mock
+    TrainingTypePersistenceMapper trainingTypeMapper;
     @InjectMocks
-    private TrainingServiceImpl trainingService;
+    TrainingServiceImpl service;
 
-    private Training training;
-    private CreateTrainingDto createDto;
-
-    @BeforeEach
-    void setUp() {
-        training = new Training();
-
-        createDto = new CreateTrainingDto(
-                TRAINEE_ID,
-                TRAINER_ID,
-                "Strength Training",
-                new TrainingType(1L, "Strength"),
-                LocalDate.of(2026, 11, 10),
-                Duration.ofMinutes(60)
-        );
+    private Training training() {
+        return Training.builder().trainee(Trainee.builder().id(1L).build())
+                .trainer(Trainer.builder().id(2L).build())
+                .trainingType(TrainingType.builder().id(3L).build())
+                .trainingName("Session").trainingDate(LocalDate.now().plusDays(2))
+                .trainingDuration(Duration.ofMinutes(45)).build();
     }
 
-    @Nested
-    class CreateTests {
-
-        @Test
-        void shouldCreateTrainingSuccessfully() {
-            // Arrange
-            assertEquals(TRAINEE_ID, createDto.traineeId());
-            assertEquals(TRAINER_ID, createDto.trainerId());
-
-            when(traineeRepository.existsById(TRAINEE_ID))
-                    .thenReturn(true);
-
-            when(trainerRepository.existsById(TRAINER_ID))
-                    .thenReturn(true);
-
-            when(trainingMapper.toTraining(createDto))
-                    .thenReturn(training);
-
-            when(idGenerator.generate())
-                    .thenReturn(TRAINING_ID);
-
-            when(trainingRepository.save(training))
-                    .thenReturn(training);
-
-            // Act
-            Training result = trainingService.createTraining(createDto);
-
-            // Assert
-            assertNotNull(result);
-            assertSame(training, result);
-            assertEquals(TRAINING_ID, result.getId());
-
-            verify(dtoValidator).validateCreate(createDto);
-            verify(traineeRepository).existsById(TRAINEE_ID);
-            verify(trainerRepository).existsById(TRAINER_ID);
-            verify(trainingMapper).toTraining(createDto);
-            verify(idGenerator).generate();
-            verify(trainingRepository).save(training);
-        }
-
-        @Test
-        void shouldAssignGeneratedIdBeforeSavingTraining() {
-            // Arrange
-            existingTrainingParticipants();
-
-            when(trainingMapper.toTraining(createDto))
-                    .thenReturn(training);
-
-            when(idGenerator.generate())
-                    .thenReturn(TRAINING_ID);
-
-            when(trainingRepository.save(any(Training.class)))
-                    .thenAnswer(invocation -> {
-                        Training entity = invocation.getArgument(0);
-
-                        assertEquals(TRAINING_ID, entity.getId());
-
-                        return entity;
-                    });
-
-            // Act
-            Training result = trainingService.createTraining(createDto);
-
-            // Assert
-            assertEquals(TRAINING_ID, result.getId());
-
-            ArgumentCaptor<Training> captor =
-                    ArgumentCaptor.forClass(Training.class);
-
-            verify(trainingRepository).save(captor.capture());
-
-            assertSame(training, captor.getValue());
-            assertEquals(TRAINING_ID, captor.getValue().getId());
-        }
-
-        @Test
-        void shouldRejectNullCreateTrainingDto() {
-
-            doThrow(new IllegalArgumentException("CreateTrainingDto must not be null"))
-                    .when(dtoValidator)
-                    .validateCreate(isNull());
-
-            // Act
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> trainingService.createTraining(null)
-            );
-
-            // Assert
-            assertEquals(
-                    "CreateTrainingDto must not be null",
-                    exception.getMessage()
-            );
-        }
-
-        @Test
-        void shouldRejectTrainingWhenTraineeDoesNotExist() {
-            // Arrange
-            when(traineeRepository.existsById(TRAINEE_ID)).thenReturn(false);
-
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> trainingService.createTraining(createDto)
-            );
-
-            // Assert
-            assertEquals(
-                    "Trainee with id %d not found".formatted(TRAINEE_ID),
-                    exception.getMessage()
-            );
-
-            verify(traineeRepository).existsById(TRAINEE_ID);
-
-            verifyNoInteractions(
-                    trainerRepository,
-                    trainingMapper,
-                    idGenerator,
-                    trainingRepository
-            );
-        }
-
-        @Test
-        void shouldRejectTrainingWhenTrainerDoesNotExist() {
-            // Arrange
-            when(traineeRepository.existsById(TRAINEE_ID))
-
-                    .thenReturn(true);
-            when(trainerRepository.existsById(TRAINER_ID))
-                    .thenReturn(false);
-
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> trainingService.createTraining(createDto)
-            );
-
-            // Assert
-            assertEquals(
-                    "Trainer with id " + TRAINER_ID + " not found",
-                    exception.getMessage()
-            );
-
-            verify(trainerRepository).existsById(TRAINER_ID);
-            verify(dtoValidator).validateCreate(createDto);
-
-            verifyNoInteractions(
-                    trainingMapper,
-                    idGenerator,
-                    trainingRepository
-            );
-        }
-
-        @Test
-        void shouldReturnEntityReturnedByRepository() {
-            // Arrange
-            Training persistedTraining = new Training();
-            persistedTraining.setId(TRAINING_ID);
-
-            when(traineeRepository.existsById(TRAINEE_ID))
-                    .thenReturn(true);
-
-            when(trainerRepository.existsById(TRAINER_ID))
-                    .thenReturn(true);
-
-            when(trainingMapper.toTraining(createDto))
-                    .thenReturn(training);
-
-            when(idGenerator.generate())
-                    .thenReturn(TRAINING_ID);
-
-            when(trainingRepository.save(training))
-                    .thenReturn(persistedTraining);
-
-            // Act
-            Training result = trainingService.createTraining(createDto);
-
-            // Assert
-            assertSame(persistedTraining, result);
-
-            verify(trainingRepository).save(training);
-        }
-
-        @Test
-        void shouldPropagateRepositoryExceptionDuringCreation() {
-            // Arrange
-
-            existingTrainingParticipants();
-
-            when(trainingMapper.toTraining(createDto))
-                    .thenReturn(training);
-
-            when(idGenerator.generate())
-                    .thenReturn(TRAINING_ID);
-
-            RuntimeException repositoryException =
-                    new RuntimeException("Storage failure");
-
-            when(trainingRepository.save(training))
-                    .thenThrow(repositoryException);
-
-            // Act
-            RuntimeException exception = assertThrows(
-                    RuntimeException.class,
-                    () -> trainingService.createTraining(createDto)
-            );
-
-            // Assert
-            assertSame(repositoryException, exception);
-
-            verify(trainingRepository).save(training);
-        }
+    private Trainee activeTrainee() {
+        return Trainee.builder()
+                .id(1L)
+                .user(User.builder()
+                        .active(true)
+                        .build())
+                .build();
     }
 
-    @Nested
-    class GetByIdTests {
-
-        @Test
-        void shouldReturnTrainingWhenIdExists() {
-            // Arrange
-            training.setId(TRAINING_ID);
-
-            when(trainingRepository.findById(TRAINING_ID))
-                    .thenReturn(Optional.of(training));
-
-            // Act
-            Training result =
-                    trainingService.getTrainingById(TRAINING_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertSame(training, result);
-            assertEquals(TRAINING_ID, result.getId());
-
-            verify(trainingRepository).findById(TRAINING_ID);
-        }
-
-        @Test
-        void shouldThrowExceptionWhenTrainingDoesNotExist() {
-            // Arrange
-            Long nonexistentId = 999L;
-
-            when(trainingRepository.findById(nonexistentId))
-                    .thenReturn(Optional.empty());
-
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> trainingService.getTrainingById(nonexistentId)
-            );
-
-            // Assert
-            assertEquals(
-                    "Training with id 999 not found",
-                    exception.getMessage()
-            );
-
-            verify(trainingRepository).findById(nonexistentId);
-        }
-
-        @Test
-        void shouldReturnCorrectTrainingForRequestedId() {
-            // Arrange
-            Long requestedId = 5L;
-
-            Training expectedTraining = new Training();
-            expectedTraining.setId(requestedId);
-
-            when(trainingRepository.findById(requestedId))
-                    .thenReturn(Optional.of(expectedTraining));
-
-            // Act
-            Training result =
-                    trainingService.getTrainingById(requestedId);
-
-            // Assert
-            assertSame(expectedTraining, result);
-            assertEquals(requestedId, result.getId());
-
-            verify(trainingRepository).findById(requestedId);
-        }
-
-        @Test
-        void shouldNotCallOtherDependenciesWhenRetrievingTraining() {
-            // Arrange
-            training.setId(TRAINING_ID);
-
-            when(trainingRepository.findById(TRAINING_ID))
-                    .thenReturn(Optional.of(training));
-
-            // Act
-            Training result =
-                    trainingService.getTrainingById(TRAINING_ID);
-
-            // Assert
-            assertNotNull(result);
-
-            verify(trainingRepository).findById(TRAINING_ID);
-            verifyNoInteractions(idGenerator, trainingMapper);
-        }
+    private Trainer activeTrainer(Long specializationId) {
+        return Trainer.builder().id(2L).user(User.builder().active(true).build())
+                .specialization(TrainingType.builder().id(specializationId).build()).build();
     }
 
-    private void existingTrainingParticipants() {
-        when(traineeRepository.existsById(TRAINEE_ID))
-                .thenReturn(true);
+    private void stubParticipants(Training input, Trainee t, Trainer r) {
+        TraineeEntity traineeEntity = new TraineeEntity();
+        TrainerEntity trainerEntity = new TrainerEntity();
+        TrainingTypeEntity typeEntity = new TrainingTypeEntity();
+        typeEntity.setId(3L);
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(traineeEntity));
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainerEntity));
+        when(trainingTypeRepository.findById(3L)).thenReturn(Optional.of(typeEntity));
+        when(traineeMapper.toTraineeDomain(traineeEntity)).thenReturn(t);
+        when(trainerMapper.toTrainerDomain(trainerEntity)).thenReturn(r);
+        when(trainingTypeMapper.toTrainingTypeDomain(typeEntity)).thenReturn(TrainingType.builder().id(3L).build());
+    }
 
-        when(trainerRepository.existsById(TRAINER_ID))
-                .thenReturn(true);
+    @Test
+    void createResolvesJpaEntitiesAndMapsSavedTraining() {
+        Training training = training();
+        stubParticipants(training, activeTrainee(), activeTrainer(3L));
+        TrainingEntity trainingEntity = new TrainingEntity();
+        trainingEntity.setId(10L);
+        Training result = Training.builder().id(10L).build();
+        when(trainingMapper.toTrainingEntity(training)).thenReturn(trainingEntity);
+        when(trainingRepository.save(trainingEntity)).thenReturn(trainingEntity);
+        when(trainingMapper.toTrainingDomain(trainingEntity)).thenReturn(result);
+        assertSame(result, service.createTraining(training));
+        verify(trainingRepository).save(trainingEntity);
+    }
+
+    @Test
+    void invalidReferencesNeverReachRepository() {
+        assertThrows(NullPointerException.class, () -> service.createTraining(null));
+        Training training = training();
+        training.setId(9L);
+        Training finalTraining = training;
+        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalTraining));
+        training = training();
+        training.setTrainee(null);
+        Training finalValue = training;
+        Training finalValue1 = finalValue;
+        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalValue1));
+        training = training();
+        training.setTrainer(Trainer.builder().id(-1L).build());
+        finalValue = training;
+        Training finalValue2 = finalValue;
+        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalValue2));
+        training = training();
+        training.setTrainingType(TrainingType.builder().build());
+        finalValue = training;
+        Training finalValue3 = finalValue;
+        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalValue3));
+        training = training();
+        training = Training.builder().trainee(training.getTrainee()).trainer(training.getTrainer())
+                .trainingType(training.getTrainingType()).trainingName("Session")
+                .trainingDate(LocalDate.now().minusDays(1)).trainingDuration(Duration.ofMinutes(45)).build();
+        finalValue = training;
+        Training finalValue4 = finalValue;
+        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalValue4));
+        verifyNoInteractions(trainingRepository);
+    }
+
+    @Test
+    void missingTraineeTrainerOrTypeIsRejected() {
+        assertThrows(EntityNotFoundException.class, () -> service.createTraining(training()));
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(new TraineeEntity()));
+        assertThrows(EntityNotFoundException.class, () -> service.createTraining(training()));
+        when(trainerRepository.findById(2L)).thenReturn(Optional.of(new TrainerEntity()));
+        assertThrows(EntityNotFoundException.class, () -> service.createTraining(training()));
+        verify(trainingRepository, never()).save(any());
+    }
+
+    @Test
+    void inactiveTraineeAndTrainerAreRejected() {
+        Training training = training();
+        Trainee inactive = activeTrainee();
+        inactive.getUser().setActive(false);
+        stubParticipants(training, inactive, activeTrainer(3L));
+        assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(training));
+    }
+
+    @Test
+    void specializationMismatchIsRejected() {
+        Training training = training();
+        stubParticipants(training, activeTrainee(), activeTrainer(9L));
+        assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(training));
+        verify(trainingRepository, never()).save(any());
+    }
+
+    @Test
+    void getByIdMapsEntityOrThrows() {
+        TrainingEntity trainingEntity = new TrainingEntity();
+        Training domain = training();
+        when(trainingRepository.findById(10L)).thenReturn(Optional.of(trainingEntity));
+        when(trainingMapper.toTrainingDomain(trainingEntity)).thenReturn(domain);
+        assertSame(domain, service.getTrainingById(10L));
+        assertThrows(EntityNotFoundException.class, () -> service.getTrainingById(99L));
     }
 }

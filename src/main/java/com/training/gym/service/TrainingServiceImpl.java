@@ -1,78 +1,140 @@
 package com.training.gym.service;
 
-import com.training.gym.dao.TraineeRepository;
-import com.training.gym.dao.TrainerRepository;
-import com.training.gym.dao.TrainingRepository;
-import com.training.gym.dto.training.CreateTrainingDto;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.Training;
+import com.training.gym.domain.model.TrainingType;
+import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.mapper.TrainingMapper;
-import com.training.gym.model.Training;
-import com.training.gym.util.IdGenerator;
-import com.training.gym.validation.TrainingDtoValidator;
+import com.training.gym.persistence.entity.TraineeEntity;
+import com.training.gym.persistence.entity.TrainerEntity;
+import com.training.gym.persistence.entity.TrainingEntity;
+import com.training.gym.persistence.entity.TrainingTypeEntity;
+import com.training.gym.repository.TraineeRepository;
+import com.training.gym.repository.TrainerRepository;
+import com.training.gym.repository.TrainingRepository;
+import com.training.gym.repository.TrainingTypeRepository;
+import com.training.gym.service.mapper.TraineePersistenceMapper;
+import com.training.gym.service.mapper.TrainerPersistenceMapper;
+import com.training.gym.service.mapper.TrainingPersistenceMapper;
+import com.training.gym.service.mapper.TrainingTypePersistenceMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Objects;
-
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class TrainingServiceImpl implements TrainingService {
 
     private final TrainingRepository trainingRepository;
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
-    private final IdGenerator idGenerator;
-    private final TrainingMapper trainingMapper;
-    private final TrainingDtoValidator trainingValidator;
-
-    public TrainingServiceImpl(TrainingRepository trainingRepository, TraineeRepository traineeRepository, TrainerRepository trainerRepository,
-                               @Qualifier("trainingIdGenerator")
-                               IdGenerator idGenerator,
-                               TrainingMapper trainingMapper, TrainingDtoValidator trainingValidator) {
-        this.trainingRepository = trainingRepository;
-        this.traineeRepository = traineeRepository;
-        this.trainerRepository = trainerRepository;
-        this.idGenerator = idGenerator;
-        this.trainingMapper = trainingMapper;
-        this.trainingValidator = trainingValidator;
-    }
+    private final TrainingTypeRepository trainingTypeRepository;
+    private final TrainingPersistenceMapper trainingMapper;
+    private final TraineePersistenceMapper traineeMapper;
+    private final TrainerPersistenceMapper trainerMapper;
+    private final TrainingTypePersistenceMapper trainingTypeMapper;
 
     @Override
-    public Training createTraining(CreateTrainingDto trainingDto) {
+    @Transactional
+    public Training createTraining(Training training) {
         log.debug("Creating training");
-        Objects.requireNonNull(trainingDto, "Dto can not be null");
 
-        trainingValidator.validateCreate(trainingDto);
-        validateTrainingReferences(trainingDto);
+        validateTrainingReferences(training);
 
-        Training training = trainingMapper.toTraining(trainingDto);
 
-        training.setId(idGenerator.generate());
+        TraineeEntity trainee = traineeRepository.findById(training.getTrainee().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
 
-        Training savedTraining = trainingRepository.save(training);
+        TrainerEntity trainer = trainerRepository.findById(training.getTrainer().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found"));
 
-        log.info("Training created successfully: training id ={}", training.getId());
-        return savedTraining;
+
+        TrainingTypeEntity trainingType = trainingTypeRepository.findById(training.getTrainingType().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Training type not found"));
+
+        Trainee traineeDomain = traineeMapper.toTraineeDomain(trainee);
+        Trainer trainerDomain = trainerMapper.toTrainerDomain(trainer);
+        TrainingType trainingTypeDomain = trainingTypeMapper.toTrainingTypeDomain(trainingType);
+
+        validateParticipants(traineeDomain, trainerDomain);
+        validateSpecialization(training, trainerDomain);
+
+        training.setTrainee(traineeDomain);
+        training.setTrainer(trainerDomain);
+        training.setTrainingType(trainingTypeDomain);
+
+        TrainingEntity trainingEntity = trainingMapper.toTrainingEntity(training);
+
+        TrainingEntity savedTraining = trainingRepository.save(trainingEntity);
+
+        log.info("Training created: id={}", savedTraining.getId());
+        return trainingMapper.toTrainingDomain(savedTraining);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Training getTrainingById(Long id) {
         log.debug("Retrieving training: id={}", id);
-        Objects.requireNonNull(id, "Id can not be null");
-        return trainingRepository.findById(id)
+
+        TrainingEntity trainingEntity = trainingRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Training with id %d not found".formatted(id)));
+
+        return trainingMapper.toTrainingDomain(trainingEntity);
     }
 
-    private void validateTrainingReferences(CreateTrainingDto dto) {
-        if (!traineeRepository.existsById(dto.traineeId())) {
-            throw new EntityNotFoundException("Trainee with id %d not found".formatted(dto.traineeId()));
+    private void validateParticipants(Trainee trainee, Trainer trainer) {
+        if (!Boolean.TRUE.equals(trainee.getUser().getActive())) {
+            throw new BusinessRuleViolationException("Cannot create training for inactive trainee");
         }
 
-        if (!trainerRepository.existsById(dto.trainerId())) {
-            throw new EntityNotFoundException("Trainer with id %d not found".formatted(dto.trainerId()));
+        if (!Boolean.TRUE.equals(trainer.getUser().getActive())) {
+            throw new BusinessRuleViolationException("Cannot create training with inactive trainer");
         }
     }
 
+    private void validateSpecialization(Training training, Trainer trainer) {
+        Objects.requireNonNull(training, "Training  must not be null");
+        Objects.requireNonNull(trainer, "Trainer  must not be null");
+
+        if (!Objects.equals(training.getTrainingType().getId(), trainer.getSpecialization().getId())) {
+            throw new BusinessRuleViolationException("Training type does not match trainer specialization");
+        }
+    }
+
+    private void validateTrainingReferences(Training training) {
+        Objects.requireNonNull(training, "Training is required");
+
+        if (training.getId() != null) {
+            throw new IllegalArgumentException("New training must not have an ID");
+        }
+
+        if (training.getTrainee() == null
+                || training.getTrainee().getId() == null
+                || training.getTrainee().getId() <= 0) {
+            throw new IllegalArgumentException("Valid trainee ID is required");
+        }
+
+        if (training.getTrainer() == null
+                || training.getTrainer().getId() == null
+                || training.getTrainer().getId() <= 0) {
+            throw new IllegalArgumentException("Valid trainer ID is required");
+        }
+
+        if (training.getTrainingType() == null
+                || training.getTrainingType().getId() == null
+                || training.getTrainingType().getId() <= 0) {
+            throw new IllegalArgumentException("Valid training type ID is required");
+        }
+
+        if (training.getTrainingDate().isBefore(LocalDate.now(Clock.systemDefaultZone()))) {
+            throw new IllegalArgumentException("Training date is in past");
+        }
+    }
 }
