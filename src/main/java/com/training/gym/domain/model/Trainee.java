@@ -1,5 +1,6 @@
 package com.training.gym.domain.model;
 
+import com.training.gym.exception.UserAlreadyExistsException;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -34,7 +35,7 @@ public class Trainee {
         Objects.requireNonNull(trainer);
 
         if (!trainers.add(trainer)) {
-            throw new IllegalStateException("Trainer is already assigned");
+            throw new UserAlreadyExistsException("Trainer is already assigned");
         }
     }
 

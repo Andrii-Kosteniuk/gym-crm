@@ -1,5 +1,7 @@
 package com.training.gym.domain.criteria;
 
+import com.training.gym.exception.IncorrectMethodArgumentException;
+
 import java.time.LocalDate;
 
 public record TraineeTrainingFilter(
@@ -19,7 +21,7 @@ public record TraineeTrainingFilter(
     private static void validateDateRange(LocalDate from, LocalDate to) {
         if (from != null && to != null
                 && from.isAfter(to)) {
-            throw new IllegalArgumentException("From date must not be after to date");
+            throw new IncorrectMethodArgumentException("From date must not be after to date");
         }
     }
 

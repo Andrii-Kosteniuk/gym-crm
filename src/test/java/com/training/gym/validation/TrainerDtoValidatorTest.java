@@ -2,6 +2,7 @@ package com.training.gym.validation;
 
 import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.util.validation.TrainerDtoValidator;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +27,7 @@ class TrainerDtoValidatorTest {
         // Arrange
         CreateTrainerDto dto = null;
         // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> validator.validateCreate(dto));
+        assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateCreate(dto));
     }
 
     @Test
@@ -35,22 +36,22 @@ class TrainerDtoValidatorTest {
         CreateTrainerDto missingFirst = new CreateTrainerDto(" ", "Connor", 1L);
         CreateTrainerDto missingLast = new CreateTrainerDto("Sara", " ", 1L);
         // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> validator.validateCreate(missingFirst));
-        assertThrows(IllegalArgumentException.class, () -> validator.validateCreate(missingLast));
+        assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateCreate(missingFirst));
+        assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateCreate(missingLast));
     }
 
     @Test
     void shouldRejectBlankUpdateUsername() {
         // Arrange
-        UpdateTrainerDto dto = new UpdateTrainerDto("Sara", "Connor", " ", 1L);
+        UpdateTrainerDto dto = new UpdateTrainerDto(" ","Sara", "Connor",  1L, true);
         // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> validator.validateUpdate(dto));
+        assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateUpdate(dto));
     }
 
     @Test
     void shouldAcceptValidUpdate() {
         // Arrange
-        UpdateTrainerDto dto = new UpdateTrainerDto("Sara", "Connor", "sara.connor", 1L);
+        UpdateTrainerDto dto = new UpdateTrainerDto("sara.connor","Sara", "Connor",  1L, true);
         // Act / Assert
         assertDoesNotThrow(() -> validator.validateUpdate(dto));
     }

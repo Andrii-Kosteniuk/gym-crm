@@ -1,5 +1,6 @@
 package com.training.gym.util;
 
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -36,8 +37,8 @@ class UserNameGeneratorImplTest {
         String[] invalid = {null, "", "  "};
         // Act / Assert
         for (String value : invalid) {
-            assertThrows(IllegalArgumentException.class, () -> generator.generate(value, "Bond", name -> false));
-            assertThrows(IllegalArgumentException.class, () -> generator.generate("James", value, name -> false));
+            assertThrows(IncorrectMethodArgumentException.class, () -> generator.generate(value, "Bond", name -> false));
+            assertThrows(IncorrectMethodArgumentException.class, () -> generator.generate("James", value, name -> false));
         }
     }
 

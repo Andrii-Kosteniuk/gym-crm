@@ -1,5 +1,7 @@
 package com.training.gym.util.validation;
 
+import com.training.gym.exception.IncorrectMethodArgumentException;
+
 import java.time.LocalDate;
 
 public final class ValidationUtils {
@@ -9,14 +11,14 @@ public final class ValidationUtils {
 
     public static <T> void requireNotNull(T value, String fieldName) {
         if (value == null) {
-            throw new IllegalArgumentException("%s must not be null".formatted(fieldName));
+            throw new IncorrectMethodArgumentException("%s must not be null".formatted(fieldName));
         }
 
     }
 
     public static void requireNotBlank(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("%s must not be blank".formatted(fieldName));
+            throw new IncorrectMethodArgumentException("%s must not be blank".formatted(fieldName));
         }
     }
 
@@ -25,7 +27,7 @@ public final class ValidationUtils {
         requireNotNull(currentDate, "Current date");
 
         if (date.isAfter(currentDate)) {
-            throw new IllegalArgumentException("Date of birth must not be in the future");
+            throw new IncorrectMethodArgumentException("Date of birth must not be in the future");
         }
     }
 
@@ -33,7 +35,7 @@ public final class ValidationUtils {
         requireNotNull(duration, "Training duration");
 
         if (duration == 0 || duration < 0) {
-            throw new IllegalArgumentException("Training duration must be positive");
+            throw new IncorrectMethodArgumentException("Training duration must be positive");
         }
     }
 
@@ -41,7 +43,7 @@ public final class ValidationUtils {
         requireNotNull(id, fieldName);
 
         if (id <= 0) {
-            throw new IllegalArgumentException("%s must be positive".formatted(fieldName));
+            throw new IncorrectMethodArgumentException("%s must be positive".formatted(fieldName));
         }
     }
 }

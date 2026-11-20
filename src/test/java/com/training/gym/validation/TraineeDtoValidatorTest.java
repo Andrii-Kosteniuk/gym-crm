@@ -2,6 +2,7 @@ package com.training.gym.validation;
 
 import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.util.validation.TraineeDtoValidator;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +34,7 @@ class TraineeDtoValidatorTest {
         // Arrange
         CreateTraineeDto dto = null;
         // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> validator.validateCreate(dto));
+        assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateCreate(dto));
     }
 
     @Test
@@ -41,8 +42,8 @@ class TraineeDtoValidatorTest {
         // Arrange
         LocalDate dob = LocalDate.of(1990, 4, 13);
         // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> validator.validateCreate(create(" ", "Bond", dob)));
-        assertThrows(IllegalArgumentException.class, () -> validator.validateCreate(create("James", " ", dob)));
+        assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateCreate(create(" ", "Bond", dob)));
+        assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateCreate(create("James", " ", dob)));
     }
 
     @Test
@@ -50,7 +51,7 @@ class TraineeDtoValidatorTest {
         // Arrange
         CreateTraineeDto dto = create("James", "Bond", LocalDate.of(2026, 11, 15));
         // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> validator.validateCreate(dto));
+        assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateCreate(dto));
     }
 
     @Test
@@ -58,7 +59,7 @@ class TraineeDtoValidatorTest {
         // Arrange
         UpdateTraineeDto dto = new UpdateTraineeDto("James", "Bond", " ", null, null);
         // Act / Assert
-        assertThrows(IllegalArgumentException.class, () -> validator.validateUpdate(dto));
+        assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateUpdate(dto));
     }
 
     @Test

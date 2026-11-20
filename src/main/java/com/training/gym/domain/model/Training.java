@@ -1,5 +1,6 @@
 package com.training.gym.domain.model;
 
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import lombok.*;
 
 import java.time.Clock;
@@ -26,7 +27,7 @@ public class Training {
         Objects.requireNonNull(trainingDate, "Training date must not be null");
 
         if (trainingDate.isBefore(LocalDate.now(Clock.systemDefaultZone()))) {
-            throw new IllegalArgumentException("trainingDate is in past");
+            throw new IncorrectMethodArgumentException("trainingDate is in past");
         }
 
         this.trainingDate = trainingDate;
@@ -36,7 +37,7 @@ public class Training {
         Objects.requireNonNull(trainingDuration, "Training duration must not be null");
 
         if (trainingDuration.isNegative() || trainingDuration.isZero()) {
-            throw new IllegalArgumentException("Duration cannot be negative");
+            throw new IncorrectMethodArgumentException("Duration cannot be negative");
         }
 
         this.trainingDuration = trainingDuration;

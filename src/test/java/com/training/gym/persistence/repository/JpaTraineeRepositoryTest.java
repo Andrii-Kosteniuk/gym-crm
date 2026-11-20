@@ -1,6 +1,8 @@
 package com.training.gym.persistence.repository;
 
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
+import com.training.gym.exception.UserAlreadyExistsException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.UserEntity;
@@ -51,7 +53,7 @@ class JpaTraineeRepositoryTest {
         assertSame(traineeEntity, traineeRepository.save(traineeEntity));
         verify(em).persist(traineeEntity);
         assertThrows(NullPointerException.class, () -> traineeRepository.save(null));
-        assertThrows(IllegalArgumentException.class, () -> traineeRepository.save(entity(1L, true)));
+        assertThrows(UserAlreadyExistsException.class, () -> traineeRepository.save(entity(1L, true)));
     }
 
     @Test
@@ -94,7 +96,7 @@ class JpaTraineeRepositoryTest {
         assertTrue(traineeRepository.findById(2L).isEmpty());
         assertTrue(traineeRepository.findAll().isEmpty());
         assertThrows(NullPointerException.class, () -> traineeRepository.findById(null));
-        assertThrows(IllegalArgumentException.class, () -> traineeRepository.findByUserName(" "));
+        assertThrows(IncorrectMethodArgumentException.class, () -> traineeRepository.findByUserName(" "));
     }
 
     @Test
@@ -120,7 +122,7 @@ class JpaTraineeRepositoryTest {
     @Test
     void deleteThrowsIfNotPresent() {
         assertThrows(EntityNotFoundException.class, () -> traineeRepository.delete(entity(1L, true)));
-        assertThrows(IllegalArgumentException.class, () -> traineeRepository.deleteByUsername(" "));
+        assertThrows(IncorrectMethodArgumentException.class, () -> traineeRepository.deleteByUsername(" "));
     }
 
     @Test

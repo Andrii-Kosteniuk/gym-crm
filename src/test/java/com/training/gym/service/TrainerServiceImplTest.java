@@ -8,6 +8,7 @@ import com.training.gym.domain.model.TrainingType;
 import com.training.gym.domain.model.User;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
@@ -198,7 +199,7 @@ class TrainerServiceImplTest {
     @Test
     void searchRejectsInvalidArguments() {
         TrainerTrainingCriteria criteria = new TrainerTrainingCriteria(null, null, null);
-        assertThrows(IllegalArgumentException.class, () -> service.findTrainings(" ", criteria));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.findTrainings(" ", criteria));
         assertThrows(NullPointerException.class, () -> service.findTrainings("sara.connor", null));
         assertThrows(NullPointerException.class, () -> service.getUnassignedTrainers(null));
     }

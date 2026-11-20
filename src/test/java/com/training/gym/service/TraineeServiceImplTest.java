@@ -8,6 +8,7 @@ import com.training.gym.domain.model.User;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
@@ -193,7 +194,7 @@ class TraineeServiceImplTest {
         when(trainingRepository.findByTraineeUsername("james.bond", filter)).thenReturn(List.of(trainingEntity));
         when(trainingMapper.toTrainingDomain(trainingEntity)).thenReturn(training);
         assertEquals(List.of(training), service.findTrainings(" james.bond ", criteria));
-        assertThrows(IllegalArgumentException.class, () -> service.findTrainings(" ", criteria));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.findTrainings(" ", criteria));
         assertThrows(NullPointerException.class, () -> service.findTrainings("james.bond", null));
     }
 
@@ -216,7 +217,7 @@ class TraineeServiceImplTest {
         assertThrows(NullPointerException.class, () -> service.replaceTrainers(1L, null));
         Set<Long> withNull = new HashSet<>();
         withNull.add(null);
-        assertThrows(IllegalArgumentException.class, () -> service.replaceTrainers(1L, withNull));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.replaceTrainers(1L, withNull));
         assertThrows(EntityNotFoundException.class, () -> service.replaceTrainers(1L, Set.of()));
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(entity(false)), Optional.of(entity(true)), Optional.of(entity(true)));
         assertThrows(BusinessRuleViolationException.class, () -> service.replaceTrainers(1L, Set.of()));

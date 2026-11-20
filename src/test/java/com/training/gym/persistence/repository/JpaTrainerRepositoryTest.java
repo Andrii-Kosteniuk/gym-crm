@@ -1,6 +1,8 @@
 package com.training.gym.persistence.repository;
 
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
+import com.training.gym.exception.UserAlreadyExistsException;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
 import com.training.gym.persistence.entity.UserEntity;
@@ -61,7 +63,7 @@ class JpaTrainerRepositoryTest {
     @Test
     void saveRejectsInvalidReferences() {
         assertThrows(NullPointerException.class, () -> trainerRepository.save(null));
-        assertThrows(IllegalArgumentException.class, () -> trainerRepository.save(entity(2L, true)));
+        assertThrows(UserAlreadyExistsException.class, () -> trainerRepository.save(entity(2L, true)));
         assertThrows(EntityNotFoundException.class, () -> trainerRepository.save(entity(null, true)));
     }
 
@@ -108,7 +110,7 @@ class JpaTrainerRepositoryTest {
         assertTrue(trainerRepository.findById(2L).isEmpty());
         assertTrue(trainerRepository.findAll().isEmpty());
         assertThrows(NullPointerException.class, () -> trainerRepository.findById(null));
-        assertThrows(IllegalArgumentException.class, () -> trainerRepository.findByUserName(" "));
+        assertThrows(IncorrectMethodArgumentException.class, () -> trainerRepository.findByUserName(" "));
     }
 
     @Test
@@ -134,7 +136,7 @@ class JpaTrainerRepositoryTest {
         assertThrows(NullPointerException.class, () -> trainerRepository.delete(null));
         assertThrows(NullPointerException.class, () -> trainerRepository.delete(entity(null, true)));
         assertThrows(EntityNotFoundException.class, () -> trainerRepository.delete(entity(2L, true)));
-        assertThrows(IllegalArgumentException.class, () -> trainerRepository.deleteByUsername(""));
+        assertThrows(IncorrectMethodArgumentException.class, () -> trainerRepository.deleteByUsername(""));
     }
 
     @Test
@@ -162,7 +164,7 @@ class JpaTrainerRepositoryTest {
         when(countQuery.setParameter("username", "missing")).thenReturn(countQuery);
         when(countQuery.getSingleResult()).thenReturn(0L);
         assertThrows(EntityNotFoundException.class, () -> trainerRepository.findUnassignedTrainers("missing"));
-        assertThrows(IllegalArgumentException.class, () -> trainerRepository.findUnassignedTrainers(" "));
+        assertThrows(IncorrectMethodArgumentException.class, () -> trainerRepository.findUnassignedTrainers(" "));
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.training.gym.service;
 
 import com.training.gym.domain.model.User;
 import com.training.gym.exception.AuthenticationFailedException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.UserEntity;
 import com.training.gym.repository.UserRepository;
 import com.training.gym.service.mapper.UserPersistenceMapper;
@@ -90,15 +91,15 @@ class CredentialServiceImplTest {
 
     @Test
     void changePasswordRejectsWeakAndReusedPassword() {
-        assertThrows(IllegalArgumentException.class, () -> service.changePassword("james.bond", "old", null));
-        assertThrows(IllegalArgumentException.class, () -> service.changePassword("james.bond", "old", "short"));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.changePassword("james.bond", "old", null));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.changePassword("james.bond", "old", "short"));
         UserEntity entity = stored();
         User domain = User.builder().id(1L).password("hash").build();
         when(users.findByUsername("james.bond")).thenReturn(Optional.of(entity));
         when(encoder.matches("old-pass", "hash")).thenReturn(true);
         when(encoder.matches("new-pass", "hash")).thenReturn(true);
         when(mapper.toUserDomain(entity)).thenReturn(domain);
-        assertThrows(IllegalArgumentException.class, () -> service.changePassword("james.bond", "old-pass", "new-pass"));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.changePassword("james.bond", "old-pass", "new-pass"));
         verify(users, never()).updatePassword(anyLong(), anyString());
     }
 }

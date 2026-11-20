@@ -1,6 +1,7 @@
 package com.training.gym.persistence.repository;
 
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.UserEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -53,11 +54,11 @@ class JpaUserRepositoryTest {
     @Test
     void rejectsBlankUsername() {
         for (String value : new String[]{"", " "}) {
-            assertThrows(IllegalArgumentException.class, () -> userRepository.existsByUsername(value));
-            assertThrows(IllegalArgumentException.class, () -> userRepository.findByUsername(value));
+            assertThrows(IncorrectMethodArgumentException.class, () -> userRepository.existsByUsername(value));
+            assertThrows(IncorrectMethodArgumentException.class, () -> userRepository.findByUsername(value));
         }
-        assertThrows(IllegalArgumentException.class, () -> userRepository.existsByUsername(null));
-        assertThrows(IllegalArgumentException.class, () -> userRepository.findByUsername(null));
+        assertThrows(IncorrectMethodArgumentException.class, () -> userRepository.existsByUsername(null));
+        assertThrows(IncorrectMethodArgumentException.class, () -> userRepository.findByUsername(null));
     }
 
     @Test
@@ -73,7 +74,7 @@ class JpaUserRepositoryTest {
     @Test
     void updatePasswordRejectsMissingOrInvalidInput() {
         assertThrows(NullPointerException.class, () -> userRepository.updatePassword(null, "encoded"));
-        assertThrows(IllegalArgumentException.class, () -> userRepository.updatePassword(1L, " "));
+        assertThrows(IncorrectMethodArgumentException.class, () -> userRepository.updatePassword(1L, " "));
         assertThrows(EntityNotFoundException.class, () -> userRepository.updatePassword(1L, "encoded"));
     }
 

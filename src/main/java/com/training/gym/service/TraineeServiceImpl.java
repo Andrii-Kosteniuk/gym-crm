@@ -9,6 +9,7 @@ import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
@@ -181,7 +182,7 @@ public class TraineeServiceImpl implements TraineeService {
     public List<Training> findTrainings(String username, TraineeTrainingCriteria criteria) {
 
         if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Trainee username must not be blank");
+            throw new IncorrectMethodArgumentException("Trainee username must not be blank");
         }
 
         Objects.requireNonNull(criteria, "Criteria must not be null");
@@ -210,7 +211,7 @@ public class TraineeServiceImpl implements TraineeService {
         if (trainerIds
                 .stream()
                 .anyMatch(Objects::isNull)) {
-            throw new IllegalArgumentException("Trainer IDs must not contain null");
+            throw new IncorrectMethodArgumentException("Trainer IDs must not contain null");
         }
 
         TraineeEntity trainee = traineeRepository.findById(traineeId)

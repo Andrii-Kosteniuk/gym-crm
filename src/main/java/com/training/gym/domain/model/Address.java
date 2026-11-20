@@ -1,5 +1,6 @@
 package com.training.gym.domain.model;
 
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +19,7 @@ public class Address {
 
     public void setBuildingNumber(int buildingNumber) {
         if (buildingNumber <= 0) {
-            throw new IllegalArgumentException("Building number must be greater than 0");
+            throw new IncorrectMethodArgumentException("Building number must be greater than 0");
         }
 
         this.buildingNumber = buildingNumber;

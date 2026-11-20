@@ -2,6 +2,7 @@ package com.training.gym.persistence.repository;
 
 import com.training.gym.domain.criteria.TraineeTrainingFilter;
 import com.training.gym.domain.criteria.TrainerTrainingFilter;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
@@ -71,7 +72,7 @@ class JpaTrainingRepositoryTest {
     @Test
     void saveRejectsMissingAndInvalidReferences() {
         assertThrows(NullPointerException.class, () -> trainingRepository.save(null));
-        assertThrows(IllegalArgumentException.class, () -> trainingRepository.save(training(10L)));
+        assertThrows(IncorrectMethodArgumentException.class, () -> trainingRepository.save(training(10L)));
         TrainingEntity trainingEntity = training(null);
         trainingEntity.setTraineeEntity(new TraineeEntity());
         assertThrows(NullPointerException.class, () -> trainingRepository.save(trainingEntity));
@@ -111,8 +112,8 @@ class JpaTrainingRepositoryTest {
     void searchValidatesUsernameAndFilterBeforeCriteriaQuery() {
         TraineeTrainingFilter traineeFilter = new TraineeTrainingFilter(null, null, null, null);
         TrainerTrainingFilter trainerFilter = new TrainerTrainingFilter(null, null, null);
-        assertThrows(IllegalArgumentException.class, () -> trainingRepository.findByTraineeUsername(" ", traineeFilter));
-        assertThrows(IllegalArgumentException.class, () -> trainingRepository.findByTrainerUsername(null, trainerFilter));
+        assertThrows(IncorrectMethodArgumentException.class, () -> trainingRepository.findByTraineeUsername(" ", traineeFilter));
+        assertThrows(IncorrectMethodArgumentException.class, () -> trainingRepository.findByTrainerUsername(null, trainerFilter));
         assertThrows(NullPointerException.class, () -> trainingRepository.findByTraineeUsername("james.bond", null));
         assertThrows(NullPointerException.class, () -> trainingRepository.findByTrainerUsername("sara.connor", null));
         verifyNoInteractions(em);

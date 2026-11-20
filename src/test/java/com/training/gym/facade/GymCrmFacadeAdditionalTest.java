@@ -7,7 +7,7 @@ import com.training.gym.domain.model.User;
 import com.training.gym.domain.mapper.TraineeMapper;
 import com.training.gym.domain.mapper.TrainerMapper;
 import com.training.gym.domain.mapper.TrainingMapper;
-import com.training.gym.dto.auth.ChangePasswordDto;
+import com.training.gym.dto.auth.ChangeLoginRequestDto;
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
@@ -15,6 +15,7 @@ import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.trainer.TrainerResponseDto;
 import com.training.gym.dto.training.TrainingResponseDto;
 import com.training.gym.exception.AccessDeniedException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.service.*;
 import com.training.gym.util.validation.TraineeDtoValidator;
 import com.training.gym.util.validation.TrainerDtoValidator;
@@ -128,10 +129,10 @@ class GymCrmFacadeAdditionalTest {
         void shouldNotMapTraineeWhenLookupFails() {
             // Arrange
             when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenThrow(new IllegalArgumentException("Not found"));
+                    .thenThrow(new IncorrectMethodArgumentException("Not found"));
 
             // Act
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(IncorrectMethodArgumentException.class,
                     () -> facade.getTraineeById(TRAINEE_ID, traineeCredentials));
 
             // Assert
@@ -181,10 +182,10 @@ class GymCrmFacadeAdditionalTest {
         void shouldNotMapTrainerWhenLookupFails() {
             // Arrange
             when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenThrow(new IllegalArgumentException("Not found"));
+                    .thenThrow(new IncorrectMethodArgumentException("Not found"));
 
             // Act
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(IncorrectMethodArgumentException.class,
                     () -> facade.getTrainerById(TRAINER_ID, trainerCredentials));
 
             // Assert
@@ -248,10 +249,10 @@ class GymCrmFacadeAdditionalTest {
         void shouldNotMapTrainerWhenUsernameLookupFails() {
             // Arrange
             when(trainerService.findByUserName(TRAINER_USERNAME))
-                    .thenThrow(new IllegalArgumentException("Not found"));
+                    .thenThrow(new IncorrectMethodArgumentException("Not found"));
 
             // Act
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(IncorrectMethodArgumentException.class,
                     () -> facade.getTrainerByUserName(TRAINER_USERNAME, trainerCredentials));
 
             // Assert
@@ -267,10 +268,10 @@ class GymCrmFacadeAdditionalTest {
         @Test
         void shouldAuthorizeBeforeChangingPassword() {
             // Arrange
-            ChangePasswordDto dto = new ChangePasswordDto("OldPassword123", "NewPassword123");
+            ChangeLoginRequestDto dto = new ChangeLoginRequestDto(TRAINEE_USERNAME,"OldPassword123", "NewPassword123");
 
             // Act
-            facade.changeTrainerPassword(TRAINER_USERNAME, dto, trainerCredentials);
+            facade.changePassword(dto);
 
             // Assert
             InOrder order = inOrder(authorizationService, trainerService);
@@ -283,11 +284,11 @@ class GymCrmFacadeAdditionalTest {
         @Test
         void shouldRejectNullPasswordChangeDtoBeforeAuthorization() {
             // Arrange
-            ChangePasswordDto dto = null;
+            ChangeLoginRequestDto dto = null;
 
             // Act
             NullPointerException exception = assertThrows(NullPointerException.class,
-                    () -> facade.changeTrainerPassword(TRAINER_USERNAME, dto, trainerCredentials));
+                    () -> facade.changePassword(dto));
 
             // Assert
             assertEquals("Password change DTO is required", exception.getMessage());
@@ -297,13 +298,13 @@ class GymCrmFacadeAdditionalTest {
         @Test
         void shouldNotChangePasswordWhenAuthorizationFails() {
             // Arrange
-            ChangePasswordDto dto = new ChangePasswordDto("OldPassword123", "NewPassword123");
+            ChangeLoginRequestDto dto = new ChangeLoginRequestDto(TRAINEE_USERNAME,"OldPassword123", "NewPassword123");
             doThrow(new AccessDeniedException("Denied"))
                     .when(authorizationService).requireTrainerOwner(trainerCredentials, TRAINER_USERNAME);
 
             // Act
             assertThrows(AccessDeniedException.class,
-                    () -> facade.changeTrainerPassword(TRAINER_USERNAME, dto, trainerCredentials));
+                    () -> facade.changePassword( dto));
 
             // Assert
             verifyNoInteractions(trainerService);
@@ -312,14 +313,14 @@ class GymCrmFacadeAdditionalTest {
         @Test
         void shouldPropagatePasswordChangeFailureAfterAuthorization() {
             // Arrange
-            ChangePasswordDto dto = new ChangePasswordDto("OldPassword123", "NewPassword123");
-            doThrow(new IllegalArgumentException("Invalid password"))
+            ChangeLoginRequestDto dto = new ChangeLoginRequestDto(TRAINEE_USERNAME, "OldPassword123", "NewPassword123");
+            doThrow(new IncorrectMethodArgumentException("Invalid password"))
                     .when(trainerService).changePassword(
                             TRAINER_USERNAME, "OldPassword123", "NewPassword123");
 
             // Act
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                    () -> facade.changeTrainerPassword(TRAINER_USERNAME, dto, trainerCredentials));
+            IncorrectMethodArgumentException exception = assertThrows(IncorrectMethodArgumentException.class,
+                    () -> facade.changePassword(dto));
 
             // Assert
             assertEquals("Invalid password", exception.getMessage());
@@ -366,10 +367,10 @@ class GymCrmFacadeAdditionalTest {
         void shouldNotDeactivateMissingTrainee() {
             // Arrange
             when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenThrow(new IllegalArgumentException("Not found"));
+                    .thenThrow(new IncorrectMethodArgumentException("Not found"));
 
             // Act
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(IncorrectMethodArgumentException.class,
                     () -> facade.deActivateTrainee(TRAINEE_ID, traineeCredentials));
 
             // Assert
@@ -416,10 +417,10 @@ class GymCrmFacadeAdditionalTest {
         void shouldNotDeactivateMissingTrainer() {
             // Arrange
             when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenThrow(new IllegalArgumentException("Not found"));
+                    .thenThrow(new IncorrectMethodArgumentException("Not found"));
 
             // Act
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(IncorrectMethodArgumentException.class,
                     () -> facade.deActivateTrainer(TRAINER_ID, trainerCredentials));
 
             // Assert

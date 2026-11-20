@@ -6,6 +6,7 @@ import com.training.gym.domain.model.Training;
 import com.training.gym.domain.model.TrainingType;
 import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
@@ -112,29 +113,29 @@ public class TrainingServiceImpl implements TrainingService {
         Objects.requireNonNull(training, "Training is required");
 
         if (training.getId() != null) {
-            throw new IllegalArgumentException("New training must not have an ID");
+            throw new IncorrectMethodArgumentException("New training must not have an ID");
         }
 
         if (training.getTrainee() == null
                 || training.getTrainee().getId() == null
                 || training.getTrainee().getId() <= 0) {
-            throw new IllegalArgumentException("Valid trainee ID is required");
+            throw new IncorrectMethodArgumentException("Valid trainee ID is required");
         }
 
         if (training.getTrainer() == null
                 || training.getTrainer().getId() == null
                 || training.getTrainer().getId() <= 0) {
-            throw new IllegalArgumentException("Valid trainer ID is required");
+            throw new IncorrectMethodArgumentException("Valid trainer ID is required");
         }
 
         if (training.getTrainingType() == null
                 || training.getTrainingType().getId() == null
                 || training.getTrainingType().getId() <= 0) {
-            throw new IllegalArgumentException("Valid training type ID is required");
+            throw new IncorrectMethodArgumentException("Valid training type ID is required");
         }
 
         if (training.getTrainingDate().isBefore(LocalDate.now(Clock.systemDefaultZone()))) {
-            throw new IllegalArgumentException("Training date is in past");
+            throw new IncorrectMethodArgumentException("Training date is in past");
         }
     }
 }

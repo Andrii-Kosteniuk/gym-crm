@@ -2,6 +2,7 @@ package com.training.gym.service;
 
 import com.training.gym.domain.model.User;
 import com.training.gym.exception.AuthenticationFailedException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.UserEntity;
 import com.training.gym.repository.UserRepository;
 import com.training.gym.service.mapper.UserPersistenceMapper;
@@ -48,13 +49,13 @@ public class CredentialServiceImpl implements CredentialService {
     public void changePassword(String username, String oldPassword, String newPassword) {
 
         if (newPassword == null || newPassword.length() < 6) {
-            throw new IllegalArgumentException("New password must contain at least 6 characters");
+            throw new IncorrectMethodArgumentException("New password must contain at least 6 characters");
         }
 
         User user = authenticate(username, oldPassword);
 
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
-            throw new IllegalArgumentException("New password must differ from the current password");
+            throw new IncorrectMethodArgumentException("New password must differ from the current password");
         }
 
         String encodedPassword = passwordEncoder.encode(newPassword);

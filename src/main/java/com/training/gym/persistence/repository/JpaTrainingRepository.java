@@ -1,5 +1,6 @@
 package com.training.gym.persistence.repository;
 
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.*;
 import com.training.gym.repository.TrainingRepository;
 import jakarta.persistence.EntityManager;
@@ -36,7 +37,7 @@ public class JpaTrainingRepository implements TrainingRepository {
         Objects.requireNonNull(training, TRAINING_MUST_NOT_BE_NULL);
 
         if (training.getId() != null) {
-            throw new IllegalArgumentException("New training must not have an ID");
+            throw new IncorrectMethodArgumentException("New training must not have an ID");
         }
 
 
@@ -285,7 +286,7 @@ public class JpaTrainingRepository implements TrainingRepository {
 
     private void validateUsername(String username) {
         if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Username must not be blank");
+            throw new IncorrectMethodArgumentException("Username must not be blank");
         }
     }
 }

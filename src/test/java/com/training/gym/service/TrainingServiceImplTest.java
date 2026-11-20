@@ -3,6 +3,7 @@ package com.training.gym.service;
 import com.training.gym.domain.model.*;
 import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
@@ -105,29 +106,29 @@ class TrainingServiceImplTest {
         Training training = training();
         training.setId(9L);
         Training finalTraining = training;
-        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalTraining));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalTraining));
         training = training();
         training.setTrainee(null);
         Training finalValue = training;
         Training finalValue1 = finalValue;
-        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalValue1));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalValue1));
         training = training();
         training.setTrainer(Trainer.builder().id(-1L).build());
         finalValue = training;
         Training finalValue2 = finalValue;
-        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalValue2));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalValue2));
         training = training();
         training.setTrainingType(TrainingType.builder().build());
         finalValue = training;
         Training finalValue3 = finalValue;
-        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalValue3));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalValue3));
         training = training();
         training = Training.builder().trainee(training.getTrainee()).trainer(training.getTrainer())
                 .trainingType(training.getTrainingType()).trainingName("Session")
                 .trainingDate(LocalDate.now().minusDays(1)).trainingDuration(Duration.ofMinutes(45)).build();
         finalValue = training;
         Training finalValue4 = finalValue;
-        assertThrows(IllegalArgumentException.class, () -> service.createTraining(finalValue4));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalValue4));
         verifyNoInteractions(trainingRepository);
     }
 

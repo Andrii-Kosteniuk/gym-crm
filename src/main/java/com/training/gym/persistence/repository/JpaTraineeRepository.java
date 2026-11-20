@@ -1,6 +1,8 @@
 package com.training.gym.persistence.repository;
 
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
+import com.training.gym.exception.UserAlreadyExistsException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.UserEntity;
@@ -29,7 +31,7 @@ public class JpaTraineeRepository implements TraineeRepository {
         Objects.requireNonNull(trainee);
 
         if (trainee.getId() != null) {
-            throw new IllegalArgumentException("Cannot persist a trainee with an existing ID");
+            throw new UserAlreadyExistsException("Cannot persist a trainee with an existing ID");
         }
 
         entityManager.persist(trainee);
@@ -183,7 +185,7 @@ public class JpaTraineeRepository implements TraineeRepository {
 
     private void validateUsername(String username) {
         if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException(USERNAME_MUST_NOT_BE_BLANK);
+            throw new IncorrectMethodArgumentException(USERNAME_MUST_NOT_BE_BLANK);
         }
     }
 

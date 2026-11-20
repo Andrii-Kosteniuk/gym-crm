@@ -1,6 +1,7 @@
 package com.training.gym.persistence.repository;
 
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.UserEntity;
 import com.training.gym.repository.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -23,7 +24,7 @@ public class JpaUserRepository implements UserRepository {
     @Override
     public boolean existsByUsername(String username) {
         if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException(USERNAME_MUST_NOT_BE_BLANK);
+            throw new IncorrectMethodArgumentException(USERNAME_MUST_NOT_BE_BLANK);
         }
 
         Long count = entityManager.createQuery("""
@@ -40,7 +41,7 @@ public class JpaUserRepository implements UserRepository {
     @Override
     public Optional<UserEntity> findByUsername(String username) {
         if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException(USERNAME_MUST_NOT_BE_BLANK);
+            throw new IncorrectMethodArgumentException(USERNAME_MUST_NOT_BE_BLANK);
         }
 
         return entityManager.createQuery("""
@@ -59,7 +60,7 @@ public class JpaUserRepository implements UserRepository {
         Objects.requireNonNull(userId, "User ID is required");
 
         if (encodedPassword == null || encodedPassword.isBlank()) {
-            throw new IllegalArgumentException("Encoded password is required");
+            throw new IncorrectMethodArgumentException("Encoded password is required");
         }
 
         UserEntity entity = entityManager.find(UserEntity.class, userId);

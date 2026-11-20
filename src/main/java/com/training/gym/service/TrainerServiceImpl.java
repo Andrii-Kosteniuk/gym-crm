@@ -8,6 +8,7 @@ import com.training.gym.domain.model.User;
 import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
@@ -171,7 +172,7 @@ public class TrainerServiceImpl implements TrainerService {
     public List<Training> findTrainings(String username, TrainerTrainingCriteria criteria) {
 
         if (username == null || username.isBlank()) {
-            throw new IllegalArgumentException("Trainer username must not be blank");
+            throw new IncorrectMethodArgumentException("Trainer username must not be blank");
         }
 
         Objects.requireNonNull(criteria, "Criteria must not be null");
