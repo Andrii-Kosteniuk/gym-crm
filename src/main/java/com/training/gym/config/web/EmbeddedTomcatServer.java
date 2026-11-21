@@ -1,11 +1,15 @@
 package com.training.gym.config.web;
 
 import com.training.gym.config.app.AppConfig;
+import com.training.gym.web.filter.RequestLoggingFilter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.Context;
+import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Wrapper;
 import org.apache.catalina.startup.Tomcat;
+import org.apache.tomcat.util.descriptor.web.FilterDef;
+import org.apache.tomcat.util.descriptor.web.FilterMap;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 import org.springframework.web.servlet.DispatcherServlet;
 
@@ -27,14 +31,37 @@ public final class EmbeddedTomcatServer {
         try {
             Context context = configureContext(tomcat);
             configureDispatcherServlet(context);
-        } catch (Exception e) {
-            log.error("Failed to configure tomcat context {}", e.getMessage(), e);
-        }
-        try {
+
+            FilterDef filterDef = new FilterDef();
+            filterDef.setFilterName("requestLoggingFilter");
+            filterDef.setFilter(new RequestLoggingFilter());
+
+            context.addFilterDef(filterDef);
+
+            FilterMap filterMap = new FilterMap();
+            filterMap.setFilterName("requestLoggingFilter");
+            filterMap.addURLPattern("/*");
+
+            context.addFilterMap(filterMap);
+
             tomcat.start();
+
+
+            if (!tomcat.getServer().getState().isAvailable()) {
+                throw new IllegalStateException("Tomcat server is not available after startup");
+            }
+
+            log.info("Gym CRM server started on port {}", SERVER_PORT);
+
             tomcat.getServer().await();
+
         } catch (Exception e) {
-            log.error("Failed to start tomcat {}", e.getMessage(), e);
+            log.error("Gym CRM server failed", e);
+
+            throw new IllegalStateException("Failed to start Gym CRM web server", e);
+
+        } finally {
+            stopTomcat(tomcat);
         }
 
     }
@@ -64,7 +91,7 @@ public final class EmbeddedTomcatServer {
 
         applicationContext.getEnvironment().setActiveProfiles("dev");
 
-        applicationContext.register(AppConfig.class, ValidationConfig.class);
+        applicationContext.register(AppConfig.class);
 
         var dispatcherServlet = new DispatcherServlet(applicationContext);
 
@@ -72,5 +99,19 @@ public final class EmbeddedTomcatServer {
 
         wrapper.setLoadOnStartup(1);
         wrapper.addMapping(SERVLET_MAPPING);
+    }
+
+    private static void stopTomcat(Tomcat tomcat) {
+        try {
+            tomcat.stop();
+        } catch (LifecycleException exception) {
+            log.warn("Failed to stop Tomcat", exception);
+        }
+
+        try {
+            tomcat.destroy();
+        } catch (LifecycleException exception) {
+            log.warn("Failed to destroy Tomcat", exception);
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.training.gym.persistence.repository;
 
+import com.training.gym.domain.model.TrainingType;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
 import com.training.gym.repository.TrainingTypeRepository;
 import jakarta.persistence.EntityManager;

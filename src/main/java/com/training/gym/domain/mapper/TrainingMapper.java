@@ -5,8 +5,10 @@ import com.training.gym.domain.model.Trainer;
 import com.training.gym.domain.model.Training;
 import com.training.gym.domain.model.TrainingType;
 import com.training.gym.dto.training.CreateTrainingDto;
+import com.training.gym.dto.training.NewTrainingDto;
 import com.training.gym.dto.training.TrainingResponseDto;
 import com.training.gym.dto.training.TrainingTypeResponseDto;
+import com.training.gym.web.dto.request.CreateTrainingRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -24,13 +26,10 @@ public interface TrainingMapper {
     @Mapping(target = "trainingDuration", source = "duration")
     Training toTraining(CreateTrainingDto dto);
 
-    @Mapping(target = "traineeId", source = "trainee.id")
-    @Mapping(target = "trainerId", source = "trainer.id")
     @Mapping(target = "type", source = "trainingType")
     @Mapping(target = "duration", source = "trainingDuration")
     TrainingResponseDto toResponseDto(Training training);
 
-    @Mapping(target = "specialization", source = "name")
     TrainingTypeResponseDto toTrainingTypeResponseDto(TrainingType type);
 
     default Trainee mapTrainee(Long id) {
@@ -70,4 +69,12 @@ public interface TrainingMapper {
                 ? null
                 : duration.toMinutes();
     }
+
+    @Mapping(target = "trainee.user.userName", source = "traineeUsername")
+    @Mapping(target = "trainer.user.userName", source = "trainerUsername")
+    @Mapping(target = "trainingDate", source = "date")
+    @Mapping(target = "trainingDuration", source = "duration")
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "trainingType", ignore = true)
+    Training toTraining(NewTrainingDto newTrainingDto);
 }

@@ -1,0 +1,332 @@
+openapi: 3.0.3
+info:
+  title: Gym CRM REST API - Trainers
+  version: 1.0.0
+  description: Trainer endpoints for Gym CRM. Response DTO property definitions marked provisional must be checked against Java records.
+servers:
+  - url: /api/v1
+tags:
+  - name: Trainers
+    description: Trainer registration, authentication, profile management, assignments and training history
+paths:
+  /trainers/registration:
+    post:
+      tags: [ Trainers ]
+      summary: Register a trainer
+      operationId: registerTrainer
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainerRegistrationRequest'
+      responses:
+        '200':
+          description: Trainer registered; generated credentials returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /trainers/login:
+    post:
+      tags: [ Trainers ]
+      summary: Authenticate a trainer
+      operationId: authenticateTrainer
+      security: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '200':
+          description: Authentication successful; no response body
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /trainers/{username}/profile:
+    get:
+      tags: [ Trainers ]
+      summary: Get trainer profile
+      operationId: getTrainerProfile
+      security: [ { basicAuth: [ ] } ]
+      parameters:
+        - $ref: '#/components/parameters/UsernamePath'
+      responses:
+        '200':
+          description: Trainer profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainerProfileResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /trainers:
+    put:
+      tags: [ Trainers ]
+      summary: Update trainer profile
+      description: Updates editable trainer details. Authentication is required.
+      operationId: updateTrainer
+      security: [ { basicAuth: [ ] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTrainerRequest'
+      responses:
+        '200':
+          description: Trainer profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainerProfileResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /trainers/{username}:
+    get:
+      tags: [ Trainers ]
+      summary: List trainers not assigned to a trainee
+      description: The username identifies the trainee whose unassigned trainers are requested.
+      operationId: getNotAssignedTrainers
+      security: [ { basicAuth: [ ] } ]
+      parameters:
+        - $ref: '#/components/parameters/UsernamePath'
+      responses:
+        '200':
+          description: Unassigned trainers retrieved; may be an empty array
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainerSummaryResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /trainers/{username}/trainers:
+    put:
+      tags: [ Trainers ]
+      summary: Replace trainee's assigned trainers
+      description: >-
+        Documents the controller's current route. The username is passed to
+        replaceTraineeTrainers and is therefore expected to identify a trainee.
+        The controller subsequently calls getTrainerByUserName with the same
+        username; verify this response behavior before relying on it.
+      operationId: updateTrainerList
+      security: [ { basicAuth: [ ] } ]
+      parameters:
+        - $ref: '#/components/parameters/UsernamePath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTraineeTrainersDto'
+      responses:
+        '200':
+          description: Trainer list replaced; current controller returns one trainer summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainerSummaryResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /trainers/trainings:
+    get:
+      tags: [ Trainers ]
+      summary: Get trainer training history
+      description: Returns matching sessions, or an empty array when no sessions match.
+      operationId: getTrainerTrainingsList
+      security: [ { basicAuth: [ ] } ]
+      parameters:
+        - name: username
+          in: query
+          required: true
+          description: Trainer username
+          schema: { type: string, minLength: 1 }
+          example: sarah.connor
+        - name: fromDate
+          in: query
+          required: false
+          schema: { type: string, format: date }
+          example: '2026-01-01'
+        - name: toDate
+          in: query
+          required: false
+          schema: { type: string, format: date }
+          example: '2026-12-31'
+        - name: traineeName
+          in: query
+          required: false
+          schema: { type: string }
+          example: James
+      responses:
+        '200':
+          description: Trainer trainings retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainerTrainingResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /trainers/profile:
+    patch:
+      tags: [ Trainers ]
+      summary: Activate or deactivate trainer profile
+      operationId: activateDeactivateTrainerProfile
+      security: [ { basicAuth: [ ] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileStatusChangeRequest'
+      responses:
+        '200':
+          description: Trainer status changed successfully; no response body
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  parameters:
+    UsernamePath:
+      name: username
+      in: path
+      required: true
+      schema: { type: string, minLength: 1 }
+      example: sarah.connor
+  schemas:
+    TrainerRegistrationRequest:
+      type: object
+      description: 'Provisional field definitions: verify against TrainerRegistrationRequest Java record.'
+      required: [ firstName, lastName, specialization ]
+      properties:
+        firstName: { type: string, minLength: 1, example: Sarah }
+        lastName: { type: string, minLength: 1, example: Connor }
+        specialization: { type: integer, format: int64, example: 1 }
+    UpdateTrainerRequest:
+      type: object
+      description: 'Provisional fields: verify names and required constraints against UpdateTrainerRequest.'
+      properties:
+        username: { type: string, example: sarah.connor }
+        firstName: { type: string, minLength: 1, example: Sarah }
+        lastName: { type: string, minLength: 1, example: Connor }
+        specialization: { type: integer, format: int64, example: 1 }
+    TrainerProfileResponse:
+      type: object
+      description: 'Provisional response structure: verify against TrainerProfileResponse Java record.'
+      properties:
+        username: { type: string, example: sarah.connor }
+        firstName: { type: string, example: Sarah }
+        lastName: { type: string, example: Connor }
+        specialization:
+          $ref: '#/components/schemas/TrainingType'
+        active: { type: boolean, example: true }
+    TrainerSummaryResponse:
+      type: object
+      description: 'Provisional response structure: verify against TrainerSummaryResponse Java record.'
+      properties:
+        username: { type: string, example: sarah.connor }
+        firstName: { type: string, example: Sarah }
+        lastName: { type: string, example: Connor }
+        specialization:
+          $ref: '#/components/schemas/TrainingType'
+    TrainerTrainingResponse:
+      type: object
+      description: 'Provisional response structure: verify against TrainerTrainingResponse Java record.'
+      properties:
+        trainingName: { type: string, example: Strength training }
+        trainingDate: { type: string, format: date, example: '2026-06-15' }
+        durationMinutes: { type: integer, example: 60 }
+        traineeName: { type: string, example: James Bond }
+        trainingType:
+          $ref: '#/components/schemas/TrainingType'
+    TrainingType:
+      type: object
+      properties:
+        id: { type: integer, format: int64, example: 1 }
+        name: { type: string, example: Fitness }
+    UpdateTraineeTrainersDto:
+      type: object
+      required: [ trainerIds ]
+      properties:
+        trainerIds:
+          type: array
+          items: { type: integer, format: int64 }
+          example: [ 1, 2 ]
+    AuthenticationResponse:
+      type: object
+      properties:
+        username: { type: string, example: sarah.connor }
+        password:
+          type: string
+          description: Generated initial password returned only at registration
+          example: GeneratedPassword123!
+    Credentials:
+      type: object
+      required: [ username, password ]
+      properties:
+        username: { type: string, example: sarah.connor }
+        password: { type: string, format: password }
+    ProfileStatusChangeRequest:
+      type: object
+      required: [ username, active ]
+      properties:
+        username: { type: string, example: sarah.connor }
+        active: { type: boolean, example: true }
+    ProblemDetail:
+      type: object
+      properties:
+        type: { type: string, example: about:blank }
+        title: { type: string, example: Invalid request }
+        status: { type: integer, example: 400 }
+        detail: { type: string }
+        instance: { type: string }
+        transactionId: { type: string, format: uuid }
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    Unauthorized:
+      description: Authentication required or failed
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    Forbidden:
+      description: Access denied
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    Conflict:
+      description: Business rule conflict
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }

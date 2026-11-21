@@ -9,14 +9,18 @@ import com.training.gym.domain.mapper.TrainerMapper;
 import com.training.gym.domain.mapper.TrainingMapper;
 import com.training.gym.dto.auth.ChangePasswordDto;
 import com.training.gym.dto.auth.Credentials;
-import com.training.gym.dto.auth.RegistrationResponseDto;
+import com.training.gym.dto.auth.AuthenticationResponse;
 import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
 import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
 import com.training.gym.dto.training.CreateTrainingDto;
-import com.training.gym.service.*;
+import com.training.gym.service.auth.CredentialService;
+import com.training.gym.service.auth.ProfileAuthorizationService;
+import com.training.gym.service.trainee.TraineeService;
+import com.training.gym.service.trainer.TrainerService;
+import com.training.gym.service.training.TrainingService;
 import com.training.gym.util.validation.TraineeDtoValidator;
 import com.training.gym.util.validation.TrainerDtoValidator;
 import com.training.gym.util.validation.TrainingDtoValidator;
@@ -96,7 +100,7 @@ class GymCrmFacadeTest {
         when(traineeMapper.toTrainee(dto)).thenReturn(james);
         when(traineeService.registerTrainee(james)).thenReturn(new RegistrationResult<>(james, "raw-password"));
         // Act
-        RegistrationResponseDto result = facade.createTrainee(dto);
+        AuthenticationResponse result = facade.createTrainee(dto);
         // Assert
         assertEquals("james.bond", result.username());
         assertEquals("raw-password", result.password());
@@ -112,7 +116,7 @@ class GymCrmFacadeTest {
         when(trainerMapper.toTrainer(dto)).thenReturn(sara);
         when(trainerService.registerTrainer(sara)).thenReturn(new RegistrationResult<>(sara, "raw-password"));
         // Act
-        RegistrationResponseDto result = facade.createTrainer(dto);
+        AuthenticationResponse result = facade.createTrainer(dto);
         // Assert
         assertEquals("sara.connor", result.username());
         assertEquals("raw-password", result.password());
@@ -148,7 +152,6 @@ class GymCrmFacadeTest {
         Credentials credentials = jamesCredentials();
 
         UpdateTraineeDto dto = new UpdateTraineeDto(
-                1L,
                 "James",
                 "Bond",
                 username,
@@ -181,15 +184,16 @@ class GymCrmFacadeTest {
         Credentials credentials = sarahCredentials();
 
         UpdateTrainerDto dto = new UpdateTrainerDto(
+                username,
                 "Sara",
                 "Connor",
-                username,
-                1L
+                1L,
+                true
         );
 
         Trainer mappedTrainer = sara();
 
-        when(trainerMapper.updateTrainer(dto)).thenReturn(mappedTrainer);
+        when(trainerMapper.toUpdateTrainerDomain(dto)).thenReturn(mappedTrainer);
 
         when(trainerService.updateTrainer(mappedTrainer)).thenReturn(mappedTrainer);
 
@@ -248,25 +252,25 @@ class GymCrmFacadeTest {
 
 
     @Test
-    void shouldActivateTraineeOnlyAfterOwnerCheck() {
+    void shouldChangeProfileStatusOnlyAfterOwnerCheck() {
         // Arrange
-        Long traineeId = 1L;
+        String username = "james.bond";
         Credentials credentials = jamesCredentials();
         Trainee james = james();
 
-        when(traineeService.getTraineeById(traineeId)).thenReturn(james);
+        when(traineeService.findByUserName(username)).thenReturn(james);
 
         // Act
-        facade.activateTrainee(traineeId, credentials);
+        facade.changeTraineeProfileStatus(username, true, credentials);
 
         // Assert
         InOrder order = inOrder(authorization, traineeService);
 
-        order.verify(authorization).requireTraineeOwner(credentials, traineeId);
+        order.verify(authorization).requireTraineeOwner(credentials, username);
 
-        order.verify(traineeService).getTraineeById(traineeId);
+        order.verify(traineeService).findByUserName(username);
 
-        order.verify(traineeService).activateTrainee(james);
+        order.verify(traineeService).changeProfileStatus(james.getUser().getUserName(), true);
 
         order.verifyNoMoreInteractions();
     }
@@ -274,23 +278,23 @@ class GymCrmFacadeTest {
     @Test
     void shouldActivateTrainerOnlyAfterOwnerCheck() {
         // Arrange
-        Long trainerId = 2L;
+        String username = "sarah.cinnor";
         Credentials credentials = new Credentials("sara.connor", "secret");
         Trainer sara = sara();
 
-        when(trainerService.getTrainerById(trainerId)).thenReturn(sara);
+        when(trainerService.findByUserName(username)).thenReturn(sara);
 
         // Act
-        facade.activateTrainer(trainerId, credentials);
+        facade.changeTrainerProfileStatus(username, true, credentials);
 
         // Assert
         InOrder order = inOrder(authorization, trainerService);
 
-        order.verify(authorization).requireTrainerOwner(credentials, trainerId);
+        order.verify(authorization).requireTrainerOwner(credentials, username);
 
-        order.verify(trainerService).getTrainerById(trainerId);
+        order.verify(trainerService).findByUserName(username);
 
-        order.verify(trainerService).activateTrainer(sara);
+        order.verify(trainerService).changeProfileStatus(sara.getUser().getUserName(), true );
 
         order.verifyNoMoreInteractions();
     }

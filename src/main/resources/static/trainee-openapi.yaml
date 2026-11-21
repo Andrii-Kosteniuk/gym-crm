@@ -1,0 +1,432 @@
+openapi: 3.0.3
+info:
+  title: Gym CRM REST API
+  version: 1.0.0
+  description: REST API for managing trainees, trainers, and trainings.
+servers:
+  - url: /api/v1
+tags:
+  - name: Trainees
+    description: Trainee registration, authentication, profile management, and training history
+paths:
+  /trainees/registration:
+    post:
+      tags: [Trainees]
+      summary: Register a new trainee
+      description: Creates a trainee profile and generates an initial username and password. Authentication is not required.
+      operationId: registerTrainee
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TraineeRegistrationRequest'
+      responses:
+        '200':
+          description: Trainee registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /trainees/login:
+    post:
+      tags: [Trainees]
+      summary: Authenticate a trainee
+      description: Authenticates credentials supplied in the JSON request body. Returns an empty 200 response on success.
+      operationId: loginTrainee
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '200':
+          description: Authentication successful; no response body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /trainees/{username}/profile:
+    parameters:
+      - $ref: '#/components/parameters/TraineeUsername'
+    get:
+      tags: [Trainees]
+      summary: Get trainee profile
+      description: Retrieves trainee details and assigned trainers. Requires HTTP Basic credentials in the Authorization header.
+      operationId: getTraineeProfile
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: Trainee profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraineeProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Trainees]
+      summary: Delete trainee profile
+      description: Permanently deletes a trainee profile. Related training records follow the configured database cascade rules.
+      operationId: deleteTrainee
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: Trainee deleted successfully; no response body
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /trainees:
+    put:
+      tags: [Trainees]
+      summary: Update trainee profile
+      description: Updates editable profile fields. Username cannot be changed. Requires authentication and authorization.
+      operationId: updateTrainee
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTraineeRequest'
+      responses:
+        '200':
+          description: Trainee profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraineeProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /trainees/trainings:
+    get:
+      tags: [Trainees]
+      summary: Get trainee training history
+      description: Returns training sessions matching optional filters, or an empty array if none match.
+      operationId: getTraineeTrainingsList
+      security:
+        - basicAuth: []
+      parameters:
+        - name: username
+          in: query
+          required: true
+          description: Trainee username
+          schema:
+            type: string
+          example: james.bond
+        - name: fromDate
+          in: query
+          required: false
+          description: Start date (inclusive, subject to service implementation)
+          schema:
+            type: string
+            format: date
+          example: '2026-01-01'
+        - name: toDate
+          in: query
+          required: false
+          description: End date (inclusive, subject to service implementation)
+          schema:
+            type: string
+            format: date
+          example: '2026-12-31'
+        - name: trainerName
+          in: query
+          required: false
+          schema:
+            type: string
+          example: Sarah Connor
+        - name: trainingType
+          in: query
+          required: false
+          schema:
+            type: string
+          example: Fitness
+      responses:
+        '200':
+          description: Training sessions retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TraineeTrainingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /trainees/profile:
+    patch:
+      tags: [Trainees]
+      summary: Activate or deactivate trainee
+      description: Sets the trainee activation status. Requesting the existing status may produce a business conflict.
+      operationId: changeTraineeStatus
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileStatusChangeRequest'
+      responses:
+        '200':
+          description: Profile status changed successfully; no response body
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  parameters:
+    TraineeUsername:
+      name: username
+      in: path
+      required: true
+      description: Trainee username
+      schema:
+        type: string
+      example: james.bond
+
+  schemas:
+    TraineeRegistrationRequest:
+      type: object
+      required: [firstName, lastName]
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          example: James
+        lastName:
+          type: string
+          minLength: 1
+          example: Bond
+        dateOfBirth:
+          type: string
+          format: date
+          example: '2000-05-15'
+        address:
+          $ref: '#/components/schemas/Address'
+
+    UpdateTraineeRequest:
+      type: object
+      description: 'Verify exact properties and required fields against UpdateTraineeRequest.java.'
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+        lastName:
+          type: string
+          minLength: 1
+        dateOfBirth:
+          type: string
+          format: date
+        address:
+          $ref: '#/components/schemas/Address'
+        active:
+          type: boolean
+
+    Address:
+      type: object
+      properties:
+        city:
+          type: string
+          example: Wroclaw
+        street:
+          type: string
+        buildingNumber:
+          type: integer
+          minimum: 1
+        zipCode:
+          type: string
+
+    AuthenticationResponse:
+      type: object
+      properties:
+        username:
+          type: string
+          example: james.bond
+        password:
+          type: string
+          description: Generated initial password returned only during registration
+          example: GeneratedPassword123!
+
+    Credentials:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: james.bond
+        password:
+          type: string
+          format: password
+          writeOnly: true
+
+    ProfileStatusChangeRequest:
+      type: object
+      required: [username, active]
+      properties:
+        username:
+          type: string
+          example: james.bond
+        active:
+          type: boolean
+          example: true
+
+    TraineeProfileResponse:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        address:
+          $ref: '#/components/schemas/Address'
+        active:
+          type: boolean
+        trainers:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrainerSummary'
+
+    TrainerSummary:
+      type: object
+      properties:
+        userName:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        type:
+          $ref: '#/components/schemas/TrainingType'
+
+    TrainingType:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+
+    TraineeTrainingResponse:
+      type: object
+      properties:
+        trainingName:
+          type: string
+        trainingDate:
+          type: string
+          format: date
+        trainingType:
+          type: string
+        durationMinutes:
+          type: integer
+          minimum: 1
+        trainerName:
+          type: string
+
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        transactionId:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    Unauthorized:
+      description: Authentication required or failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    Forbidden:
+      description: Access denied
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    Conflict:
+      description: Business rule conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'

@@ -16,6 +16,7 @@ import com.training.gym.service.mapper.TraineePersistenceMapper;
 import com.training.gym.service.mapper.TrainerPersistenceMapper;
 import com.training.gym.service.mapper.TrainingPersistenceMapper;
 import com.training.gym.service.mapper.TrainingTypePersistenceMapper;
+import com.training.gym.service.training.TrainingServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

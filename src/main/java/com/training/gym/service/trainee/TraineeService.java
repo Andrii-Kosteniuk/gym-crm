@@ -1,4 +1,4 @@
-package com.training.gym.service;
+package com.training.gym.service.trainee;
 
 import com.training.gym.domain.model.Trainee;
 import com.training.gym.domain.model.Training;
@@ -21,13 +21,11 @@ public interface TraineeService {
 
     void removeTraineeByUsername(String username);
 
-    void activateTrainee(Trainee trainee);
-
-    void deactivateTrainee(Trainee trainee);
+    void changeProfileStatus(String username, boolean active);
 
     List<Training> findTrainings(String username, TraineeTrainingCriteria criteria);
 
     void changePassword(String username, String oldPassword, String newPassword);
 
-    void replaceTrainers(Long traineeId, Set<Long> trainersIds);
+    void replaceTrainers(String username, Set<Long> trainersIds);
 }

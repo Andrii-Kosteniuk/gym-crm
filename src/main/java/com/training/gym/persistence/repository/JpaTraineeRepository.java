@@ -22,6 +22,7 @@ public class JpaTraineeRepository implements TraineeRepository {
     public static final String NOT_NULL_ID_MESSAGE = "Trainee ID must not be null";
     public static final String USERNAME_MUST_NOT_BE_BLANK = "Trainee username must not be blank";
     public static final String USERNAME = "username";
+    public static final String TRAINEE_NOT_FOUND = "Trainee not found: ";
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -49,7 +50,7 @@ public class JpaTraineeRepository implements TraineeRepository {
                 TraineeEntity.class, trainee.getId());
 
         if (traineeEntity == null) {
-            throw new EntityNotFoundException("Trainee not found: " + trainee.getId());
+            throw new EntityNotFoundException(TRAINEE_NOT_FOUND + trainee.getId());
         }
 
         traineeEntity.getUserEntity().setFirstName(trainee.getUserEntity().getFirstName());
@@ -125,7 +126,7 @@ public class JpaTraineeRepository implements TraineeRepository {
         TraineeEntity entity = entityManager.find(TraineeEntity.class, id);
 
         if (entity == null) {
-            throw new EntityNotFoundException("Trainee not found: " + id);
+            throw new EntityNotFoundException(TRAINEE_NOT_FOUND + id);
         }
 
         entityManager.remove(entity);
@@ -136,34 +137,33 @@ public class JpaTraineeRepository implements TraineeRepository {
         validateUsername(username);
 
         TraineeEntity trainee = findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
+                .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND + username));
 
         delete(trainee);
     }
 
     @Override
-    public void activateTrainee(TraineeEntity trainee) {
+    public void changeProfileStatus(TraineeEntity trainee, boolean active) {
         Objects.requireNonNull(trainee, TRAINEE_MUST_NOT_BE_NULL);
-        changeActive(trainee.getId(), true);
+
+        TraineeEntity traineeEntity = entityManager.find(TraineeEntity.class, trainee.getId());
+
+        if (traineeEntity == null) {
+            throw new EntityNotFoundException("Trainee not found:");
+        }
+
+        UserEntity user = traineeEntity.getUserEntity();
+
+        user.setActive(active);
     }
 
     @Override
-    public void deactivateTrainee(TraineeEntity trainee) {
-        Objects.requireNonNull(trainee, TRAINEE_MUST_NOT_BE_NULL);
-        changeActive(trainee.getId(), false);
-    }
-
-    @Override
-    public void replaceTrainers(Long traineeId, Set<Long> trainerIds) {
-        Objects.requireNonNull(traineeId);
+    public void replaceTrainers(String username, Set<Long> trainerIds) {
+        Objects.requireNonNull(username);
         Objects.requireNonNull(trainerIds);
 
-        TraineeEntity trainee = entityManager.find(
-                TraineeEntity.class, traineeId);
-
-        if (trainee == null) {
-            throw new EntityNotFoundException("Trainee not found: " + traineeId);
-        }
+        TraineeEntity trainee = findByUserName(username)
+                .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND + username));
 
         Set<TrainerEntity> trainers = new HashSet<>();
 
@@ -172,7 +172,7 @@ public class JpaTraineeRepository implements TraineeRepository {
                     TrainerEntity.class, trainerId);
 
             if (trainer == null) {
-                throw new EntityNotFoundException("Trainer not found: " + trainerId);
+                throw new EntityNotFoundException(TRAINEE_NOT_FOUND + trainerId);
             }
 
             trainers.add(trainer);
@@ -187,28 +187,6 @@ public class JpaTraineeRepository implements TraineeRepository {
         if (username == null || username.isBlank()) {
             throw new IncorrectMethodArgumentException(USERNAME_MUST_NOT_BE_BLANK);
         }
-    }
-
-    private void changeActive(Long id, boolean active) {
-        Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
-
-        TraineeEntity trainee = entityManager.find(TraineeEntity.class, id);
-
-        if (trainee == null) {
-            throw new EntityNotFoundException("Trainee not found: " + id);
-        }
-
-        UserEntity user = trainee.getUserEntity();
-
-        if (Boolean.TRUE.equals(user.getActive()) == active) {
-            throw new IllegalStateException(
-                    active
-                            ? "Trainee is already active"
-                            : "Trainee is already inactive"
-            );
-        }
-
-        user.setActive(active);
     }
 
 }

@@ -1,8 +1,10 @@
 package com.training.gym.dto.trainee;
 
 import com.training.gym.dto.AddressResponse;
+import com.training.gym.dto.trainer.TrainerResponseDto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public record TraineeResponseDto(
         Long id,
@@ -11,7 +13,8 @@ public record TraineeResponseDto(
         String userName,
         LocalDate dateOfBirth,
         AddressResponse address,
-        boolean active
+        boolean active,
+        List<TrainerResponseDto> trainers
 ) {
 
 

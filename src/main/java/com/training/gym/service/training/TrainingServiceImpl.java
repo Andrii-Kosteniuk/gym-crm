@@ -1,4 +1,4 @@
-package com.training.gym.service;
+package com.training.gym.service.training;
 
 import com.training.gym.domain.model.Trainee;
 import com.training.gym.domain.model.Trainer;

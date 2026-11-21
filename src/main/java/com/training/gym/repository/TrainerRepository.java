@@ -19,9 +19,7 @@ public interface TrainerRepository {
 
     void deleteByUsername(String username);
 
-    void activateTrainer(TrainerEntity trainerEntity);
-
-    void deactivateTrainer(TrainerEntity trainerEntity);
+    void changeProfileStatus(TrainerEntity trainerEntity, boolean active);
 
     List<TrainerEntity> findAll();
 

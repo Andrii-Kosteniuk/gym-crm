@@ -13,4 +13,6 @@ public interface UserRepository {
     void updatePassword(Long userId, String encodedPassword);
 
     void delete(UserEntity user);
+
+    boolean existsByFirstNameAndLastName(String firstName, String lastName);
 }

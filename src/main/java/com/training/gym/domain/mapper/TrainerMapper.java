@@ -32,7 +32,7 @@ public interface TrainerMapper {
     @Mapping(target = "specialization.id", source = "specializationId")
     @Mapping(target = "trainees", ignore = true)
     @Mapping(target = "trainings", ignore = true)
-    Trainer updateTrainer(UpdateTrainerDto dto);
+    Trainer toUpdateTrainerDomain(UpdateTrainerDto dto);
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "firstName", source = "user.firstName")
@@ -42,6 +42,6 @@ public interface TrainerMapper {
     @Mapping(target = "type", source = "specialization")
     TrainerResponseDto toResponseDto(Trainer trainer);
 
-    @Mapping(target = "specialization", source = "name")
+
     TrainingTypeResponseDto toTrainingTypeResponseDto(TrainingType trainingType);
 }

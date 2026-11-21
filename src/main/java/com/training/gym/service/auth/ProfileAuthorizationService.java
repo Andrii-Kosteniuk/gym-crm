@@ -1,4 +1,4 @@
-package com.training.gym.service;
+package com.training.gym.service.auth;
 
 import com.training.gym.domain.model.Trainee;
 import com.training.gym.domain.model.Trainer;
@@ -25,11 +25,11 @@ import java.util.function.Function;
 @Slf4j
 public class ProfileAuthorizationService {
 
-    private final CredentialService credentialService;
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
     private final TraineePersistenceMapper traineeMapper;
     private final TrainerPersistenceMapper trainerMapper;
+    private final AuthenticationService authenticationService;
 
 
     public void requireTraineeOwner(Credentials credentials, Long traineeId) {
@@ -97,7 +97,7 @@ public class ProfileAuthorizationService {
     private <T> T requireProfile(Credentials credentials, Function<String, Optional<T>> profile) {
         verifyCredentials(credentials);
 
-        User user = credentialService.authenticate(
+        User user = authenticationService.authenticate(
                 credentials.username(),
                 credentials.password()
         );

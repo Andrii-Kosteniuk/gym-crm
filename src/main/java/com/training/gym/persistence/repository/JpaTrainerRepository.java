@@ -141,15 +141,18 @@ public class JpaTrainerRepository implements TrainerRepository {
     }
 
     @Override
-    public void activateTrainer(TrainerEntity trainer) {
+    public void changeProfileStatus(TrainerEntity trainer, boolean active) {
         Objects.requireNonNull(trainer, TRAINER_MUST_NOT_BE_NULL);
-        changeActive(trainer.getId(), true);
-    }
 
-    @Override
-    public void deactivateTrainer(TrainerEntity trainer) {
-        Objects.requireNonNull(trainer, TRAINER_MUST_NOT_BE_NULL);
-        changeActive(trainer.getId(), false);
+        TrainerEntity trainerEntity = entityManager.find(TrainerEntity.class, trainer.getId());
+
+        if (trainerEntity == null) {
+            throw new EntityNotFoundException("Trainer not found:");
+        }
+
+        UserEntity user = trainerEntity.getUserEntity();
+
+        user.setActive(active);
     }
 
     @Override
@@ -224,29 +227,6 @@ public class JpaTrainerRepository implements TrainerRepository {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
-    }
-
-    private void changeActive(Long id, boolean active) {
-        Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
-
-        TrainerEntity trainer = entityManager.find(TrainerEntity.class, id);
-
-        if (trainer == null) {
-            throw new EntityNotFoundException("Trainer not found: " + id);
-        }
-
-        UserEntity user = trainer.getUserEntity();
-
-        if (Boolean.TRUE.equals(user.getActive()) == active) {
-            throw new IllegalStateException(
-                    active
-                            ? "Trainer is already active"
-                            : "Trainer is already inactive"
-            );
-        }
-
-        user.setActive(active);
-
     }
 
 }

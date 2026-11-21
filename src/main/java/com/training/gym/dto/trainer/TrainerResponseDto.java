@@ -1,6 +1,10 @@
 package com.training.gym.dto.trainer;
 
+import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.training.TrainingTypeResponseDto;
+
+import java.util.List;
+
 
 public record TrainerResponseDto(
 
@@ -9,6 +13,7 @@ public record TrainerResponseDto(
         String lastName,
         String userName,
         boolean active,
-        TrainingTypeResponseDto type
+        TrainingTypeResponseDto type,
+        List<TraineeResponseDto> trainees
 ) {
 }

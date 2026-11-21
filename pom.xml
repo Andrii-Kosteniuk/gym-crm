@@ -28,6 +28,7 @@
         <logback.version>1.5.18</logback.version>
         <tomcat.version>11.0.27</tomcat.version>
         <spring-security.version>7.1.1</spring-security.version>
+        <swagger.annotations.version>2.2.56</swagger.annotations.version>
     </properties>
 
     <dependencies>
@@ -199,6 +200,20 @@
             <version>${spring-security.version}</version>
         </dependency>
 
+        <!-- SWAGGER-->
+
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations-jakarta</artifactId>
+            <version>${swagger.annotations.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>swagger-ui</artifactId>
+            <version>5.34.1</version>
+        </dependency>
+
     </dependencies>
 
     <dependencyManagement>
@@ -342,7 +357,6 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

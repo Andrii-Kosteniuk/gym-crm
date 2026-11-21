@@ -24,10 +24,8 @@ public interface TraineeRepository {
 
     void deleteByUsername(String username);
 
-    void replaceTrainers(Long traineeId, Set<Long> trainerIds);
+    void replaceTrainers(String username, Set<Long> trainerIds);
 
-    void activateTrainee(TraineeEntity trainee);
-
-    void deactivateTrainee(TraineeEntity traineeEntity);
+    void changeProfileStatus(TraineeEntity trainee, boolean active);
 
 }

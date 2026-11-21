@@ -86,4 +86,22 @@ public class JpaUserRepository implements UserRepository {
 
         entityManager.remove(managed);
     }
+
+    @Override
+    public boolean existsByFirstNameAndLastName(String firstName, String lastName) {
+        if (firstName == null || firstName.isBlank()
+                || lastName == null || lastName.isBlank()) {
+            throw new IncorrectMethodArgumentException(USERNAME_MUST_NOT_BE_BLANK);
+        }
+
+       return  entityManager.createQuery("""
+                        SELECT COUNT(u)
+                        FROM UserEntity u
+                        WHERE u.firstName = :firstName
+                        AND u.lastName = :lastName
+                        """, Long.class)
+                .setParameter("firstName", firstName)
+               .setParameter("lastName", lastName)
+                .getSingleResult() > 0;
+    }
 }

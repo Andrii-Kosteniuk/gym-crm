@@ -1,4 +1,4 @@
-package com.training.gym.service;
+package com.training.gym.service.trainer;
 
 import com.training.gym.domain.model.Trainer;
 import com.training.gym.domain.model.Training;
@@ -17,9 +17,7 @@ public interface TrainerService {
 
     Trainer findByUserName(String username);
 
-    void activateTrainer(Trainer trainer);
-
-    void deactivateTrainer(Trainer trainer);
+    void changeProfileStatus(String username, boolean active);
 
     List<Training> findTrainings(String username, TrainerTrainingCriteria criteria);
 

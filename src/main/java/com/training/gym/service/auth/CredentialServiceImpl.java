@@ -1,11 +1,9 @@
-package com.training.gym.service;
+package com.training.gym.service.auth;
 
 import com.training.gym.domain.model.User;
-import com.training.gym.exception.AuthenticationFailedException;
+import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
-import com.training.gym.persistence.entity.UserEntity;
 import com.training.gym.repository.UserRepository;
-import com.training.gym.service.mapper.UserPersistenceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,30 +17,9 @@ public class CredentialServiceImpl implements CredentialService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserPersistenceMapper mapper;
+    private final AuthenticationService authenticationService;
 
-    @Override
-    public User authenticate(String username, String password) {
-        if (username == null
-                || username.isBlank()
-                || password == null
-                || password.isBlank()) {
-            throw new AuthenticationFailedException();
-        }
 
-        UserEntity user = userRepository
-                .findByUsername(username)
-                .orElseThrow(AuthenticationFailedException::new);
-
-        if (Boolean.FALSE.equals(user.getActive()))
-            throw new AuthenticationFailedException("You are not authenticated");
-
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new AuthenticationFailedException();
-        }
-
-        return mapper.toUserDomain(user);
-    }
 
     @Override
     @Transactional
@@ -52,7 +29,7 @@ public class CredentialServiceImpl implements CredentialService {
             throw new IncorrectMethodArgumentException("New password must contain at least 6 characters");
         }
 
-        User user = authenticate(username, oldPassword);
+        User user = authenticationService.authenticate(username, oldPassword);
 
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new IncorrectMethodArgumentException("New password must differ from the current password");
@@ -64,4 +41,13 @@ public class CredentialServiceImpl implements CredentialService {
 
         log.info("Password changed: username={}", username);
     }
+
+    public void verifyIfUserExists(String firstName, String lastName) {
+
+       boolean foundUser = userRepository.existsByFirstNameAndLastName(firstName, lastName);
+
+        if (foundUser) throw new BusinessRuleViolationException("User with such name already exists");
+    }
+
+
 }

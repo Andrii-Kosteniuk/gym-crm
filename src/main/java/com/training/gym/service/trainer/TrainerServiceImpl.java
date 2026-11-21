@@ -1,4 +1,4 @@
-package com.training.gym.service;
+package com.training.gym.service.trainer;
 
 import com.training.gym.domain.criteria.TrainerTrainingFilter;
 import com.training.gym.domain.mapper.TrainingCriteriaMapper;
@@ -7,6 +7,7 @@ import com.training.gym.domain.model.Training;
 import com.training.gym.domain.model.User;
 import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
+import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TrainerEntity;
@@ -17,6 +18,7 @@ import com.training.gym.repository.TrainerRepository;
 import com.training.gym.repository.TrainingRepository;
 import com.training.gym.repository.TrainingTypeRepository;
 import com.training.gym.repository.UserRepository;
+import com.training.gym.service.auth.CredentialService;
 import com.training.gym.service.mapper.TrainerPersistenceMapper;
 import com.training.gym.service.mapper.TrainingPersistenceMapper;
 import com.training.gym.service.mapper.TrainingTypePersistenceMapper;
@@ -139,32 +141,28 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Transactional
-    public void activateTrainer(Trainer trainer) {
-        Objects.requireNonNull(trainer, "Trainer is required");
+    public void changeProfileStatus(String username, boolean active) {
+        Objects.requireNonNull(username, "Trainer is required");
 
-        TrainerEntity managedTrainer = trainerRepository.findById(trainer.getId())
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(trainer.getId())));
+        TrainerEntity managedTrainer = trainerRepository.findByUserName(username)
+                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
 
-        if (Boolean.TRUE == managedTrainer.getUserEntity().getActive())
-            throw new IllegalStateException("Trainer is already active.");
+        UserEntity user = managedTrainer.getUserEntity();
 
-        trainerRepository.activateTrainer(managedTrainer);
-        log.info("Trainer profile has been activated");
-    }
+        boolean currentStatus = Boolean.TRUE.equals(user.getActive());
 
-    @Override
-    @Transactional
-    public void deactivateTrainer(Trainer trainer) {
-        Objects.requireNonNull(trainer, "Trainer is required");
+        if (currentStatus == active) {
+            throw new BusinessRuleViolationException(
+                    active
+                            ? "Trainer profile is already active."
+                            : "Trainer profile is already inactive."
+            );
+        }
 
-        TrainerEntity managedTrainer = trainerRepository.findById(trainer.getId())
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID + trainer.getId()));
+        trainerRepository.changeProfileStatus(managedTrainer, active);
 
-        if (Boolean.FALSE == managedTrainer.getUserEntity().getActive())
-            throw new IllegalStateException("Trainer is already deactivated.");
+        log.info("Trainer profile status changed: username={}, active={}", username, active);
 
-        trainerRepository.deactivateTrainer(managedTrainer);
-        log.info("Trainer profile has been deactivated");
     }
 
     @Override
