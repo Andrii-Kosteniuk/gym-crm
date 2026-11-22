@@ -202,19 +202,18 @@ public class JpaTrainerRepository implements TrainerRepository {
         return entityManager.createQuery("""
                         SELECT t
                         FROM TrainerEntity t
-                        JOIN FETCH t.userEntity
-                        WHERE NOT EXISTS (
-                        SELECT 1
-                        FROM TraineeEntity trainee
-                        JOIN trainee.trainerEntities assigned
-                        WHERE trainee.userEntity.userName = :username
-                        AND assigned = t)
-                        ORDER BY t.userEntity.lastName,
-                        t.userEntity.firstName
+                        JOIN FETCH t.userEntity u
+                        WHERE u.active = true
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM TraineeEntity trainee
+                              JOIN trainee.trainerEntities assigned
+                              WHERE trainee.userEntity.userName = :username
+                                AND assigned = t)
+                        ORDER BY u.lastName, u.firstName
                         """, TrainerEntity.class)
                 .setParameter(USERNAME, username)
-                .getResultStream()
-                .toList();
+                .getResultList();
     }
 
 
