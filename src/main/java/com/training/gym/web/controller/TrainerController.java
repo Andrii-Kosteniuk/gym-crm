@@ -79,39 +79,6 @@ public class TrainerController {
 
     }
 
-    @GetMapping("/{username}")
-    public ResponseEntity<List<TrainerSummaryResponse>> getNotAssignedTrainers(@PathVariable("username") String username,
-                                                                               @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-        Credentials credentials = credentialsParser.parse(authorization);
-
-        var trainerResponses = applicationEntry.getUnassignedTrainers(username, credentials);
-
-        var trainersResponse = trainerResponses.stream()
-                .map(trainerWebMapper::toTrainerSummaryResponse)
-                .toList();
-
-        return ResponseEntity.ok().body(trainersResponse);
-
-    }
-
-    @PutMapping("/{username}/trainers")
-    public ResponseEntity<TrainerSummaryResponse> updateTrainerList(@PathVariable("username") String username,
-                                                                    @Valid @RequestBody UpdateTraineeTrainersDto request,
-                                                                    @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-
-        var credentials = credentialsParser.parse(authorization);
-
-        applicationEntry.replaceTraineeTrainers(username, request.trainerIds(), credentials);
-
-        var trainerByUserName = applicationEntry.getTrainerByUserName(username, credentials);
-
-        var trainerSummaryResponse = trainerWebMapper.toTrainerSummaryResponse(trainerByUserName);
-
-
-        return ResponseEntity.ok().body(trainerSummaryResponse);
-
-    }
-
     @GetMapping("/trainings")
     public ResponseEntity<List<TrainerTrainingResponse>> getTrainerTrainingsList(@RequestParam(value = "username") String username,
 
