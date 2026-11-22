@@ -94,7 +94,8 @@ public class JpaTrainerRepository implements TrainerRepository {
                         WHERE t.id = :id
                         """, TrainerEntity.class)
                 .setParameter("id", id)
-                .getResultStream()
+                .getResultList()
+                .stream()
                 .findFirst();
     }
 
