@@ -25,6 +25,8 @@ public interface TraineeService {
 
     List<Training> findTrainings(String username, TraineeTrainingCriteria criteria);
 
+    void replaceTrainersByUsername(String traineeUsername, Set<String> trainerUsernames);
+
     void changePassword(String username, String oldPassword, String newPassword);
 
     void replaceTrainers(String username, Set<Long> trainersIds);
