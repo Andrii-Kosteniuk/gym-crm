@@ -10,6 +10,9 @@ import java.time.LocalDate;
 public record UpdateTraineeRequest(
 
         @NotBlank
+        String userName,
+
+        @NotBlank
         String firstName,
 
         @NotBlank
