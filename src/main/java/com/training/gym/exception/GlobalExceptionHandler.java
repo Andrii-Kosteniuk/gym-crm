@@ -57,12 +57,12 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IncorrectMethodArgumentException.class)
-    public ResponseEntity<ProblemDetail> handleIncorrectMethodArgumentException(HttpServletRequest request) {
+    public ResponseEntity<ProblemDetail> handleIncorrectMethodArgumentException(HttpServletRequest request, IncorrectMethodArgumentException ex) {
         log.error("Invalid method argument error occurred");
 
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
-                "One or more request parameters are invalid."
+                ex.getMessage()
         );
 
         problem.setTitle("Invalid method argument parameters");
