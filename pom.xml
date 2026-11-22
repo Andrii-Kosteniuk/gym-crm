@@ -185,6 +185,13 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.skyscreamer</groupId>
+            <artifactId>jsonassert</artifactId>
+            <version>1.5.3</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- JSONPath assertions for MockMvc -->
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
