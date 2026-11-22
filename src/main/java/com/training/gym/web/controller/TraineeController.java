@@ -9,14 +9,12 @@ import com.training.gym.util.CredentialsParser;
 import com.training.gym.web.dto.request.ProfileStatusChangeRequest;
 import com.training.gym.web.dto.request.TraineeRegistrationRequest;
 import com.training.gym.web.dto.request.UpdateTraineeRequest;
+import com.training.gym.web.dto.request.UpdateTraineeTrainersRequest;
 import com.training.gym.web.dto.response.TraineeProfileResponse;
 import com.training.gym.web.dto.response.TraineeTrainingResponse;
+import com.training.gym.web.dto.response.TrainerSummaryResponse;
 import com.training.gym.web.mapper.TraineeWebMapper;
 import com.training.gym.web.mapper.TrainingWebMapper;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -96,6 +94,41 @@ public class TraineeController {
 
     }
 
+    @GetMapping("/{username}/unassigned-trainers")
+    public ResponseEntity<List<TrainerSummaryResponse>> getNotAssignedTrainers(@PathVariable("username") String username,
+                                                                               @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
+        Credentials credentials = credentialParser.parse(authorization);
+
+        var trainerResponses = applicationEntry.getUnassignedTrainers(username, credentials);
+
+        var trainersResponse = trainerResponses.stream()
+                .map(traineeWebMapper::toTrainerSummaryResponse)
+                .toList();
+
+        return ResponseEntity.ok().body(trainersResponse);
+
+    }
+
+    @PutMapping("/{username}/trainers")
+    public ResponseEntity<List<TrainerSummaryResponse>> updateTraineeTrainers(@PathVariable("username") String username,
+                                                                              @Valid @RequestBody UpdateTraineeTrainersRequest request,
+                                                                              @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization
+    ) {
+        Credentials credentials = credentialParser.parse(authorization);
+
+        var updatedTrainers = applicationEntry.replaceTraineeTrainersByUsername(
+                username,
+                request.trainerUsernames(),
+                credentials
+        );
+
+        var response = updatedTrainers.stream()
+                .map(traineeWebMapper::toTrainerSummaryResponse)
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
 
     @GetMapping("/trainings")
     public ResponseEntity<List<TraineeTrainingResponse>> getTraineeTrainingsList(@RequestParam(value = "username") String username,
@@ -134,41 +167,6 @@ public class TraineeController {
 
     }
 
-    @Operation(
-            summary = "Activate or deactivate trainee profile",
-            description = """
-                    Changes the trainee activation status.
-                    Set active=true to activate or active=false to deactivate.
-                    Repeating the current status is a business rule violation.
-                    """
-    )
-    @SecurityRequirement(name = "basicAuth")
-    @ApiResponses(value ={
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Trainee status changed successfully"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid request data"
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Authentication failed"
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Access denied"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Trainee not found"
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "Trainee already has the requested status"
-            )
-    })
     @PatchMapping("/profile")
     public ResponseEntity<Void> activateDeactivateTraineeProfile(@Valid @RequestBody ProfileStatusChangeRequest request,
                                                                  @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
