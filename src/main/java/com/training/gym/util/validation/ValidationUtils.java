@@ -1,10 +1,14 @@
 package com.training.gym.util.validation;
 
+import com.training.gym.dto.trainee.AddressDto;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 
+import java.time.Clock;
 import java.time.LocalDate;
 
 public final class ValidationUtils {
+
+    public static final String MUST_BE_POSITIVE = "%s must be positive";
 
     private ValidationUtils() {
     }
@@ -43,7 +47,33 @@ public final class ValidationUtils {
         requireNotNull(id, fieldName);
 
         if (id <= 0) {
-            throw new IncorrectMethodArgumentException("%s must be positive".formatted(fieldName));
+            throw new IncorrectMethodArgumentException(MUST_BE_POSITIVE.formatted(fieldName));
         }
+    }
+
+    public static void requirePositiveValue(int number, String fieldName) {
+
+        if (number <= 0) {
+            throw new IncorrectMethodArgumentException(MUST_BE_POSITIVE.formatted(fieldName));
+        }
+    }
+
+    public static void validDateOfBirth(LocalDate date, String fieldName) {
+        requireNotNull(date, "Date of birth");
+
+        if (date.equals(LocalDate.now(Clock.systemDefaultZone()))) {
+            throw new IncorrectMethodArgumentException("%s must not be current day".formatted(fieldName));
+        }
+
+        if (date.isAfter(LocalDate.now(Clock.systemDefaultZone()))) {
+            throw new IncorrectMethodArgumentException("%s must not be in the future".formatted(fieldName));
+        }
+    }
+
+    public static void validateAddress(AddressDto address, String fieldName) {
+        requireNotNull(address, "%s must not be null".formatted(fieldName));
+        requireNotNull(address.city(), "%s must not be null".formatted(fieldName));
+        requirePositiveValue(address.buildingNumber(), "%s building number must be positive".formatted(fieldName));
+        requireNotBlank(address.zipCode(), MUST_BE_POSITIVE.formatted(fieldName));
     }
 }

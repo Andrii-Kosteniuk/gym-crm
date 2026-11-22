@@ -32,6 +32,13 @@ public final class TraineeDtoValidator {
         requireNotBlank(dto.firstName(), "First name");
         requireNotBlank(dto.lastName(), "Last name");
         requireNotBlank(dto.userName(), "Username");
+        if (dto.dateOfBirth() != null ) {
+            validDateOfBirth(dto.dateOfBirth(), "Date of birth");
+        }
+
+        if (dto.address() != null) {
+            validateAddress(dto.address(), "Address");
+        }
     }
 
     private void validatePersonalData(String firstName, String lastName, LocalDate dateOfBirth) {
