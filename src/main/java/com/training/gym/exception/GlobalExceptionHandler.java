@@ -247,22 +247,20 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BusinessRuleViolationException.class)
-    public ResponseEntity<ProblemDetail> handleBusinessRuleViolationException(HttpServletRequest request, BusinessRuleViolationException ex) {
-        log.error("Business rule violation error occurred", ex);
+    public ResponseEntity<ProblemDetail> handleBusinessRuleViolation( HttpServletRequest request, BusinessRuleViolationException ex) {
+        log.warn("Business rule violation: {}", ex.getMessage());
 
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST,
+                HttpStatus.CONFLICT,
                 ex.getMessage()
         );
 
         problem.setTitle("Business rule violation");
         problem.setInstance(URI.create(request.getRequestURI()));
-        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
 
         setTransactionId(problem);
 
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
+        return ResponseEntity.status(HttpStatus.CONFLICT)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(problem);
     }
