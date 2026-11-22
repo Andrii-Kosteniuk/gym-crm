@@ -132,6 +132,19 @@ public class GymCrmFacade {
         );
     }
 
+    public List<TrainerResponseDto> replaceTraineeTrainersByUsername(String traineeUsername, Set<String> trainerUsernames, Credentials credentials) {
+        authorizationService.requireTraineeOwner(credentials, traineeUsername);
+
+        traineeService.replaceTrainersByUsername(traineeUsername, trainerUsernames);
+
+        Trainee trainee = traineeService.findByUserName(traineeUsername);
+
+        return trainee.getTrainers()
+                .stream()
+                .map(trainerMapper::toResponseDto)
+                .toList();
+    }
+
     public TrainerResponseDto updateTrainer(UpdateTrainerDto dto, Credentials credentials) {
         trainerValidator.validateUpdate(dto);
 
