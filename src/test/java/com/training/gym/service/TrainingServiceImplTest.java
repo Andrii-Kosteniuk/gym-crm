@@ -33,6 +33,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TrainingServiceImplTest {
+
     @Mock
     TrainingRepository trainingRepository;
     @Mock
@@ -53,120 +54,179 @@ class TrainingServiceImplTest {
     TrainingServiceImpl service;
 
     private Training training() {
-        return Training.builder().trainee(Trainee.builder().id(1L).build())
+        return Training.builder()
+                .trainee(Trainee.builder().id(1L).build())
                 .trainer(Trainer.builder().id(2L).build())
                 .trainingType(TrainingType.builder().id(3L).build())
-                .trainingName("Session").trainingDate(LocalDate.now().plusDays(2))
-                .trainingDuration(Duration.ofMinutes(45)).build();
-    }
-
-    private Trainee activeTrainee() {
-        return Trainee.builder()
-                .id(1L)
-                .user(User.builder()
-                        .active(true)
-                        .build())
+                .trainingName("Session")
+                .trainingDate(LocalDate.now().plusDays(2))
+                .trainingDuration(Duration.ofMinutes(45))
                 .build();
     }
 
-    private Trainer activeTrainer(Long specializationId) {
-        return Trainer.builder().id(2L).user(User.builder().active(true).build())
-                .specialization(TrainingType.builder().id(specializationId).build()).build();
+    private Trainee trainee(boolean active) {
+        return Trainee.builder().id(1L)
+                .user(User.builder().active(active).build()).build();
     }
 
-    private void stubParticipants(Training input, Trainee t, Trainer r) {
-        TraineeEntity traineeEntity = new TraineeEntity();
-        TrainerEntity trainerEntity = new TrainerEntity();
-        TrainingTypeEntity typeEntity = new TrainingTypeEntity();
+    private Trainer trainer(boolean active, Long specializationId) {
+        return Trainer.builder().id(2L)
+                .user(User.builder().active(active).build())
+                .specialization(TrainingType.builder().id(specializationId).build())
+                .build();
+    }
+
+    private void stubParticipants(Trainee trainee, Trainer trainer) {
+        var traineeEntity = new TraineeEntity();
+        var trainerEntity = new TrainerEntity();
+        var typeEntity = new TrainingTypeEntity();
         typeEntity.setId(3L);
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(traineeEntity));
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(trainerEntity));
         when(trainingTypeRepository.findById(3L)).thenReturn(Optional.of(typeEntity));
-        when(traineeMapper.toTraineeDomain(traineeEntity)).thenReturn(t);
-        when(trainerMapper.toTrainerDomain(trainerEntity)).thenReturn(r);
-        when(trainingTypeMapper.toTrainingTypeDomain(typeEntity)).thenReturn(TrainingType.builder().id(3L).build());
+        when(traineeMapper.toTraineeDomain(traineeEntity)).thenReturn(trainee);
+        when(trainerMapper.toTrainerDomain(trainerEntity)).thenReturn(trainer);
+        when(trainingTypeMapper.toTrainingTypeDomain(typeEntity))
+                .thenReturn(TrainingType.builder().id(3L).build());
     }
 
     @Test
-    void createResolvesJpaEntitiesAndMapsSavedTraining() {
-        Training training = training();
-        stubParticipants(training, activeTrainee(), activeTrainer(3L));
-        TrainingEntity trainingEntity = new TrainingEntity();
-        trainingEntity.setId(10L);
-        Training result = Training.builder().id(10L).build();
-        when(trainingMapper.toTrainingEntity(training)).thenReturn(trainingEntity);
-        when(trainingRepository.save(trainingEntity)).thenReturn(trainingEntity);
-        when(trainingMapper.toTrainingDomain(trainingEntity)).thenReturn(result);
-        assertSame(result, service.createTraining(training));
-        verify(trainingRepository).save(trainingEntity);
+    void createsTraining() {
+        var input = training();
+        stubParticipants(trainee(true), trainer(true, 3L));
+        var entity = new TrainingEntity();
+        var saved = Training.builder().id(10L).build();
+        when(trainingMapper.toTrainingEntity(input)).thenReturn(entity);
+        when(trainingRepository.save(entity)).thenReturn(entity);
+        when(trainingMapper.toTrainingDomain(entity)).thenReturn(saved);
+
+        var result = service.createTraining(input);
+
+        assertSame(saved, result);
+        verify(trainingRepository).save(entity);
     }
 
     @Test
-    void invalidReferencesNeverReachRepository() {
+    void rejectsNullTraining() {
         assertThrows(NullPointerException.class, () -> service.createTraining(null));
-        Training training = training();
-        training.setId(9L);
-        Training finalTraining = training;
-        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalTraining));
-        training = training();
-        training.setTrainee(null);
-        Training finalValue = training;
-        Training finalValue1 = finalValue;
-        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalValue1));
-        training = training();
-        training.setTrainer(Trainer.builder().id(-1L).build());
-        finalValue = training;
-        Training finalValue2 = finalValue;
-        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalValue2));
-        training = training();
-        training.setTrainingType(TrainingType.builder().build());
-        finalValue = training;
-        Training finalValue3 = finalValue;
-        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalValue3));
-        training = training();
-        training = Training.builder().trainee(training.getTrainee()).trainer(training.getTrainer())
-                .trainingType(training.getTrainingType()).trainingName("Session")
-                .trainingDate(LocalDate.now().minusDays(1)).trainingDuration(Duration.ofMinutes(45)).build();
-        finalValue = training;
-        Training finalValue4 = finalValue;
-        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(finalValue4));
         verifyNoInteractions(trainingRepository);
     }
 
     @Test
-    void missingTraineeTrainerOrTypeIsRejected() {
-        assertThrows(EntityNotFoundException.class, () -> service.createTraining(training()));
+    void rejectsTrainingWithId() {
+        var input = training();
+        input.setId(9L);
+
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(input));
+
+        verifyNoInteractions(trainingRepository);
+    }
+
+    @Test
+    void rejectsMissingTraineeReference() {
+        var input = training();
+        input.setTrainee(null);
+
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(input));
+
+        verifyNoInteractions(trainingRepository);
+    }
+
+    @Test
+    void rejectsInvalidTrainerId() {
+        var input = training();
+        input.setTrainer(Trainer.builder().id(-1L).build());
+
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(input));
+
+        verifyNoInteractions(trainingRepository);
+    }
+
+    @Test
+    void rejectsMissingTrainingTypeId() {
+        var input = training();
+        input.setTrainingType(TrainingType.builder().build());
+
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(input));
+
+        verifyNoInteractions(trainingRepository);
+    }
+
+
+    @Test
+    void rejectsMissingTrainee() {
+        var input = training();
+
+        assertThrows(EntityNotFoundException.class, () -> service.createTraining(input));
+
+        verify(trainingRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsMissingTrainer() {
+        var input = training();
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(new TraineeEntity()));
-        assertThrows(EntityNotFoundException.class, () -> service.createTraining(training()));
+
+        assertThrows(EntityNotFoundException.class, () -> service.createTraining(input));
+
+        verify(trainingRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsMissingTrainingType() {
+        var input = training();
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(new TraineeEntity()));
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(new TrainerEntity()));
-        assertThrows(EntityNotFoundException.class, () -> service.createTraining(training()));
+
+        assertThrows(EntityNotFoundException.class, () -> service.createTraining(input));
+
         verify(trainingRepository, never()).save(any());
     }
 
     @Test
-    void inactiveTraineeAndTrainerAreRejected() {
-        Training training = training();
-        Trainee inactive = activeTrainee();
-        inactive.getUser().setActive(false);
-        stubParticipants(training, inactive, activeTrainer(3L));
-        assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(training));
-    }
+    void rejectsInactiveTrainee() {
+        var input = training();
+        stubParticipants(trainee(false), trainer(true, 3L));
 
-    @Test
-    void specializationMismatchIsRejected() {
-        Training training = training();
-        stubParticipants(training, activeTrainee(), activeTrainer(9L));
-        assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(training));
+        assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(input));
+
         verify(trainingRepository, never()).save(any());
     }
 
     @Test
-    void getByIdMapsEntityOrThrows() {
-        TrainingEntity trainingEntity = new TrainingEntity();
-        Training domain = training();
-        when(trainingRepository.findById(10L)).thenReturn(Optional.of(trainingEntity));
-        when(trainingMapper.toTrainingDomain(trainingEntity)).thenReturn(domain);
-        assertSame(domain, service.getTrainingById(10L));
+    void rejectsInactiveTrainer() {
+        var input = training();
+        stubParticipants(trainee(true), trainer(false, 3L));
+
+        assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(input));
+
+        verify(trainingRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsSpecializationMismatch() {
+        var input = training();
+        stubParticipants(trainee(true), trainer(true, 9L));
+
+        assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(input));
+
+        verify(trainingRepository, never()).save(any());
+    }
+
+    @Test
+    void findsTrainingById() {
+        var entity = new TrainingEntity();
+        var training = training();
+        when(trainingRepository.findById(10L)).thenReturn(Optional.of(entity));
+        when(trainingMapper.toTrainingDomain(entity)).thenReturn(training);
+
+        var result = service.getTrainingById(10L);
+
+        assertSame(training, result);
+    }
+
+    @Test
+    void rejectsMissingTraining() {
         assertThrows(EntityNotFoundException.class, () -> service.getTrainingById(99L));
     }
 }

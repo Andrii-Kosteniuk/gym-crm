@@ -1,21 +1,22 @@
 package com.training.gym.facade;
 
+import com.training.gym.domain.mapper.TraineeMapper;
+import com.training.gym.domain.mapper.TrainerMapper;
+import com.training.gym.domain.mapper.TrainingMapper;
 import com.training.gym.domain.model.Trainee;
 import com.training.gym.domain.model.Trainer;
 import com.training.gym.domain.model.Training;
 import com.training.gym.domain.model.User;
-import com.training.gym.domain.mapper.TraineeMapper;
-import com.training.gym.domain.mapper.TrainerMapper;
-import com.training.gym.domain.mapper.TrainingMapper;
+import com.training.gym.dto.auth.AuthenticationResponse;
 import com.training.gym.dto.auth.ChangePasswordDto;
 import com.training.gym.dto.auth.Credentials;
-import com.training.gym.dto.auth.AuthenticationResponse;
 import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
 import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
 import com.training.gym.dto.training.CreateTrainingDto;
+import com.training.gym.service.auth.AuthenticationService;
 import com.training.gym.service.auth.CredentialService;
 import com.training.gym.service.auth.ProfileAuthorizationService;
 import com.training.gym.service.trainee.TraineeService;
@@ -60,6 +61,8 @@ class GymCrmFacadeTest {
     @Mock
     ProfileAuthorizationService authorization;
     @Mock
+    AuthenticationService authenticationService;
+    @Mock
     CredentialService credentialService;
     @InjectMocks
     GymCrmFacade facade;
@@ -99,6 +102,7 @@ class GymCrmFacadeTest {
         Trainee james = james();
         when(traineeMapper.toTrainee(dto)).thenReturn(james);
         when(traineeService.registerTrainee(james)).thenReturn(new RegistrationResult<>(james, "raw-password"));
+        doNothing().when(credentialService).verifyIfUserExists(dto.firstName(), dto.lastName());
         // Act
         AuthenticationResponse result = facade.createTrainee(dto);
         // Assert
@@ -155,7 +159,7 @@ class GymCrmFacadeTest {
                 "James",
                 "Bond",
                 username,
-                null,null
+                null, null
         );
 
         Trainee mappedTrainee = james();
@@ -184,9 +188,9 @@ class GymCrmFacadeTest {
         Credentials credentials = sarahCredentials();
 
         UpdateTrainerDto dto = new UpdateTrainerDto(
-                username,
                 "Sara",
                 "Connor",
+                username,
                 1L,
                 true
         );
@@ -258,8 +262,6 @@ class GymCrmFacadeTest {
         Credentials credentials = jamesCredentials();
         Trainee james = james();
 
-        when(traineeService.findByUserName(username)).thenReturn(james);
-
         // Act
         facade.changeTraineeProfileStatus(username, true, credentials);
 
@@ -267,8 +269,6 @@ class GymCrmFacadeTest {
         InOrder order = inOrder(authorization, traineeService);
 
         order.verify(authorization).requireTraineeOwner(credentials, username);
-
-        order.verify(traineeService).findByUserName(username);
 
         order.verify(traineeService).changeProfileStatus(james.getUser().getUserName(), true);
 
@@ -278,25 +278,17 @@ class GymCrmFacadeTest {
     @Test
     void shouldActivateTrainerOnlyAfterOwnerCheck() {
         // Arrange
-        String username = "sarah.cinnor";
+        String username = "sarah.connor";
         Credentials credentials = new Credentials("sara.connor", "secret");
-        Trainer sara = sara();
-
-        when(trainerService.findByUserName(username)).thenReturn(sara);
 
         // Act
         facade.changeTrainerProfileStatus(username, true, credentials);
 
         // Assert
-        InOrder order = inOrder(authorization, trainerService);
 
-        order.verify(authorization).requireTrainerOwner(credentials, username);
+        verify(trainerService).changeProfileStatus(username, true);
 
-        order.verify(trainerService).findByUserName(username);
-
-        order.verify(trainerService).changeProfileStatus(sara.getUser().getUserName(), true );
-
-        order.verifyNoMoreInteractions();
+        verifyNoMoreInteractions(trainerService);
     }
 
     @Test

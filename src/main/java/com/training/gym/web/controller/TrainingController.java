@@ -1,8 +1,6 @@
 package com.training.gym.web.controller;
 
-import com.training.gym.domain.mapper.TrainingMapper;
 import com.training.gym.dto.auth.Credentials;
-import com.training.gym.dto.training.CreateTrainingDto;
 import com.training.gym.dto.training.NewTrainingDto;
 import com.training.gym.facade.GymCrmFacade;
 import com.training.gym.util.CredentialsParser;
