@@ -29,6 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -169,6 +170,28 @@ public class TraineeServiceImpl implements TraineeService {
     }
 
     @Override
+    @Transactional
+    public void replaceTrainersByUsername(String traineeUsername, Set<String> trainerUsernames) {
+        if (traineeUsername == null || traineeUsername.isBlank()) {
+            throw new IncorrectMethodArgumentException("Trainee username must not be blank");
+        }
+
+        Objects.requireNonNull(trainerUsernames, "Trainer usernames must not be null");
+
+        Set<Long> trainerIds = new HashSet<>();
+
+        for (String trainerUsername : trainerUsernames) {
+            TrainerEntity trainer = trainerRepository
+                    .findByUserName(trainerUsername)
+                    .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerUsername));
+
+            trainerIds.add(trainer.getId());
+        }
+
+        replaceTrainers(traineeUsername, trainerIds);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<Training> findTrainings(String username, TraineeTrainingCriteria criteria) {
 
@@ -194,7 +217,6 @@ public class TraineeServiceImpl implements TraineeService {
     }
 
     @Override
-    @Transactional
     public void replaceTrainers(String username, Set<Long> trainerIds) {
         Objects.requireNonNull(username, "Trainee ID is required");
         Objects.requireNonNull(trainerIds, "Trainer IDs are required");
