@@ -90,58 +90,6 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
-  /trainers/{username}:
-    get:
-      tags: [ Trainers ]
-      summary: List trainers not assigned to a trainee
-      description: The username identifies the trainee whose unassigned trainers are requested.
-      operationId: getNotAssignedTrainers
-      security: [ { basicAuth: [ ] } ]
-      parameters:
-        - $ref: '#/components/parameters/UsernamePath'
-      responses:
-        '200':
-          description: Unassigned trainers retrieved; may be an empty array
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TrainerSummaryResponse'
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-  /trainers/{username}/trainers:
-    put:
-      tags: [ Trainers ]
-      summary: Replace trainee's assigned trainers
-      description: >-
-        Documents the controller's current route. The username is passed to
-        replaceTraineeTrainers and is therefore expected to identify a trainee.
-        The controller subsequently calls getTrainerByUserName with the same
-        username; verify this response behavior before relying on it.
-      operationId: updateTrainerList
-      security: [ { basicAuth: [ ] } ]
-      parameters:
-        - $ref: '#/components/parameters/UsernamePath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateTraineeTrainersDto'
-      responses:
-        '200':
-          description: Trainer list replaced; current controller returns one trainer summary
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TrainerSummaryResponse'
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
   /trainers/trainings:
     get:
       tags: [ Trainers ]
@@ -267,14 +215,6 @@ components:
       properties:
         id: { type: integer, format: int64, example: 1 }
         name: { type: string, example: Fitness }
-    UpdateTraineeTrainersDto:
-      type: object
-      required: [ trainerIds ]
-      properties:
-        trainerIds:
-          type: array
-          items: { type: integer, format: int64 }
-          example: [ 1, 2 ]
     AuthenticationResponse:
       type: object
       properties:

@@ -127,6 +127,61 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+  /trainees/{username}/unassigned-trainers:
+    get:
+      tags: [Trainees]
+      summary: Get active trainers not assigned to a trainee
+      description: Returns only active trainers not currently assigned to the specified trainee. Requires trainee-owner authorization.
+      operationId: getNotAssignedTrainers
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TraineeUsername'
+      responses:
+        '200':
+          description: Unassigned active trainers; may be an empty array
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainerSummary'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /trainees/{username}/trainers:
+    put:
+      tags: [Trainees]
+      summary: Replace a trainee's assigned trainers
+      description: Replaces the entire trainer list using trainer usernames. An empty list clears all assignments. Requires trainee-owner authorization.
+      operationId: updateTraineeTrainers
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TraineeUsername'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTraineeTrainersRequest'
+            example:
+              trainerUsernames: [mike.johnson, sarah.connor]
+      responses:
+        '200':
+          description: Updated assigned trainers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainerSummary'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /trainees/trainings:
     get:
       tags: [Trainees]
@@ -192,7 +247,7 @@ paths:
     patch:
       tags: [Trainees]
       summary: Activate or deactivate trainee
-      description: Sets the trainee activation status. Requesting the existing status may produce a business conflict.
+      description: Sets the trainee activation status. Requesting the existing status produces HTTP 409 Conflict.
       operationId: changeTraineeStatus
       security:
         - basicAuth: []
@@ -231,6 +286,19 @@ components:
       example: james.bond
 
   schemas:
+    UpdateTraineeTrainersRequest:
+      type: object
+      required: [trainerUsernames]
+      properties:
+        trainerUsernames:
+          type: array
+          uniqueItems: true
+          description: Trainer usernames; an empty array removes all assignments
+          items:
+            type: string
+            minLength: 1
+          example: [mike.johnson, sarah.connor]
+
     TraineeRegistrationRequest:
       type: object
       required: [firstName, lastName]
