@@ -34,7 +34,6 @@ public interface TrainingWebMapper {
 
     NewTrainingDto toNewTrainingDto(CreateTrainingRequest trainingRequest);
 
-    @Mapping(target = "userName", ignore = true)
     UpdateTraineeDto toUpdateTraineeDto(UpdateTraineeRequest traineeRequest);
 
     AddressDto toAddressDto(AddressRequest addressRequest);
