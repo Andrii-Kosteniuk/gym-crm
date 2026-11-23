@@ -29,6 +29,7 @@
         <tomcat.version>11.0.27</tomcat.version>
         <spring-security.version>7.1.1</spring-security.version>
         <swagger.annotations.version>2.2.56</swagger.annotations.version>
+        <swagger.version>2.2.56</swagger.version>
     </properties>
 
     <dependencies>
@@ -219,6 +220,12 @@
             <groupId>org.webjars</groupId>
             <artifactId>swagger-ui</artifactId>
             <version>5.34.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-core-jakarta</artifactId>
+            <version>${swagger.version}</version>
         </dependency>
 
     </dependencies>
