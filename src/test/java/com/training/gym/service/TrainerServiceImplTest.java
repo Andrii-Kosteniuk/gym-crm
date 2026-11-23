@@ -174,10 +174,9 @@ class TrainerServiceImplTest {
         input.getUser().setLastName("Updated");
         TrainerEntity managed = entity(true);
         managed.getUserEntity().setPassword("existing-hash");
-        TrainingTypeEntity type = specialization();
+
         Trainer output = trainer();
         when(trainerRepository.findByUserName(USERNAME)).thenReturn(Optional.of(managed));
-        when(trainingTypeRepository.findById(TYPE_ID)).thenReturn(Optional.of(type));
         when(trainerRepository.update(managed)).thenReturn(managed);
         when(trainerMapper.toTrainerDomain(managed)).thenReturn(output);
 
@@ -189,7 +188,6 @@ class TrainerServiceImplTest {
         assertEquals(USERNAME, managed.getUserEntity().getUserName());
         assertEquals("existing-hash", managed.getUserEntity().getPassword());
         assertTrue(managed.getUserEntity().getActive());
-        assertSame(type, managed.getSpecialization());
         verify(trainerRepository).update(managed);
     }
 
@@ -218,27 +216,6 @@ class TrainerServiceImplTest {
         verify(trainerRepository, never()).update(any());
     }
 
-    @Test
-    void rejectsUpdateWithoutSpecialization() {
-        Trainer input = trainer();
-        input.setSpecialization(null);
-        when(trainerRepository.findByUserName(USERNAME)).thenReturn(Optional.of(entity(true)));
-
-        assertThrows(NullPointerException.class, () -> service.updateTrainer(input));
-
-        verify(trainerRepository, never()).update(any());
-    }
-
-    @Test
-    void rejectsUnknownUpdateSpecialization() {
-        Trainer input = trainer();
-        when(trainerRepository.findByUserName(USERNAME)).thenReturn(Optional.of(entity(true)));
-
-        assertThrows(EntityNotFoundException.class, () -> service.updateTrainer(input));
-
-        verify(trainingTypeRepository).findById(TYPE_ID);
-        verify(trainerRepository, never()).update(any());
-    }
 
     @Test
     void findsTrainerById() {

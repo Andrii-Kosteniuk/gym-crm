@@ -117,6 +117,7 @@ public class TraineeServiceImpl implements TraineeService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Trainee findByUserName(String username) {
         Objects.requireNonNull(username, "Username can not be null");
 
@@ -175,6 +176,12 @@ public class TraineeServiceImpl implements TraineeService {
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IncorrectMethodArgumentException("Trainee username must not be blank");
         }
+        if (trainerUsernames == null || trainerUsernames.isEmpty()) {
+            throw new IncorrectMethodArgumentException("Trainee usernames must not be empty");
+        }
+        if (trainerUsernames.stream().anyMatch(Objects::isNull)) {
+            throw new IncorrectMethodArgumentException("Trainer usernames must not be null");
+        }
 
         Objects.requireNonNull(trainerUsernames, "Trainer usernames must not be null");
 
@@ -188,7 +195,24 @@ public class TraineeServiceImpl implements TraineeService {
             trainerIds.add(trainer.getId());
         }
 
-        replaceTrainers(traineeUsername, trainerIds);
+        TraineeEntity trainee = traineeRepository.findByUserName(traineeUsername)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
+
+        if (Boolean.FALSE.equals(trainee.getUserEntity().getActive())) {
+            throw new BusinessRuleViolationException("Cannot assign trainers to inactive trainee");
+        }
+
+        for (Long trainerId : trainerIds) {
+            TrainerEntity trainer = trainerRepository.findById(trainerId)
+                    .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(trainerId)));
+
+            if (Boolean.FALSE.equals(trainer.getUserEntity().getActive())) {
+                throw new BusinessRuleViolationException("Cannot assign inactive trainer: " + trainerId);
+            }
+        }
+
+        traineeRepository.replaceTrainers(traineeUsername, trainerIds);
+
     }
 
     @Override
@@ -215,36 +239,4 @@ public class TraineeServiceImpl implements TraineeService {
     public void changePassword(String username, String oldPassword, String newPassword) {
         credentialService.changePassword(username, oldPassword, newPassword);
     }
-
-    @Override
-    public void replaceTrainers(String username, Set<Long> trainerIds) {
-        Objects.requireNonNull(username, "Trainee ID is required");
-        Objects.requireNonNull(trainerIds, "Trainer IDs are required");
-
-        if (trainerIds
-                .stream()
-                .anyMatch(Objects::isNull)) {
-            throw new IncorrectMethodArgumentException("Trainer IDs must not contain null");
-        }
-
-        TraineeEntity trainee = traineeRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
-
-        if (Boolean.FALSE.equals(trainee.getUserEntity().getActive())) {
-            throw new BusinessRuleViolationException("Cannot assign trainers to inactive trainee");
-        }
-
-        for (Long trainerId : trainerIds) {
-            TrainerEntity trainer = trainerRepository.findById(trainerId)
-                    .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(trainerId)));
-
-            if (Boolean.FALSE.equals(trainer.getUserEntity().getActive())) {
-                throw new BusinessRuleViolationException("Cannot assign inactive trainer: " + trainerId);
-            }
-        }
-
-        traineeRepository.replaceTrainers(username, trainerIds);
-
-    }
-
 }

@@ -250,25 +250,25 @@ class TraineeServiceImplTest {
 
     @Test
     void rejectsNullTrainerReplacementArguments() {
-        assertThrows(NullPointerException.class, () -> service.replaceTrainers(null, Set.of()));
-        assertThrows(NullPointerException.class, () -> service.replaceTrainers(USERNAME, null));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.replaceTrainersByUsername(null, Set.of()));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.replaceTrainersByUsername(USERNAME, null));
         verifyNoInteractions(traineeRepository);
     }
 
     @Test
     void rejectsNullTrainerId() {
-        Set<Long> ids = new HashSet<>();
-        ids.add(null);
+        Set<String> uernames = new HashSet<>();
+        uernames.add(null);
 
         assertThrows(IncorrectMethodArgumentException.class,
-                () -> service.replaceTrainers(USERNAME, ids));
+                () -> service.replaceTrainersByUsername(USERNAME, uernames));
         verify(traineeRepository, never()).replaceTrainers(anyString(), anySet());
     }
 
     @Test
     void rejectsMissingTraineeWhenReplacingTrainers() {
-        assertThrows(EntityNotFoundException.class,
-                () -> service.replaceTrainers(USERNAME, Set.of()));
+        assertThrows(IncorrectMethodArgumentException.class,
+                () -> service.replaceTrainersByUsername(USERNAME, Set.of()));
         verify(traineeRepository, never()).replaceTrainers(anyString(), anySet());
     }
 

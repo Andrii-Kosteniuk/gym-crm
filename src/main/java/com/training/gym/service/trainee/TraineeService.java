@@ -28,6 +28,4 @@ public interface TraineeService {
     void replaceTrainersByUsername(String traineeUsername, Set<String> trainerUsernames);
 
     void changePassword(String username, String oldPassword, String newPassword);
-
-    void replaceTrainers(String username, Set<Long> trainersIds);
 }

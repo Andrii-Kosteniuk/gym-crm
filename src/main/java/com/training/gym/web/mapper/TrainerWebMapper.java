@@ -31,4 +31,6 @@ public interface TrainerWebMapper {
     TraineeSummaryResponse  toTraineeSummaryResponse(TraineeResponseDto traineeResponseDto);
 
     UpdateTrainerDto toUpdateDto(UpdateTrainerRequest updateTrainerRequest);
+
+    List<TrainerSummaryResponse> toTrainerSummaryResponses(List<TrainerResponseDto> trainers);
 }

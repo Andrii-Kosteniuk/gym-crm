@@ -101,15 +101,11 @@ public class TrainerServiceImpl implements TrainerService {
         TrainerEntity existingTrainer = trainerRepository.findByUserName(username)
                 .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID + username));
 
-        Long specializationId = Objects.requireNonNull(trainer.getSpecialization(), "Specialization is required").getId();
-
-        TrainingTypeEntity specialization = getSpecialization(specializationId);
 
         UserEntity existingUser = existingTrainer.getUserEntity();
 
         existingUser.setFirstName(updatedUser.getFirstName());
         existingUser.setLastName(updatedUser.getLastName());
-        existingTrainer.setSpecialization(specialization);
 
         TrainerEntity updatedTrainer = trainerRepository.update(existingTrainer);
 

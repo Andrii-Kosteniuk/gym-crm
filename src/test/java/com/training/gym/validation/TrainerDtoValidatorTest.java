@@ -43,7 +43,7 @@ class TrainerDtoValidatorTest {
     @Test
     void shouldRejectBlankUpdateUsername() {
         // Arrange
-        UpdateTrainerDto dto = new UpdateTrainerDto(" ","Sara", "Connor",  1L, true);
+        UpdateTrainerDto dto = new UpdateTrainerDto(" ","Sara", "Connor");
         // Act / Assert
         assertThrows(IncorrectMethodArgumentException.class, () -> validator.validateUpdate(dto));
     }
@@ -51,7 +51,7 @@ class TrainerDtoValidatorTest {
     @Test
     void shouldAcceptValidUpdate() {
         // Arrange
-        UpdateTrainerDto dto = new UpdateTrainerDto("sara.connor","Sara", "Connor",  1L, true);
+        UpdateTrainerDto dto = new UpdateTrainerDto("sara.connor","Sara", "Connor");
         // Act / Assert
         assertDoesNotThrow(() -> validator.validateUpdate(dto));
     }

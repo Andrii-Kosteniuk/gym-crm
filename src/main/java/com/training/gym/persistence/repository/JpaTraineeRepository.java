@@ -21,11 +21,11 @@ public class JpaTraineeRepository implements TraineeRepository {
     public static final String TRAINEE_MUST_NOT_BE_NULL = "Trainee must not be null";
     public static final String NOT_NULL_ID_MESSAGE = "Trainee ID must not be null";
     public static final String USERNAME_MUST_NOT_BE_BLANK = "Trainee username must not be blank";
-    public static final String USERNAME = "username";
     public static final String TRAINEE_NOT_FOUND = "Trainee not found: ";
 
     @PersistenceContext
     private EntityManager entityManager;
+    private final TraineeSearchRepository searchRepository;
 
     @Override
     public TraineeEntity save(TraineeEntity trainee) {
@@ -65,11 +65,11 @@ public class JpaTraineeRepository implements TraineeRepository {
         Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
 
         return entityManager.createQuery("""
-                SELECT t
-                FROM TraineeEntity t
-                JOIN FETCH t.userEntity
-                WHERE t.id = :id
-                """, TraineeEntity.class)
+                        SELECT t
+                        FROM TraineeEntity t
+                        JOIN FETCH t.userEntity
+                        WHERE t.id = :id
+                        """, TraineeEntity.class)
                 .setParameter("id", id)
                 .getResultList().stream()
                 .findFirst();
@@ -77,19 +77,9 @@ public class JpaTraineeRepository implements TraineeRepository {
 
     @Override
     public Optional<TraineeEntity> findByUserName(String username) {
-        validateUsername(username);
-
-        return entityManager.createQuery("""
-                        SELECT t
-                        FROM TraineeEntity t
-                        JOIN FETCH t.userEntity u
-                        WHERE u.userName = :username
-                        """, TraineeEntity.class)
-                .setParameter(USERNAME, username)
-                .getResultList()
-                .stream()
-                .findFirst();
+        return searchRepository.findByUserName(username);
     }
+
 
     @Override
     public List<TraineeEntity> findAll() {
@@ -107,10 +97,10 @@ public class JpaTraineeRepository implements TraineeRepository {
         Objects.requireNonNull(id, NOT_NULL_ID_MESSAGE);
 
         Long count = entityManager.createQuery("""
-                SELECT COUNT(t)
-                FROM TraineeEntity t
-                WHERE t.id = :id
-                """, Long.class)
+                        SELECT COUNT(t)
+                        FROM TraineeEntity t
+                        WHERE t.id = :id
+                        """, Long.class)
                 .setParameter("id", id)
                 .getSingleResult();
 
@@ -136,7 +126,7 @@ public class JpaTraineeRepository implements TraineeRepository {
     public void deleteByUsername(String username) {
         validateUsername(username);
 
-        TraineeEntity trainee = findByUserName(username)
+        TraineeEntity trainee = searchRepository.findByUserName(username)
                 .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND + username));
 
         delete(trainee);
@@ -162,7 +152,7 @@ public class JpaTraineeRepository implements TraineeRepository {
         Objects.requireNonNull(username);
         Objects.requireNonNull(trainerIds);
 
-        TraineeEntity trainee = findByUserName(username)
+        TraineeEntity trainee = searchRepository.findByUserName(username)
                 .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND + username));
 
         Set<TrainerEntity> trainers = new HashSet<>();

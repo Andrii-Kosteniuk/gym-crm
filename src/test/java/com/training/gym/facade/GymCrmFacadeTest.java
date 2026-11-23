@@ -190,9 +190,7 @@ class GymCrmFacadeTest {
         UpdateTrainerDto dto = new UpdateTrainerDto(
                 "Sara",
                 "Connor",
-                username,
-                1L,
-                true
+                username
         );
 
         Trainer mappedTrainer = sara();

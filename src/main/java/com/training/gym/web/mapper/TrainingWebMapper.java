@@ -34,7 +34,5 @@ public interface TrainingWebMapper {
 
     NewTrainingDto toNewTrainingDto(CreateTrainingRequest trainingRequest);
 
-    UpdateTraineeDto toUpdateTraineeDto(UpdateTraineeRequest traineeRequest);
-
     AddressDto toAddressDto(AddressRequest addressRequest);
 }

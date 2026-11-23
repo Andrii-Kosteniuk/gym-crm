@@ -8,6 +8,7 @@ import com.training.gym.facade.GymCrmFacade;
 import com.training.gym.util.CredentialsParser;
 import com.training.gym.web.controller.TraineeController;
 import com.training.gym.web.mapper.TraineeWebMapper;
+import com.training.gym.web.mapper.TrainerWebMapper;
 import com.training.gym.web.mapper.TrainingWebMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,9 @@ class TraineeControllerMockMvcTest {
     TraineeWebMapper traineeMapper;
     @Mock
     TrainingWebMapper trainingMapper;
+    @Mock
+    TrainerWebMapper trainerWebMapper;
+
 
     private MockMvc mvc;
     private static final String AUTH = "Basic am9objpwYXNz";
@@ -51,7 +55,7 @@ class TraineeControllerMockMvcTest {
 
     @BeforeEach
     void setUp() {
-        mvc = setup(new TraineeController(facade, parser, traineeMapper, trainingMapper));
+        mvc = setup(new TraineeController(facade, parser, traineeMapper, trainerWebMapper, trainingMapper));
     }
 
     @Test
@@ -86,13 +90,11 @@ class TraineeControllerMockMvcTest {
 
     @Test
     void loginReturns200() throws Exception {
+
         // Act & Assert
-        mvc.perform(post("/api/v1/trainees/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"james","password":"pass"}
-                                """))
-                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/trainees/login")
+                .header("Authorization", AUTH))
+                .andExpect(content().contentType("application/json"));
         verify(facade).authenticate(any());
     }
 
@@ -112,7 +114,7 @@ class TraineeControllerMockMvcTest {
     void updateProfileReturns200() throws Exception {
         // Arrange
         when(parser.parse(AUTH)).thenReturn(credentials);
-        when(trainingMapper.toUpdateTraineeDto(any()))
+        when(traineeMapper.toUpdateTraineeDto(any()))
                 .thenReturn(mock(UpdateTraineeDto.class));
 
         // Act & Assert
@@ -162,7 +164,7 @@ class TraineeControllerMockMvcTest {
                 .thenReturn(java.util.List.of());
 
         // Act & Assert
-        mvc.perform(put("/api/v1/trainees/james/trainers")
+        mvc.perform(put("/api/v1/trainees/james/trainers/updates")
                         .header("Authorization", AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -179,7 +181,7 @@ class TraineeControllerMockMvcTest {
     @Test
     void replaceTrainersRejectsMissingList() throws Exception {
         // Act & Assert
-        mvc.perform(put("/api/v1/trainees/james/trainers")
+        mvc.perform(put("/api/v1/trainees/james/trainers/updates")
                         .header("Authorization", AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))

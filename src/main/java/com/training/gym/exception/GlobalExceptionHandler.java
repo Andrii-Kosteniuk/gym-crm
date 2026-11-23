@@ -131,7 +131,7 @@ public class GlobalExceptionHandler {
         problem.setInstance(URI.create(request.getRequestURI()));
 
         problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
-        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
+
 
         setTransactionId(problem);
 

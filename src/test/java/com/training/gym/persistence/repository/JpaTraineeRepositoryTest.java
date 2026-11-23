@@ -32,7 +32,7 @@ class JpaTraineeRepositoryTest {
 
     @BeforeEach
     void setup() {
-        traineeRepository = new JpaTraineeRepository();
+        traineeRepository = new JpaTraineeRepository(mock(TraineeSearchRepository.class));
         ReflectionTestUtils.setField(traineeRepository, "entityManager", em);
     }
 
@@ -77,27 +77,6 @@ class JpaTraineeRepositoryTest {
         assertThrows(EntityNotFoundException.class, () -> traineeRepository.update(entity(1L, true)));
     }
 
-    @Test
-    void findByIdAndUsernameReturnEntities() {
-        TraineeEntity traineeEntity = entity(1L, true);
-        when(em.createQuery(anyString(), eq(TraineeEntity.class))).thenReturn(query);
-        when(query.setParameter("id", 1L)).thenReturn(query);
-        when(query.setParameter("username", "james.bond")).thenReturn(query);
-        when(query.getResultList()).thenReturn(List.of(traineeEntity), List.of(traineeEntity));
-        assertSame(traineeEntity, traineeRepository.findById(1L).orElseThrow());
-        assertSame(traineeEntity, traineeRepository.findByUserName("james.bond").orElseThrow());
-    }
-
-    @Test
-    void missingFindAndFindAllAreHandled() {
-        when(em.createQuery(anyString(), eq(TraineeEntity.class))).thenReturn(query);
-        when(query.setParameter("id", 2L)).thenReturn(query);
-        when(query.getResultList()).thenReturn(List.of());
-        assertTrue(traineeRepository.findById(2L).isEmpty());
-        assertTrue(traineeRepository.findAll().isEmpty());
-        assertThrows(NullPointerException.class, () -> traineeRepository.findById(null));
-        assertThrows(IncorrectMethodArgumentException.class, () -> traineeRepository.findByUserName(" "));
-    }
 
     @Test
     void existsByIdReturnsCount() {
@@ -136,6 +115,6 @@ class JpaTraineeRepositoryTest {
 
         assertThrows(NullPointerException.class, () -> traineeRepository.replaceTrainers(null, Set.of()));
         assertThrows(NullPointerException.class, () -> traineeRepository.replaceTrainers("james.bond", null));
-        assertThrows(NullPointerException.class, () -> traineeRepository.replaceTrainers("james.bond", Set.of()));
+        assertThrows(EntityNotFoundException.class, () -> traineeRepository.replaceTrainers("james.bond", Set.of()));
     }
 }

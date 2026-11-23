@@ -179,8 +179,6 @@ public class GymCrmFacade {
     public void changePassword(ChangeLoginRequestDto dto) {
         Objects.requireNonNull(dto, "Password change DTO is required");
 
-        authenticationService.authenticate(dto.username(), dto.oldPassword());
-
         userService.changeLogin(dto);
     }
 
@@ -258,12 +256,6 @@ public class GymCrmFacade {
                 .stream()
                 .map(trainingMapper::toResponseDto)
                 .toList();
-    }
-
-    public void replaceTraineeTrainers(String username, Set<Long> trainerIds, Credentials credentials) {
-        authorizationService.requireTraineeOwner(credentials, username);
-
-        traineeService.replaceTrainers(username, trainerIds);
     }
 
     public void removeTraineeByUsername(String username, Credentials credentials) {

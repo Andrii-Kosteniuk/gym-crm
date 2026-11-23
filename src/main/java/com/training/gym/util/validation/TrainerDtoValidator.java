@@ -23,7 +23,6 @@ public class TrainerDtoValidator {
 
     public void validateUpdate(UpdateTrainerDto dto) {
         requireNotNull(dto, "UpdateTrainerDto");
-        requirePositiveId(dto.specializationId(), "SpecializationId");
         requireNotBlank(dto.userName(), "Username");
 
         validatePersonalData(dto.firstName(), dto.lastName());

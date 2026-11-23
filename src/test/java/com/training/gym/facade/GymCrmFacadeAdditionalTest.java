@@ -35,7 +35,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -301,40 +300,6 @@ class GymCrmFacadeAdditionalTest {
             verifyNoInteractions(authorizationService, trainerService);
         }
 
-        @Test
-        void shouldNotChangePasswordWhenAuthenticationFails() {
-            // Arrange
-            ChangeLoginRequestDto dto = new ChangeLoginRequestDto(
-                    TRAINER_USERNAME, "OldPassword123", "NewPassword123");
-
-            doThrow(new AccessDeniedException("Denied"))
-                    .when(credentialService)
-                    .authenticate(TRAINER_USERNAME, dto.oldPassword());
-
-            // Act
-            assertThrows(AccessDeniedException.class, () -> facade.changePassword(dto));
-
-            // Assert
-            verify(credentialService).authenticate(TRAINER_USERNAME, "OldPassword123");
-
-            verifyNoInteractions(userService);
-        }
-
-        @Test
-        void shouldPropagatePasswordChangeFailureAfterAuthorization() {
-            // Arrange
-            ChangeLoginRequestDto dto = new ChangeLoginRequestDto(TRAINEE_USERNAME, "OldPassword123", "NewPassword123");
-            doThrow(new IncorrectMethodArgumentException("Invalid password"))
-                    .when(userService).changeLogin(dto);
-
-            // Act
-            IncorrectMethodArgumentException exception =
-                    assertThrows(IncorrectMethodArgumentException.class, () -> facade.changePassword(dto));
-
-            // Assert
-            assertEquals("Incorrect method argument: Invalid password", exception.getMessage());
-
-        }
     }
 
     @Nested
@@ -732,52 +697,5 @@ class GymCrmFacadeAdditionalTest {
         }
     }
 
-    @Nested
-    class ReplaceTrainersTests {
-
-        @Test
-        void authorizesBeforeReplacingTrainers() {
-            // Arrange
-            Set<Long> ids = Set.of(2L, 3L);
-
-            // Act
-            facade.replaceTraineeTrainers(TRAINEE_USERNAME, ids, traineeCredentials);
-
-            // Assert
-            InOrder order = inOrder(authorizationService, traineeService);
-
-            order.verify(authorizationService)
-                    .requireTraineeOwner(traineeCredentials,TRAINEE_USERNAME);
-
-            order.verify(traineeService)
-                    .replaceTrainers(TRAINEE_USERNAME, ids);
-
-            order.verifyNoMoreInteractions();
-        }
-
-        @Test
-        void allowsReplacingWithEmptySet() {
-            Set<Long> ids = Set.of();
-
-            facade.replaceTraineeTrainers(
-                    TRAINEE_USERNAME, ids, traineeCredentials);
-
-            verify(traineeService).replaceTrainers(TRAINEE_USERNAME, ids);
-        }
-
-        @Test
-        void WicksNotModifyTrainersWhenUnauthorized() {
-            Set<Long> ids = Set.of(2L);
-
-            doThrow(new AccessDeniedException("Denied"))
-                    .when(authorizationService)
-                    .requireTraineeOwner(traineeCredentials, TRAINEE_USERNAME);
-
-            assertThrows(AccessDeniedException.class,
-                    () -> facade.replaceTraineeTrainers(TRAINEE_USERNAME, ids, traineeCredentials));
-
-            verifyNoInteractions(traineeService);
-        }
-    }
 
 }

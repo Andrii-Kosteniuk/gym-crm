@@ -61,17 +61,17 @@ public interface TraineeMapper {
     @Mapping(target = "trainings", ignore = true)
     Trainee toTraineeDomain(TraineeResponseDto dto);
 
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "firstName", source = "user.firstName")
+    @Mapping(target = "lastName", source = "user.lastName")
+    @Mapping(target = "userName", source = "user.userName")
+    @Mapping(target = "active", source = "user.active")
+    @Mapping(target = "type", source = "specialization")
+    TrainerResponseDto toResponseDto(Trainer trainer);
+
     AddressResponse toAddressResponse(Address address);
 
     TrainingTypeResponseDto toTrainingTypeResponse(TrainingType trainingType);
 
     List<TrainerResponseDto> toTrainerResponseList(Set<Trainer> trainers);
-
-    @Mapping(target = "firstName", source = "user.firstName")
-    @Mapping(target = "lastName", source = "user.lastName")
-    @Mapping(target = "userName", source = "user.userName")
-    @Mapping(target = "active", source = "user.active")
-    @Mapping(target = "type", ignore = true)
-    @Mapping(target = "trainees", source = "trainees")
-    TrainerResponseDto toTrainerResponseDto(Trainer trainee);
 }
