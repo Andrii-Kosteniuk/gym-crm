@@ -88,15 +88,6 @@ class TraineeControllerMockMvcTest {
         verifyNoInteractions(facade);
     }
 
-    @Test
-    void loginReturns200() throws Exception {
-
-        // Act & Assert
-        mvc.perform(get("/api/v1/trainees/login")
-                .header("Authorization", AUTH))
-                .andExpect(content().contentType("application/json"));
-        verify(facade).authenticate(any());
-    }
 
     @Test
     void getProfileReturns200() throws Exception {

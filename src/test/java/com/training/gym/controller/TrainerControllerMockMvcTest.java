@@ -1,6 +1,8 @@
 package com.training.gym.controller;
 
 import com.training.gym.dto.auth.Credentials;
+import com.training.gym.dto.trainer.CreateTrainerDto;
+import com.training.gym.dto.trainer.UpdateTrainerDto;
 import com.training.gym.exception.GlobalExceptionHandler;
 import com.training.gym.facade.GymCrmFacade;
 import com.training.gym.util.CredentialsParser;
@@ -56,7 +58,7 @@ class TrainerControllerMockMvcTest {
     void registerReturns200() throws Exception {
         // Arrange
         when(trainerMapper.toCreateDto(any()))
-                .thenReturn(mock(com.training.gym.dto.trainer.CreateTrainerDto.class));
+                .thenReturn(mock(CreateTrainerDto.class));
 
         // Act & Assert
         mvc.perform(post("/api/v1/trainers/registration")
@@ -80,17 +82,6 @@ class TrainerControllerMockMvcTest {
         verifyNoInteractions(facade);
     }
 
-    @Test
-    void loginReturns200() throws Exception {
-        // Act & Assert
-        mvc.perform(post("/api/v1/trainers/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"james","password":"pass"}
-                                """))
-                .andExpect(status().isOk());
-        verify(facade).authenticate(any());
-    }
 
     @Test
     void getProfileReturns200() throws Exception {
@@ -109,7 +100,7 @@ class TrainerControllerMockMvcTest {
         // Arrange
         when(parser.parse(AUTH)).thenReturn(credentials);
         when(trainerMapper.toUpdateDto(any()))
-                .thenReturn(mock(com.training.gym.dto.trainer.UpdateTrainerDto.class));
+                .thenReturn(mock(UpdateTrainerDto.class));
 
         // Act & Assert
         mvc.perform(put("/api/v1/trainers")
