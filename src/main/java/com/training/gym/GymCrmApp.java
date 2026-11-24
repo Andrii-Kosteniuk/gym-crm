@@ -1,12 +1,12 @@
 package com.training.gym;
 
-import com.training.gym.config.web.EmbeddedTomcatServer;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-
+@SpringBootApplication
 public class GymCrmApp {
 
     public static void main(String[] args) {
-
-        EmbeddedTomcatServer.start();
+        SpringApplication.run(GymCrmApp.class, args);
     }
 }
