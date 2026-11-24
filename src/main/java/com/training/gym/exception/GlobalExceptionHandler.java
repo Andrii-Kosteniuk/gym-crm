@@ -14,6 +14,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.net.URI;
 import java.util.List;
@@ -247,7 +248,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BusinessRuleViolationException.class)
-    public ResponseEntity<ProblemDetail> handleBusinessRuleViolation( HttpServletRequest request, BusinessRuleViolationException ex) {
+    public ResponseEntity<ProblemDetail> handleBusinessRuleViolation(HttpServletRequest request, BusinessRuleViolationException ex) {
         log.warn("Business rule violation: {}", ex.getMessage());
 
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
@@ -305,6 +306,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(problem);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail handleNoResourceFound(HttpServletRequest request, NoResourceFoundException ex) {
+
+        log.debug("Resource not found: {}", ex.getResourcePath());
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                "The requested resource was not found"
+        );
+
+        problem.setTitle("Resource not found");
+        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
+
+        return problem;
     }
 
 
