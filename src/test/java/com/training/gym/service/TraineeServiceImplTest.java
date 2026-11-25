@@ -8,6 +8,7 @@ import com.training.gym.domain.model.User;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
+import com.training.gym.monitoring.metrics.RegistrationMetrics;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
 import com.training.gym.persistence.entity.UserEntity;
@@ -64,6 +65,9 @@ class TraineeServiceImplTest {
     TraineePersistenceMapper traineeMapper;
     @Mock
     TrainingPersistenceMapper trainingMapper;
+    @Mock
+    RegistrationMetrics metrics;
+
     @InjectMocks
     TraineeServiceImpl service;
 
@@ -78,9 +82,9 @@ class TraineeServiceImplTest {
                 .build();
     }
 
-    private TraineeEntity entity(boolean active) {
+    private TraineeEntity entity() {
         var user = new UserEntity();
-        user.setActive(active);
+        user.setActive(true);
         user.setFirstName("James");
         user.setLastName("Bond");
         var entity = new TraineeEntity();
@@ -92,12 +96,13 @@ class TraineeServiceImplTest {
     @Test
     void registersTrainee() {
         var trainee = trainee();
-        var entity = entity(true);
+        var entity = entity();
         var saved = trainee();
         when(usernameGenerator.generate(eq("James"), eq("Bond"), any())).thenReturn(USERNAME);
         when(passwordGenerator.generate()).thenReturn("initial-secret");
         when(passwordEncoder.encode("initial-secret")).thenReturn("encoded");
         when(traineeMapper.toEntity(trainee)).thenReturn(entity);
+        doNothing().when(metrics).recordTraineeRegistration();
         when(traineeRepository.save(entity)).thenReturn(entity);
         when(traineeMapper.toTraineeDomain(entity)).thenReturn(saved);
 
@@ -126,7 +131,7 @@ class TraineeServiceImplTest {
     @Test
     void updatesTrainee() {
         var trainee = trainee();
-        var entity = entity(true);
+        var entity = entity();
         var updated = trainee();
         when(traineeRepository.findByUserName(USERNAME)).thenReturn(Optional.of(entity));
         when(traineeRepository.update(entity)).thenReturn(entity);
@@ -160,7 +165,7 @@ class TraineeServiceImplTest {
 
     @Test
     void findsTraineeById() {
-        var entity = entity(true);
+        var entity = entity();
         var trainee = trainee();
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(entity));
         when(traineeMapper.toTraineeDomain(entity)).thenReturn(trainee);
@@ -172,7 +177,7 @@ class TraineeServiceImplTest {
 
     @Test
     void findsTraineeByUsername() {
-        var entity = entity(true);
+        var entity = entity();
         var trainee = trainee();
         when(traineeRepository.findByUserName(USERNAME)).thenReturn(Optional.of(entity));
         when(traineeMapper.toTraineeDomain(entity)).thenReturn(trainee);
@@ -196,7 +201,7 @@ class TraineeServiceImplTest {
 
     @Test
     void deletesTrainee() {
-        var entity = entity(true);
+        var entity = entity();
         when(traineeRepository.findByUserName(USERNAME)).thenReturn(Optional.of(entity));
 
         service.removeTraineeByUsername(USERNAME);

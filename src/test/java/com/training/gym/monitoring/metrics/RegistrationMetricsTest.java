@@ -4,8 +4,11 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RegistrationMetricsTest {
 
@@ -22,10 +25,13 @@ class RegistrationMetricsTest {
     void setUp() {
         registry = new SimpleMeterRegistry();
         registrationMetrics = new RegistrationMetrics(registry);
+
+        TransactionSynchronizationManager.initSynchronization();
     }
 
     @AfterEach
     void tearDown() {
+        TransactionSynchronizationManager.clearSynchronization();
         registry.close();
     }
 
@@ -46,8 +52,10 @@ class RegistrationMetricsTest {
 
         // Arrange
 
+
         // Act
         registrationMetrics.recordTraineeRegistration();
+        simulateCommit();
 
         // Assert
         assertAll(
@@ -63,6 +71,7 @@ class RegistrationMetricsTest {
 
         // Act
         registrationMetrics.recordTrainerRegistration();
+        simulateCommit();
 
         // Assert
         assertAll(
@@ -80,6 +89,7 @@ class RegistrationMetricsTest {
         registrationMetrics.recordTraineeRegistration();
         registrationMetrics.recordTraineeRegistration();
         registrationMetrics.recordTraineeRegistration();
+        simulateCommit();
 
         // Assert
         assertAll(
@@ -96,11 +106,28 @@ class RegistrationMetricsTest {
         // Act
         registrationMetrics.recordTrainerRegistration();
         registrationMetrics.recordTrainerRegistration();
+        simulateCommit();
 
         // Assert
         assertAll(
                 () -> assertEquals(0.0, registrationCount(TRAINEE)),
                 () -> assertEquals(2.0, registrationCount(TRAINER))
+        );
+    }
+
+    @Test
+    void shouldNotIncrementCountersAfterRollback() {
+        // Arrange
+        registrationMetrics.recordTraineeRegistration();
+        registrationMetrics.recordTrainerRegistration();
+
+        // Act
+        simulateRollback();
+
+        // Assert
+        assertAll(
+                () -> assertEquals(0.0, registrationCount(TRAINEE)),
+                () -> assertEquals(0.0, registrationCount(TRAINER))
         );
     }
 
@@ -113,6 +140,7 @@ class RegistrationMetricsTest {
         registrationMetrics.recordTraineeRegistration();
         registrationMetrics.recordTrainerRegistration();
         registrationMetrics.recordTraineeRegistration();
+        simulateCommit();
 
         // Assert
         assertAll(
@@ -125,8 +153,7 @@ class RegistrationMetricsTest {
     void shouldRegisterCountersWithCorrectDescription() {
 
         // Arrange
-        String expectedDescription =
-                "Number of successful user registrations";
+        String expectedDescription = "Number of successful user registrations";
 
         // Act
         var traineeCounter = registry.get(METRIC_NAME)
@@ -155,5 +182,19 @@ class RegistrationMetricsTest {
                 .tag(ROLE, role)
                 .counter()
                 .count();
+    }
+
+    private void simulateCommit() {
+        TransactionSynchronizationManager.getSynchronizations()
+                .forEach(TransactionSynchronization::afterCommit);
+    }
+
+    private void simulateRollback() {
+        TransactionSynchronizationManager.getSynchronizations()
+                .forEach(synchronization ->
+                        synchronization.afterCompletion(
+                                TransactionSynchronization.STATUS_ROLLED_BACK
+                        )
+                );
     }
 }

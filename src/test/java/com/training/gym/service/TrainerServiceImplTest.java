@@ -10,6 +10,7 @@ import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
+import com.training.gym.monitoring.metrics.RegistrationMetrics;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
@@ -70,6 +71,9 @@ class TrainerServiceImplTest {
     TrainingPersistenceMapper trainingMapper;
     @Mock
     TrainingTypePersistenceMapper trainingTypeMapper;
+    @Mock
+    RegistrationMetrics metrics;
+
     @InjectMocks
     TrainerServiceImpl service;
 
@@ -115,6 +119,7 @@ class TrainerServiceImplTest {
         when(trainingTypeRepository.findById(TYPE_ID)).thenReturn(Optional.of(type));
         when(passwordEncoder.encode("secret")).thenReturn("hash");
         when(trainingTypeMapper.toTrainingTypeDomain(type)).thenReturn(domainType);
+        doNothing().when(metrics).recordTrainerRegistration();
         when(trainerMapper.toEntity(input)).thenReturn(saved);
         when(trainerRepository.save(saved)).thenReturn(saved);
         when(trainerMapper.toTrainerDomain(saved)).thenReturn(output);
