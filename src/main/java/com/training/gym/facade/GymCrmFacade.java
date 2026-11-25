@@ -182,23 +182,6 @@ public class GymCrmFacade {
         userService.changeLogin(dto);
     }
 
-    public void createTraining(CreateTrainingDto dto, Credentials credentials) {
-
-        Objects.requireNonNull(credentials, "Credentials are required");
-
-        authenticationService.authenticate(
-                credentials.username(),
-                credentials.password());
-
-        trainingValidator.validateCreate(dto);
-
-        Training training = trainingMapper.toTraining(dto);
-
-        trainingMapper.toResponseDto(
-                trainingService.createTraining(training)
-        );
-    }
-
     public TrainingResponseDto getTrainingById(Long id, Credentials credentials) {
         Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
 

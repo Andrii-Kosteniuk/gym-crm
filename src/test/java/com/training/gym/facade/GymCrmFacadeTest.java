@@ -5,7 +5,6 @@ import com.training.gym.domain.mapper.TrainerMapper;
 import com.training.gym.domain.mapper.TrainingMapper;
 import com.training.gym.domain.model.Trainee;
 import com.training.gym.domain.model.Trainer;
-import com.training.gym.domain.model.Training;
 import com.training.gym.domain.model.User;
 import com.training.gym.dto.auth.AuthenticationResponse;
 import com.training.gym.dto.auth.ChangePasswordDto;
@@ -15,7 +14,6 @@ import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
 import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
-import com.training.gym.dto.training.CreateTrainingDto;
 import com.training.gym.service.auth.AuthenticationService;
 import com.training.gym.service.auth.CredentialService;
 import com.training.gym.service.auth.ProfileAuthorizationService;
@@ -289,18 +287,6 @@ class GymCrmFacadeTest {
         verifyNoMoreInteractions(trainerService);
     }
 
-    @Test
-    void shouldDelegateTrainingCreation() {
-        // Arrange
-        CreateTrainingDto dto = new CreateTrainingDto(1L, 2L, "Fitness", 1L, LocalDate.of(2026, 11, 15), 45L);
-        Training training = Training.builder().build();
-        when(trainingMapper.toTraining(dto)).thenReturn(training);
-        // Act
-        facade.createTraining(dto, jamesCredentials());
-        // Assert
-        verify(trainingValidator).validateCreate(dto);
-        verify(trainings).createTraining(training);
-    }
 
     @Test
     void shouldRejectNullTrainingId() {
