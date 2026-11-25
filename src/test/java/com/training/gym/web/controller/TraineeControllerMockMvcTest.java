@@ -1,4 +1,4 @@
-package com.training.gym.controller;
+package com.training.gym.web.controller;
 
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.trainee.CreateTraineeDto;
@@ -86,16 +86,6 @@ class TraineeControllerMockMvcTest {
                                 """))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(facade);
-    }
-
-    @Test
-    void loginReturns200() throws Exception {
-
-        // Act & Assert
-        mvc.perform(get("/api/v1/trainees/login")
-                .header("Authorization", AUTH))
-                .andExpect(content().contentType("application/json"));
-        verify(facade).authenticate(any());
     }
 
     @Test

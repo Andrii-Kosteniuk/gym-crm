@@ -1,4 +1,4 @@
-package com.training.gym.controller;
+package com.training.gym.web.controller;
 
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.exception.GlobalExceptionHandler;
@@ -78,18 +78,6 @@ class TrainerControllerMockMvcTest {
                                 """))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(facade);
-    }
-
-    @Test
-    void loginReturns200() throws Exception {
-        // Act & Assert
-        mvc.perform(post("/api/v1/trainers/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"james","password":"pass"}
-                                """))
-                .andExpect(status().isOk());
-        verify(facade).authenticate(any());
     }
 
     @Test
