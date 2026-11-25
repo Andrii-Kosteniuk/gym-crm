@@ -10,6 +10,7 @@ import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.exception.BusinessRuleViolationException;
 import com.training.gym.exception.EntityNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
+import com.training.gym.monitoring.metrics.RegistrationMetrics;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
 import com.training.gym.persistence.entity.TrainingTypeEntity;
@@ -53,6 +54,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final TrainerPersistenceMapper trainerMapper;
     private final TrainingPersistenceMapper trainingMapper;
     private final TrainingTypePersistenceMapper trainingTypeMapper;
+    private final RegistrationMetrics metrics;
 
 
     @Override
@@ -85,6 +87,8 @@ public class TrainerServiceImpl implements TrainerService {
         TrainerEntity savedTrainer = trainerRepository.save(trainerMapper.toEntity(trainer));
 
         log.info("Trainer registered: username={}", username);
+
+        metrics.recordTrainerRegistration();
 
         return new RegistrationResult<>(trainerMapper.toTrainerDomain(savedTrainer), rawPassword);
     }
