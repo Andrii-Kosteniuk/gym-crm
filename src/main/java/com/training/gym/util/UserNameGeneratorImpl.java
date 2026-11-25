@@ -1,5 +1,6 @@
 package com.training.gym.util;
 
+import com.training.gym.exception.IncorrectMethodArgumentException;
 import org.springframework.stereotype.Component;
 
 import java.util.Locale;
@@ -15,7 +16,7 @@ public class UserNameGeneratorImpl implements UsernameGenerator {
                 || firstName.isBlank()
                 || lastName == null
                 || lastName.isBlank()) {
-            throw new IllegalArgumentException("First name and last name must not be blank");
+            throw new IncorrectMethodArgumentException("First name and last name must not be blank");
         }
 
         Objects.requireNonNull(usernameExists, "Username existence checker must not be null");
