@@ -3,6 +3,8 @@ package com.training.gym.monitoring.metrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Component
 public class RegistrationMetrics {
@@ -24,10 +26,21 @@ public class RegistrationMetrics {
     }
 
     public void recordTraineeRegistration() {
-        traineeRegistrations.increment();
+        afterCommit(traineeRegistrations::increment);
     }
 
     public void recordTrainerRegistration() {
-        trainerRegistrations.increment();
+        afterCommit(trainerRegistrations::increment);
+    }
+
+    private void afterCommit(Runnable action) {
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        action.run();
+                    }
+                }
+        );
     }
 }
