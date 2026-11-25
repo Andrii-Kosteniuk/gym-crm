@@ -1,4 +1,4 @@
-package com.training.gym.controller;
+package com.training.gym.web.controller;
 
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.exception.GlobalExceptionHandler;
