@@ -1,6 +1,5 @@
 package com.training.gym.web.controller;
 
-import com.training.gym.dto.auth.AuthenticationResponse;
 import com.training.gym.dto.auth.Credentials;
 import com.training.gym.facade.GymCrmFacade;
 import com.training.gym.service.auth.AuthenticationService;
@@ -74,7 +73,7 @@ public class AuthController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AuthenticationResponse.class))),
+                    content = @Content),
             @ApiResponse(responseCode = "400",
                     description = "Invalid request, validation error, or missing request data",
                     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
@@ -90,13 +89,12 @@ public class AuthController {
     })
 
     @GetMapping("/login")
-    public ResponseEntity<AuthenticationResponse> login(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
+    public ResponseEntity<Void> login(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
 
         Credentials credentials = credentialParser.parse(authorization);
         applicationEntry.authenticate(credentials);
 
-        return ResponseEntity.ok().body(
-                new AuthenticationResponse(credentials.username(), credentials.password()));
+        return ResponseEntity.ok().build();
 
     }
 }
