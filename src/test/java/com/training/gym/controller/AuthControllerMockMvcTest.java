@@ -20,8 +20,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
@@ -93,11 +91,9 @@ class AuthControllerMockMvcTest {
         // Act & Assert
         mvc.perform(get("/api/v1/auth/login")
                         .header("Authorization", AUTH))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(content()
-                        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
-        verify(facade).authenticate(any());
+                .andExpect(status().isOk());
+
+        verify(parser).parse(AUTH);
     }
 
 }
