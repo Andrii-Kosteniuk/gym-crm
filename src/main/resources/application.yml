@@ -26,6 +26,13 @@ spring:
 server:
   shutdown: graceful
 
+gym:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: gym-crm
+      access-token-ttl: 15m
+
 management:
   server:
     port: ${MANAGEMENT_PORT:8081}
