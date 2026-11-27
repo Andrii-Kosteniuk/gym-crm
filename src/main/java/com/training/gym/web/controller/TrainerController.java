@@ -1,10 +1,8 @@
 package com.training.gym.web.controller;
 
 import com.training.gym.dto.auth.AuthenticationResponse;
-import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.facade.GymCrmFacade;
-import com.training.gym.util.CredentialsParser;
 import com.training.gym.web.dto.request.ProfileStatusChangeRequest;
 import com.training.gym.web.dto.request.TrainerRegistrationRequest;
 import com.training.gym.web.dto.request.UpdateTrainerRequest;
@@ -23,7 +21,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,7 +35,6 @@ import java.util.List;
 public class TrainerController {
 
     private final GymCrmFacade applicationEntry;
-    private final CredentialsParser credentialsParser;
     private final TrainerWebMapper trainerWebMapper;
     private final TrainingWebMapper trainingWebMapper;
 
@@ -99,11 +95,9 @@ public class TrainerController {
     })
 
     @GetMapping("/{username}/profile")
-    public ResponseEntity<TrainerProfileResponse> getTrainerProfile(@PathVariable("username") String username,
-                                                                    @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-        var credentials = credentialsParser.parse(authorization);
+    public ResponseEntity<TrainerProfileResponse> getTrainerProfile(@PathVariable("username") String username) {
 
-        var trainerResponseDto = applicationEntry.getTrainerByUserName(username, credentials);
+        var trainerResponseDto = applicationEntry.getTrainerByUserName(username);
 
         var profileResponse = trainerWebMapper.toTrainerProfileResponse(trainerResponseDto);
 
@@ -140,14 +134,11 @@ public class TrainerController {
     })
 
     @PutMapping
-    public ResponseEntity<TrainerProfileResponse> updateTrainer(@Valid @RequestBody UpdateTrainerRequest request,
-                                                                @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-
-        var credentials = credentialsParser.parse(authorization);
+    public ResponseEntity<TrainerProfileResponse> updateTrainer(@Valid @RequestBody UpdateTrainerRequest request) {
 
         var updateDto = trainerWebMapper.toUpdateDto(request);
 
-        var trainerResponseDto = applicationEntry.updateTrainer(updateDto, credentials);
+        var trainerResponseDto = applicationEntry.updateTrainer(updateDto);
 
         var profileResponse = trainerWebMapper.toTrainerProfileResponse(trainerResponseDto);
 
@@ -192,14 +183,11 @@ public class TrainerController {
                                                                                  LocalDate toDate,
 
                                                                                  @RequestParam(value = "traineeName", required = false)
-                                                                                 String traineeName,
-
-                                                                                 @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-        Credentials credentials = credentialsParser.parse(authorization);
+                                                                                 String traineeName) {
 
         TrainerTrainingCriteria criteria = new TrainerTrainingCriteria(fromDate, toDate, traineeName);
 
-        var trainerTrainingsResponse = applicationEntry.getTrainerTrainings(username, criteria, credentials);
+        var trainerTrainingsResponse = applicationEntry.getTrainerTrainings(username, criteria);
 
         List<TrainerTrainingResponse> trainingResponses = trainingWebMapper.toTrainerTrainingResponses(trainerTrainingsResponse);
 
@@ -236,12 +224,9 @@ public class TrainerController {
     })
 
     @PatchMapping("/profile")
-    public ResponseEntity<Void> activateDeactivateTrainerProfile(@Valid @RequestBody ProfileStatusChangeRequest request,
-                                                                 @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
+    public ResponseEntity<Void> activateDeactivateTrainerProfile(@Valid @RequestBody ProfileStatusChangeRequest request) {
 
-        Credentials credentials = credentialsParser.parse(authorization);
-
-        applicationEntry.changeTrainerProfileStatus(request.username(), request.active(), credentials);
+        applicationEntry.changeTrainerProfileStatus(request.username(), request.active());
 
         return ResponseEntity.ok().build();
 

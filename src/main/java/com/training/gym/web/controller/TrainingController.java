@@ -1,9 +1,7 @@
 package com.training.gym.web.controller;
 
-import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.training.NewTrainingDto;
 import com.training.gym.facade.GymCrmFacade;
-import com.training.gym.util.CredentialsParser;
 import com.training.gym.web.dto.request.CreateTrainingRequest;
 import com.training.gym.web.mapper.TrainingWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +13,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +24,6 @@ import org.springframework.web.bind.annotation.*;
 public class TrainingController {
 
     private final GymCrmFacade applicationEntry;
-    private final CredentialsParser credentialsParser;
     private final TrainingWebMapper trainingWebMapper;
 
     @Operation(summary = "Create training",
@@ -59,14 +55,11 @@ public class TrainingController {
     })
 
     @PostMapping
-    public ResponseEntity<Void> addTraining(@Valid @RequestBody CreateTrainingRequest request,
-                                            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-        Credentials credentials = credentialsParser.parse(authorization);
+    public ResponseEntity<Void> addTraining(@Valid @RequestBody CreateTrainingRequest request) {
 
         NewTrainingDto newTrainingDto = trainingWebMapper.toNewTrainingDto(request);
 
-
-        applicationEntry.createTraining(newTrainingDto, credentials);
+        applicationEntry.createTraining(newTrainingDto);
 
         return ResponseEntity.ok().build();
 

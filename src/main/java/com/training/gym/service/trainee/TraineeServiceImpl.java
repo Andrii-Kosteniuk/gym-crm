@@ -8,7 +8,7 @@ import com.training.gym.domain.model.User;
 import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.exception.BusinessRuleViolationException;
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.monitoring.metrics.RegistrationMetrics;
 import com.training.gym.persistence.entity.TraineeEntity;
@@ -26,6 +26,7 @@ import com.training.gym.util.PasswordGenerator;
 import com.training.gym.util.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,6 +88,9 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #trainee.user.userName)
+        """)
     public Trainee updateTrainee(Trainee trainee) {
         Objects.requireNonNull(trainee, "Trainee must not be null");
 
@@ -95,7 +99,7 @@ public class TraineeServiceImpl implements TraineeService {
         String username = user.getUserName();
 
         TraineeEntity existingTrainee = traineeRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND_USERNAME.formatted(username)));
+                .orElseThrow(() -> new UserNotFoundException(TRAINEE_NOT_FOUND_USERNAME.formatted(username)));
 
         existingTrainee.getUserEntity().setFirstName(user.getFirstName());
         existingTrainee.getUserEntity().setLastName(user.getLastName());
@@ -110,23 +114,29 @@ public class TraineeServiceImpl implements TraineeService {
     }
 
     @Override
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #dto.userName)
+        """)
     public Trainee getTraineeById(Long id) {
         Objects.requireNonNull(id, "Id can not be null");
         log.debug("Retrieving trainee profile: id={}", id);
 
         TraineeEntity traineeEntity = traineeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(id)));
+                .orElseThrow(() -> new UserNotFoundException(NOT_FOUND_ID.formatted(id)));
 
         return traineeMapper.toTraineeDomain(traineeEntity);
     }
 
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public Trainee findByUserName(String username) {
         Objects.requireNonNull(username, "Username can not be null");
 
         TraineeEntity traineeEntity = traineeRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
+                .orElseThrow(() -> new UserNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
 
         return traineeMapper.toTraineeDomain(traineeEntity);
     }
@@ -134,10 +144,13 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public void removeTraineeByUsername(String username) {
 
         TraineeEntity trainee = traineeRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
+                .orElseThrow(() -> new UserNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
 
         UserEntity user = trainee.getUserEntity();
 
@@ -150,11 +163,14 @@ public class TraineeServiceImpl implements TraineeService {
 
 
     @Transactional
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public void changeProfileStatus(String username, boolean active) {
         Objects.requireNonNull(username, "Trainee is required");
 
         TraineeEntity managedTrainee = traineeRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
+                .orElseThrow(() -> new UserNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
 
         UserEntity user = managedTrainee.getUserEntity();
 
@@ -176,6 +192,9 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #traineeUsername)
+        """)
     public void replaceTrainersByUsername(String traineeUsername, Set<String> trainerUsernames) {
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IncorrectMethodArgumentException("Trainee username must not be blank");
@@ -194,13 +213,13 @@ public class TraineeServiceImpl implements TraineeService {
         for (String trainerUsername : trainerUsernames) {
             TrainerEntity trainer = trainerRepository
                     .findByUserName(trainerUsername)
-                    .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerUsername));
+                    .orElseThrow(() -> new UserNotFoundException("Trainer not found: " + trainerUsername));
 
             trainerIds.add(trainer.getId());
         }
 
         TraineeEntity trainee = traineeRepository.findByUserName(traineeUsername)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
+                .orElseThrow(() -> new UserNotFoundException("Trainee not found"));
 
         if (Boolean.FALSE.equals(trainee.getUserEntity().getActive())) {
             throw new BusinessRuleViolationException("Cannot assign trainers to inactive trainee");
@@ -208,7 +227,7 @@ public class TraineeServiceImpl implements TraineeService {
 
         for (Long trainerId : trainerIds) {
             TrainerEntity trainer = trainerRepository.findById(trainerId)
-                    .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(trainerId)));
+                    .orElseThrow(() -> new UserNotFoundException(NOT_FOUND_ID.formatted(trainerId)));
 
             if (Boolean.FALSE.equals(trainer.getUserEntity().getActive())) {
                 throw new BusinessRuleViolationException("Cannot assign inactive trainer: " + trainerId);
@@ -221,6 +240,9 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public List<Training> findTrainings(String username, TraineeTrainingCriteria criteria) {
 
         if (username == null || username.isBlank()) {
@@ -240,6 +262,9 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public void changePassword(String username, String oldPassword, String newPassword) {
         credentialService.changePassword(username, oldPassword, newPassword);
     }

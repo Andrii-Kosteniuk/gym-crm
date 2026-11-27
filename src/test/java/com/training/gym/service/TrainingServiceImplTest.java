@@ -2,7 +2,7 @@ package com.training.gym.service;
 
 import com.training.gym.domain.model.*;
 import com.training.gym.exception.BusinessRuleViolationException;
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
@@ -157,7 +157,7 @@ class TrainingServiceImplTest {
     void rejectsMissingTrainee() {
         var input = training();
 
-        assertThrows(EntityNotFoundException.class, () -> service.createTraining(input));
+        assertThrows(UserNotFoundException.class, () -> service.createTraining(input));
 
         verify(trainingRepository, never()).save(any());
     }
@@ -167,7 +167,7 @@ class TrainingServiceImplTest {
         var input = training();
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(new TraineeEntity()));
 
-        assertThrows(EntityNotFoundException.class, () -> service.createTraining(input));
+        assertThrows(UserNotFoundException.class, () -> service.createTraining(input));
 
         verify(trainingRepository, never()).save(any());
     }
@@ -178,7 +178,7 @@ class TrainingServiceImplTest {
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(new TraineeEntity()));
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(new TrainerEntity()));
 
-        assertThrows(EntityNotFoundException.class, () -> service.createTraining(input));
+        assertThrows(UserNotFoundException.class, () -> service.createTraining(input));
 
         verify(trainingRepository, never()).save(any());
     }
@@ -227,6 +227,6 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsMissingTraining() {
-        assertThrows(EntityNotFoundException.class, () -> service.getTrainingById(99L));
+        assertThrows(UserNotFoundException.class, () -> service.getTrainingById(99L));
     }
 }

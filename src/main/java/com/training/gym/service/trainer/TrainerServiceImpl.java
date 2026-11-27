@@ -8,7 +8,7 @@ import com.training.gym.domain.model.User;
 import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.exception.BusinessRuleViolationException;
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.monitoring.metrics.RegistrationMetrics;
 import com.training.gym.persistence.entity.TrainerEntity;
@@ -27,6 +27,7 @@ import com.training.gym.util.PasswordGenerator;
 import com.training.gym.util.UsernameGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,6 +96,9 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #trainerUsername)
+        """)
     public Trainer updateTrainer(Trainer trainer) {
         Objects.requireNonNull(trainer, "Trainer must not be null");
 
@@ -103,7 +107,7 @@ public class TrainerServiceImpl implements TrainerService {
         String username = updatedUser.getUserName();
 
         TrainerEntity existingTrainer = trainerRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID + username));
+                .orElseThrow(() -> new UserNotFoundException(NOT_FOUND_ID + username));
 
 
         UserEntity existingUser = existingTrainer.getUserEntity();
@@ -125,27 +129,33 @@ public class TrainerServiceImpl implements TrainerService {
         log.debug("Retrieving trainer profile: id={}", id);
 
         TrainerEntity trainerEntity = trainerRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_ID.formatted(id)));
+                .orElseThrow(() -> new UserNotFoundException(NOT_FOUND_ID.formatted(id)));
 
         return trainerMapper.toTrainerDomain(trainerEntity);
     }
 
     @Override
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public Trainer findByUserName(String username) {
         Objects.requireNonNull(username, "Username can not be null");
 
         TrainerEntity trainerEntity = trainerRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
+                .orElseThrow(() -> new UserNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
 
         return trainerMapper.toTrainerDomain(trainerEntity);
     }
 
     @Transactional
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public void changeProfileStatus(String username, boolean active) {
         Objects.requireNonNull(username, "Trainer is required");
 
         TrainerEntity managedTrainer = trainerRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
+                .orElseThrow(() -> new UserNotFoundException(NOT_FOUND_USERNAME.formatted(username)));
 
         UserEntity user = managedTrainer.getUserEntity();
 
@@ -167,6 +177,9 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public List<Training> findTrainings(String username, TrainerTrainingCriteria criteria) {
 
         if (username == null || username.isBlank()) {
@@ -186,6 +199,9 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public List<Trainer> getUnassignedTrainers(String username) {
         Objects.requireNonNull(username, "Trainee username must not be null");
 
@@ -199,6 +215,9 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional
+    @PreAuthorize("""
+        @profileAuthorizationService.isOwner(authentication, #username)
+        """)
     public void changePassword(String username, String oldPassword, String newPassword) {
         credentialService.changePassword(username, oldPassword, newPassword);
     }
@@ -206,7 +225,7 @@ public class TrainerServiceImpl implements TrainerService {
     private TrainingTypeEntity getSpecialization(Long specializationId) {
         return trainingTypeRepository
                 .findById(specializationId)
-                .orElseThrow(() -> new EntityNotFoundException("Training type not found"));
+                .orElseThrow(() -> new UserNotFoundException("Training type not found"));
 
     }
 }

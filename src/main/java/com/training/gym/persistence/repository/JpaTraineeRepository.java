@@ -1,6 +1,6 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.exception.UserAlreadyExistsException;
 import com.training.gym.persistence.entity.TraineeEntity;
@@ -50,7 +50,7 @@ public class JpaTraineeRepository implements TraineeRepository {
                 TraineeEntity.class, trainee.getId());
 
         if (traineeEntity == null) {
-            throw new EntityNotFoundException(TRAINEE_NOT_FOUND + trainee.getId());
+            throw new UserNotFoundException(TRAINEE_NOT_FOUND + trainee.getId());
         }
 
         traineeEntity.getUserEntity().setFirstName(trainee.getUserEntity().getFirstName());
@@ -116,7 +116,7 @@ public class JpaTraineeRepository implements TraineeRepository {
         TraineeEntity entity = entityManager.find(TraineeEntity.class, id);
 
         if (entity == null) {
-            throw new EntityNotFoundException(TRAINEE_NOT_FOUND + id);
+            throw new UserNotFoundException(TRAINEE_NOT_FOUND + id);
         }
 
         entityManager.remove(entity);
@@ -127,7 +127,7 @@ public class JpaTraineeRepository implements TraineeRepository {
         validateUsername(username);
 
         TraineeEntity trainee = searchRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND + username));
+                .orElseThrow(() -> new UserNotFoundException(TRAINEE_NOT_FOUND + username));
 
         delete(trainee);
     }
@@ -139,7 +139,7 @@ public class JpaTraineeRepository implements TraineeRepository {
         TraineeEntity traineeEntity = entityManager.find(TraineeEntity.class, trainee.getId());
 
         if (traineeEntity == null) {
-            throw new EntityNotFoundException("Trainee not found:");
+            throw new UserNotFoundException("Trainee not found:");
         }
 
         UserEntity user = traineeEntity.getUserEntity();
@@ -153,7 +153,7 @@ public class JpaTraineeRepository implements TraineeRepository {
         Objects.requireNonNull(trainerIds);
 
         TraineeEntity trainee = searchRepository.findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException(TRAINEE_NOT_FOUND + username));
+                .orElseThrow(() -> new UserNotFoundException(TRAINEE_NOT_FOUND + username));
 
         Set<TrainerEntity> trainers = new HashSet<>();
 
@@ -162,7 +162,7 @@ public class JpaTraineeRepository implements TraineeRepository {
                     TrainerEntity.class, trainerId);
 
             if (trainer == null) {
-                throw new EntityNotFoundException(TRAINEE_NOT_FOUND + trainerId);
+                throw new UserNotFoundException(TRAINEE_NOT_FOUND + trainerId);
             }
 
             trainers.add(trainer);

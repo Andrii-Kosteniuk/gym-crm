@@ -1,10 +1,7 @@
 package com.training.gym.web.controller;
 
-import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.training.TrainingTypeResponseDto;
 import com.training.gym.facade.GymCrmFacade;
-import com.training.gym.service.auth.AuthenticationService;
-import com.training.gym.util.CredentialsParser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,11 +11,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,8 +27,6 @@ public class TrainingTypeController {
 
 
     private final GymCrmFacade applicationEntry;
-    private final CredentialsParser credentialsParser;
-    private final AuthenticationService authenticationService;
 
     @Operation(summary = "List specializations",
             description = "Returns available training specializations.",
@@ -58,10 +51,7 @@ public class TrainingTypeController {
     })
 
     @GetMapping
-    public ResponseEntity<List<TrainingTypeResponseDto>> getTrainingTypes(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-        Credentials credentials = credentialsParser.parse(authorization);
-
-        authenticationService.authenticate(credentials.username(), credentials.password());
+    public ResponseEntity<List<TrainingTypeResponseDto>> getTrainingTypes() {
 
         var response = applicationEntry.getTrainingTypes();
 

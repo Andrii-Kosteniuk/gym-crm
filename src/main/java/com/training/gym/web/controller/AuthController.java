@@ -1,10 +1,9 @@
 package com.training.gym.web.controller;
 
-import com.training.gym.dto.auth.Credentials;
 import com.training.gym.facade.GymCrmFacade;
-import com.training.gym.service.auth.AuthenticationService;
-import com.training.gym.util.CredentialsParser;
 import com.training.gym.web.dto.request.ChangeLoginRequestDto;
+import com.training.gym.web.dto.request.AuthRequest;
+import com.training.gym.web.dto.response.AuthResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,7 +13,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,8 +24,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final GymCrmFacade applicationEntry;
-    private final CredentialsParser credentialParser;
-    private final AuthenticationService authenticationService;
 
     @Operation(summary = "Change password", description = "Authenticates the current credentials and changes the account password.", operationId = "changeLogin")
     @SecurityRequirement(name = "basicAuth")
@@ -55,12 +51,7 @@ public class AuthController {
     })
 
     @PutMapping("/login-change")
-    public ResponseEntity<Void> changeLogin(@Valid @RequestBody ChangeLoginRequestDto request,
-                                            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-
-        Credentials credentials = credentialParser.parse(authorization);
-
-        authenticationService.authenticate(credentials.username(), credentials.password());
+    public ResponseEntity<Void> changeLogin(@Valid @RequestBody ChangeLoginRequestDto request) {
 
         applicationEntry.changePassword(request);
 
@@ -88,13 +79,12 @@ public class AuthController {
                     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
 
-    @GetMapping("/login")
-    public ResponseEntity<Void> login(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
 
-        Credentials credentials = credentialParser.parse(authorization);
-        applicationEntry.authenticate(credentials);
+        var response = applicationEntry.authenticate(request);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok().body(response);
 
     }
 }

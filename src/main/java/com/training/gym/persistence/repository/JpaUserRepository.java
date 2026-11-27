@@ -1,6 +1,6 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.UserEntity;
 import com.training.gym.repository.UserRepository;
@@ -59,14 +59,10 @@ public class JpaUserRepository implements UserRepository {
     public void updatePassword(Long userId, String encodedPassword) {
         Objects.requireNonNull(userId, "User ID is required");
 
-        if (encodedPassword == null || encodedPassword.isBlank()) {
-            throw new IncorrectMethodArgumentException("Encoded password is required");
-        }
-
         UserEntity entity = entityManager.find(UserEntity.class, userId);
 
         if (entity == null) {
-            throw new EntityNotFoundException("User not found: " + userId);
+            throw new UserNotFoundException("User not found: " + userId);
         }
 
         entity.setPassword(encodedPassword);
@@ -81,7 +77,7 @@ public class JpaUserRepository implements UserRepository {
         UserEntity managed = entityManager.find(UserEntity.class, id);
 
         if (managed == null) {
-            throw new EntityNotFoundException("User not found: " + id);
+            throw new UserNotFoundException("User not found: " + id);
         }
 
         entityManager.remove(managed);

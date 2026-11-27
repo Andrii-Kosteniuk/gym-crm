@@ -5,7 +5,7 @@ import com.training.gym.domain.model.Trainer;
 import com.training.gym.domain.model.Training;
 import com.training.gym.domain.model.TrainingType;
 import com.training.gym.exception.BusinessRuleViolationException;
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
@@ -51,14 +51,14 @@ public class TrainingServiceImpl implements TrainingService {
 
 
         TraineeEntity trainee = traineeRepository.findById(training.getTrainee().getId())
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found"));
+                .orElseThrow(() -> new UserNotFoundException("Trainee not found"));
 
         TrainerEntity trainer = trainerRepository.findById(training.getTrainer().getId())
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found"));
+                .orElseThrow(() -> new UserNotFoundException("Trainer not found"));
 
 
         TrainingTypeEntity trainingType = trainingTypeRepository.findById(training.getTrainingType().getId())
-                .orElseThrow(() -> new EntityNotFoundException("Training type not found"));
+                .orElseThrow(() -> new UserNotFoundException("Training type not found"));
 
         Trainee traineeDomain = traineeMapper.toTraineeDomain(trainee);
         Trainer trainerDomain = trainerMapper.toTrainerDomain(trainer);
@@ -85,7 +85,7 @@ public class TrainingServiceImpl implements TrainingService {
         log.debug("Retrieving training: id={}", id);
 
         TrainingEntity trainingEntity = trainingRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Training with id %d not found".formatted(id)));
+                .orElseThrow(() -> new UserNotFoundException("Training with id %d not found".formatted(id)));
 
         return trainingMapper.toTrainingDomain(trainingEntity);
     }

@@ -1,6 +1,6 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.exception.UserAlreadyExistsException;
 import com.training.gym.persistence.entity.TrainerEntity;
@@ -42,7 +42,7 @@ public class JpaTrainerRepository implements TrainerRepository {
                 Objects.requireNonNull(trainer.getSpecialization().getId(), "Specialization ID must not be null"));
 
         if (specialization == null) {
-            throw new EntityNotFoundException("Training type not found");
+            throw new UserNotFoundException("Training type not found");
         }
 
         trainer.setSpecialization(specialization);
@@ -61,7 +61,7 @@ public class JpaTrainerRepository implements TrainerRepository {
         TrainerEntity entity = entityManager.find(TrainerEntity.class, id);
 
         if (entity == null) {
-            throw new EntityNotFoundException("Trainer not found: " + id);
+            throw new UserNotFoundException("Trainer not found: " + id);
         }
 
         entity.getUserEntity().setFirstName(trainer.getUserEntity().getFirstName());
@@ -74,7 +74,7 @@ public class JpaTrainerRepository implements TrainerRepository {
         TrainingTypeEntity managedType = entityManager.find(TrainingTypeEntity.class, specialization.getId());
 
         if (managedType == null) {
-            throw new EntityNotFoundException("Training type not found");
+            throw new UserNotFoundException("Training type not found");
         }
 
         entity.setSpecialization(managedType);
@@ -125,7 +125,7 @@ public class JpaTrainerRepository implements TrainerRepository {
         TrainerEntity entity = entityManager.find(TrainerEntity.class, id);
 
         if (entity == null) {
-            throw new EntityNotFoundException("Trainer not found: " + id);
+            throw new UserNotFoundException("Trainer not found: " + id);
         }
 
         entityManager.remove(entity);
@@ -136,7 +136,7 @@ public class JpaTrainerRepository implements TrainerRepository {
         validateUsername(username);
 
         TrainerEntity trainer = findByUserName(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
+                .orElseThrow(() -> new UserNotFoundException("Trainer not found: " + username));
 
         delete(trainer);
     }
@@ -148,7 +148,7 @@ public class JpaTrainerRepository implements TrainerRepository {
         TrainerEntity trainerEntity = entityManager.find(TrainerEntity.class, trainer.getId());
 
         if (trainerEntity == null) {
-            throw new EntityNotFoundException("Trainer not found:");
+            throw new UserNotFoundException("Trainer not found:");
         }
 
         UserEntity user = trainerEntity.getUserEntity();
@@ -197,7 +197,7 @@ public class JpaTrainerRepository implements TrainerRepository {
                 .getSingleResult() > 0;
 
         if (!exists) {
-            throw new EntityNotFoundException("Trainee not found: " + username);
+            throw new UserNotFoundException("Trainee not found: " + username);
         }
 
         return entityManager.createQuery("""

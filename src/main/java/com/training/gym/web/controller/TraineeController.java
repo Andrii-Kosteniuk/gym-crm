@@ -1,11 +1,9 @@
 package com.training.gym.web.controller;
 
 import com.training.gym.dto.auth.AuthenticationResponse;
-import com.training.gym.dto.auth.Credentials;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.facade.GymCrmFacade;
-import com.training.gym.util.CredentialsParser;
 import com.training.gym.web.dto.request.ProfileStatusChangeRequest;
 import com.training.gym.web.dto.request.TraineeRegistrationRequest;
 import com.training.gym.web.dto.request.UpdateTraineeRequest;
@@ -27,7 +25,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,7 +39,6 @@ import java.util.List;
 public class TraineeController {
 
     private final GymCrmFacade applicationEntry;
-    private final CredentialsParser credentialParser;
     private final TraineeWebMapper traineeWebMapper;
     private final TrainerWebMapper trainerWebMapper;
 
@@ -99,11 +95,9 @@ public class TraineeController {
     })
 
     @GetMapping("/{username}/profile")
-    public ResponseEntity<TraineeProfileResponse> getTraineeProfile(@PathVariable("username") String username,
-                                                                    @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-        Credentials credentials = credentialParser.parse(authorization);
+    public ResponseEntity<TraineeProfileResponse> getTraineeProfile(@PathVariable("username") String username) {
 
-        var responseDto = applicationEntry.getTraineeByUserName(username, credentials);
+        var responseDto = applicationEntry.getTraineeByUserName(username);
 
         var traineeProfileResponse = traineeWebMapper.toTraineeProfileResponse(responseDto);
 
@@ -141,14 +135,11 @@ public class TraineeController {
     })
 
     @PutMapping
-    public ResponseEntity<TraineeProfileResponse> updateTrainee(@Valid @RequestBody UpdateTraineeRequest request,
-                                                                @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-
-        var credentials = credentialParser.parse(authorization);
+    public ResponseEntity<TraineeProfileResponse> updateTrainee(@Valid @RequestBody UpdateTraineeRequest request) {
 
         var updateTraineeDto = traineeWebMapper.toUpdateTraineeDto(request);
 
-        var traineeResponseDto = applicationEntry.updateTrainee(updateTraineeDto, credentials);
+        var traineeResponseDto = applicationEntry.updateTrainee(updateTraineeDto);
 
         var traineeProfileResponse = traineeWebMapper.toTraineeProfileResponse(traineeResponseDto);
 
@@ -185,11 +176,9 @@ public class TraineeController {
     })
 
     @DeleteMapping("/{username}")
-    public ResponseEntity<Void> deleteTrainee(@PathVariable("username") String username,
-                                              @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-        Credentials credentials = credentialParser.parse(authorization);
+    public ResponseEntity<Void> deleteTrainee(@PathVariable("username") String username) {
 
-        applicationEntry.removeTraineeByUsername(username, credentials);
+        applicationEntry.removeTraineeByUsername(username);
 
         return ResponseEntity.ok().build();
 
@@ -221,11 +210,9 @@ public class TraineeController {
     })
 
     @GetMapping("/{username}/unassigned-trainers")
-    public ResponseEntity<List<TrainerSummaryResponse>> getNotAssignedTrainers(@PathVariable("username") String username,
-                                                                               @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-        Credentials credentials = credentialParser.parse(authorization);
+    public ResponseEntity<List<TrainerSummaryResponse>> getNotAssignedTrainers(@PathVariable("username") String username) {
 
-        var trainerResponses = applicationEntry.getUnassignedTrainers(username, credentials);
+        var trainerResponses = applicationEntry.getUnassignedTrainers(username);
 
         var trainersResponse = trainerResponses.stream()
                 .map(traineeWebMapper::toTrainerSummaryResponse)
@@ -275,11 +262,7 @@ public class TraineeController {
                                                                                  String trainerName,
 
                                                                                  @RequestParam(value = "trainingType", required = false)
-                                                                                 String trainingType,
-
-                                                                                 @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-
-        Credentials credentials = credentialParser.parse(authorization);
+                                                                                 String trainingType) {
 
         TraineeTrainingCriteria criteria = new TraineeTrainingCriteria(
                 username,
@@ -289,7 +272,7 @@ public class TraineeController {
                 trainingType
         );
 
-        var traineeTrainingsResponse = applicationEntry.getTraineeTrainings(username, criteria, credentials);
+        var traineeTrainingsResponse = applicationEntry.getTraineeTrainings(username, criteria);
 
         var trainingResponses = trainingWebMapper.toTraineeTrainingResponses(traineeTrainingsResponse);
 
@@ -325,15 +308,11 @@ public class TraineeController {
                     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PatchMapping("/profile")
-    public ResponseEntity<Void> activateDeactivateTraineeProfile(@Valid @RequestBody ProfileStatusChangeRequest request,
-                                                                 @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
+    public ResponseEntity<Void> activateDeactivateTraineeProfile(@Valid @RequestBody ProfileStatusChangeRequest request) {
 
-        Credentials credentials = credentialParser.parse(authorization);
-
-        applicationEntry.changeTraineeProfileStatus(request.username(), request.active(), credentials);
+        applicationEntry.changeTraineeProfileStatus(request.username(), request.active());
 
         return ResponseEntity.ok().build();
-
     }
 
 
@@ -367,11 +346,9 @@ public class TraineeController {
 
     @PutMapping("/{username}/trainers/updates")
     public ResponseEntity<List<TrainerSummaryResponse>> replaceTraineeTrainersByUsername(@PathVariable("username") String username,
-                                                                                         @Valid @RequestBody UpdateTraineeTrainersRequest request,
-                                                                                         @RequestHeader(HttpHeaders.AUTHORIZATION) String authorization) {
-        Credentials credentials = credentialParser.parse(authorization);
+                                                                                         @Valid @RequestBody UpdateTraineeTrainersRequest request) {
 
-        var trainers = applicationEntry.replaceTraineeTrainersByUsername(username, request.trainerUsernames(), credentials);
+        var trainers = applicationEntry.replaceTraineeTrainersByUsername(username, request.trainerUsernames());
 
         var response = trainerWebMapper.toTrainerSummaryResponses(trainers);
 
