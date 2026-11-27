@@ -1,516 +1,322 @@
 package com.training.gym.facade;
 
-import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.exception.ResourceConflictException;
-import com.training.gym.model.Trainee;
+import com.training.gym.domain.mapper.TraineeMapper;
+import com.training.gym.domain.mapper.TrainerMapper;
+import com.training.gym.domain.mapper.TrainingMapper;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Trainer;
+import com.training.gym.domain.model.Training;
+import com.training.gym.domain.model.User;
+import com.training.gym.dto.auth.AuthenticationResponse;
+import com.training.gym.dto.auth.ChangePasswordDto;
+import com.training.gym.dto.auth.Credentials;
+import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
-import com.training.gym.service.TraineeService;
-import com.training.gym.model.Trainer;
 import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
-import com.training.gym.service.TrainerService;
-import com.training.gym.model.Training;
 import com.training.gym.dto.training.CreateTrainingDto;
-import com.training.gym.service.TrainingService;
-
-import org.junit.jupiter.api.Nested;
+import com.training.gym.service.auth.AuthenticationService;
+import com.training.gym.service.auth.CredentialService;
+import com.training.gym.service.auth.ProfileAuthorizationService;
+import com.training.gym.service.trainee.TraineeService;
+import com.training.gym.service.trainer.TrainerService;
+import com.training.gym.service.training.TrainingService;
+import com.training.gym.util.validation.TraineeDtoValidator;
+import com.training.gym.util.validation.TrainerDtoValidator;
+import com.training.gym.util.validation.TrainingDtoValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.time.LocalDate;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GymCrmFacadeTest {
-
-    private static final Long TRAINEE_ID = 1L;
-    private static final Long TRAINER_ID = 2L;
-    private static final Long TRAINING_ID = 3L;
-
     @Mock
-    private TraineeService traineeService;
-
+    TraineeService traineeService;
     @Mock
-    private TrainerService trainerService;
-
+    TrainerService trainerService;
     @Mock
-    private TrainingService trainingService;
-
+    TrainingService trainings;
+    @Mock
+    TraineeDtoValidator traineeValidator;
+    @Mock
+    TrainerDtoValidator trainerValidator;
+    @Mock
+    TrainingDtoValidator trainingValidator;
+    @Mock
+    TraineeMapper traineeMapper;
+    @Mock
+    TrainerMapper trainerMapper;
+    @Mock
+    TrainingMapper trainingMapper;
+    @Mock
+    ProfileAuthorizationService authorization;
+    @Mock
+    AuthenticationService authenticationService;
+    @Mock
+    CredentialService credentialService;
     @InjectMocks
-    private GymCrmFacade gymCrmFacade;
+    GymCrmFacade facade;
 
-    @Nested
-    class TraineeFacadeTests {
-
-        @Test
-        void shouldDelegateCreateTraineeToTraineeService() {
-            // Arrange
-            CreateTraineeDto dto = mock(CreateTraineeDto.class);
-
-            Trainee expectedTrainee = new Trainee();
-            expectedTrainee.setId(TRAINEE_ID);
-
-            when(traineeService.createTrainee(dto))
-                    .thenReturn(expectedTrainee);
-
-            // Act
-            Trainee result = gymCrmFacade.createTrainee(dto);
-
-            // Assert
-            assertNotNull(result);
-            assertSame(expectedTrainee, result);
-            assertEquals(TRAINEE_ID, result.getId());
-
-            verify(traineeService).createTrainee(dto);
-            verifyNoInteractions(trainerService, trainingService);
-        }
-
-        @Test
-        void shouldDelegateUpdateTraineeToTraineeService() {
-            // Arrange
-            UpdateTraineeDto dto = mock(UpdateTraineeDto.class);
-
-            Trainee expectedTrainee = new Trainee();
-            expectedTrainee.setId(TRAINEE_ID);
-
-            when(traineeService.updateTrainee(dto))
-                    .thenReturn(expectedTrainee);
-
-            // Act
-            Trainee result = gymCrmFacade.updateTrainee(dto);
-
-            // Assert
-            assertNotNull(result);
-            assertSame(expectedTrainee, result);
-
-            verify(traineeService).updateTrainee(dto);
-            verifyNoInteractions(trainerService, trainingService);
-        }
-
-        @Test
-        void shouldDelegateGetTraineeByIdToTraineeService() {
-            // Arrange
-            Trainee expectedTrainee = new Trainee();
-            expectedTrainee.setId(TRAINEE_ID);
-
-            when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenReturn(expectedTrainee);
-
-            // Act
-            Trainee result = gymCrmFacade.getTraineeById(TRAINEE_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertSame(expectedTrainee, result);
-            assertEquals(TRAINEE_ID, result.getId());
-
-            verify(traineeService).getTraineeById(TRAINEE_ID);
-            verifyNoInteractions(trainerService, trainingService);
-        }
-
-        @Test
-        void shouldDelegateDeleteTraineeToTraineeService() {
-            // Act
-            gymCrmFacade.deleteTrainee(TRAINEE_ID);
-
-            // Assert
-            verify(traineeService).removeTrainee(TRAINEE_ID);
-
-            verifyNoInteractions(
-                    trainerService,
-                    trainingService
-            );
-        }
-
-        @Test
-        void shouldPropagateExceptionWhenCreatingTraineeFails() {
-            // Arrange
-            CreateTraineeDto dto = mock(CreateTraineeDto.class);
-
-            RuntimeException expectedException =
-                    new RuntimeException("Trainee creation failed");
-
-            when(traineeService.createTrainee(dto))
-                    .thenThrow(expectedException);
-
-            // Act
-            RuntimeException exception = assertThrows(
-                    RuntimeException.class,
-                    () -> gymCrmFacade.createTrainee(dto)
-            );
-
-            // Assert
-            assertSame(expectedException, exception);
-
-            verify(traineeService).createTrainee(dto);
-            verifyNoInteractions(trainerService, trainingService);
-        }
-
-        @Test
-        void shouldPropagateExceptionWhenUpdatingTraineeFails() {
-            // Arrange
-            UpdateTraineeDto dto = mock(UpdateTraineeDto.class);
-
-            EntityNotFoundException expectedException =
-                    new EntityNotFoundException(
-                            "Trainee not found"
-                    );
-
-            when(traineeService.updateTrainee(dto))
-                    .thenThrow(expectedException);
-
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> gymCrmFacade.updateTrainee(dto)
-            );
-
-            // Assert
-            assertSame(expectedException, exception);
-
-            verify(traineeService).updateTrainee(dto);
-        }
-
-        @Test
-        void shouldPropagateExceptionWhenTraineeDoesNotExist() {
-            // Arrange
-            EntityNotFoundException expectedException =
-                    new EntityNotFoundException(
-                            "Trainee with id 1 not found"
-                    );
-
-            when(traineeService.getTraineeById(TRAINEE_ID))
-                    .thenThrow(expectedException);
-
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> gymCrmFacade.getTraineeById(TRAINEE_ID)
-            );
-
-            // Assert
-            assertSame(expectedException, exception);
-
-            verify(traineeService).getTraineeById(TRAINEE_ID);
-        }
-
-        @Test
-        void shouldPropagateConflictExceptionWhenDeletingTrainee() {
-            // Arrange
-            ResourceConflictException expectedException =
-                    new ResourceConflictException(
-                            "Cannot delete trainee because related trainings exist"
-                    );
-
-            doThrow(expectedException)
-                    .when(traineeService)
-                    .removeTrainee(TRAINEE_ID);
-
-            // Act
-            ResourceConflictException exception = assertThrows(
-                    ResourceConflictException.class,
-                    () -> gymCrmFacade.deleteTrainee(TRAINEE_ID)
-            );
-
-            // Assert
-            assertSame(expectedException, exception);
-
-            verify(traineeService).removeTrainee(TRAINEE_ID);
-            verifyNoInteractions(trainerService, trainingService);
-        }
-
-        @Test
-        void shouldPassNullDtoToTraineeServiceWithoutModification() {
-            // Act
-            gymCrmFacade.createTrainee(null);
-
-            // Assert
-            verify(traineeService).createTrainee(null);
-        }
-
-        @Test
-        void shouldPassNullIdToTraineeServiceWithoutModification() {
-            // Act
-            gymCrmFacade.getTraineeById(null);
-
-            // Assert
-            verify(traineeService).getTraineeById(null);
-        }
+    private Credentials jamesCredentials() {
+        return new Credentials("james.bond", "secret");
     }
 
-    @Nested
-    class TrainerFacadeTests {
-
-        @Test
-        void shouldDelegateCreateTrainerToTrainerService() {
-            // Arrange
-            CreateTrainerDto dto = mock(CreateTrainerDto.class);
-
-            Trainer expectedTrainer = new Trainer();
-            expectedTrainer.setId(TRAINER_ID);
-
-            when(trainerService.createTrainer(dto))
-                    .thenReturn(expectedTrainer);
-
-            // Act
-            Trainer result = gymCrmFacade.createTrainer(dto);
-
-            // Assert
-            assertNotNull(result);
-            assertSame(expectedTrainer, result);
-            assertEquals(TRAINER_ID, result.getId());
-
-            verify(trainerService).createTrainer(dto);
-            verifyNoInteractions(traineeService, trainingService);
-        }
-
-        @Test
-        void shouldDelegateUpdateTrainerToTrainerService() {
-            // Arrange
-            UpdateTrainerDto dto = mock(UpdateTrainerDto.class);
-
-            Trainer expectedTrainer = new Trainer();
-            expectedTrainer.setId(TRAINER_ID);
-
-            when(trainerService.updateTrainer(dto))
-                    .thenReturn(expectedTrainer);
-
-            // Act
-            Trainer result = gymCrmFacade.updateTrainer(dto);
-
-            // Assert
-            assertNotNull(result);
-            assertSame(expectedTrainer, result);
-
-            verify(trainerService).updateTrainer(dto);
-            verifyNoInteractions(traineeService, trainingService);
-        }
-
-        @Test
-        void shouldDelegateGetTrainerByIdToTrainerService() {
-            // Arrange
-            Trainer expectedTrainer = new Trainer();
-            expectedTrainer.setId(TRAINER_ID);
-
-            when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenReturn(expectedTrainer);
-
-            // Act
-            Trainer result = gymCrmFacade.getTrainerById(TRAINER_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertSame(expectedTrainer, result);
-            assertEquals(TRAINER_ID, result.getId());
-
-            verify(trainerService).getTrainerById(TRAINER_ID);
-            verifyNoInteractions(traineeService, trainingService);
-        }
-
-        @Test
-        void shouldPropagateExceptionWhenCreatingTrainerFails() {
-            // Arrange
-            CreateTrainerDto dto = mock(CreateTrainerDto.class);
-
-            RuntimeException expectedException =
-                    new RuntimeException("Trainer creation failed");
-
-            when(trainerService.createTrainer(dto))
-                    .thenThrow(expectedException);
-
-            // Act
-            RuntimeException exception = assertThrows(
-                    RuntimeException.class,
-                    () -> gymCrmFacade.createTrainer(dto)
-            );
-
-            // Assert
-            assertSame(expectedException, exception);
-
-            verify(trainerService).createTrainer(dto);
-        }
-
-        @Test
-        void shouldPropagateExceptionWhenUpdatingTrainerFails() {
-            // Arrange
-            UpdateTrainerDto dto = mock(UpdateTrainerDto.class);
-
-            EntityNotFoundException expectedException =
-                    new EntityNotFoundException(
-                            "Trainer not found"
-                    );
-
-            when(trainerService.updateTrainer(dto))
-                    .thenThrow(expectedException);
-
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> gymCrmFacade.updateTrainer(dto)
-            );
-
-            // Assert
-            assertSame(expectedException, exception);
-
-            verify(trainerService).updateTrainer(dto);
-        }
-
-        @Test
-        void shouldPropagateExceptionWhenTrainerDoesNotExist() {
-            // Arrange
-            EntityNotFoundException expectedException =
-                    new EntityNotFoundException(
-                            "Trainer with id 2 not found"
-                    );
-
-            when(trainerService.getTrainerById(TRAINER_ID))
-                    .thenThrow(expectedException);
-
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> gymCrmFacade.getTrainerById(TRAINER_ID)
-            );
-
-            // Assert
-            assertSame(expectedException, exception);
-
-            verify(trainerService).getTrainerById(TRAINER_ID);
-        }
-
-        @Test
-        void shouldPassNullDtoToTrainerServiceWithoutModification() {
-            // Act
-            gymCrmFacade.createTrainer(null);
-
-            // Assert
-            verify(trainerService).createTrainer(null);
-        }
-
-        @Test
-        void shouldPassNullIdToTrainerServiceWithoutModification() {
-            // Act
-            gymCrmFacade.getTrainerById(null);
-
-            // Assert
-            verify(trainerService).getTrainerById(null);
-        }
+    private Credentials sarahCredentials() {
+        return new Credentials("sarah.connor", "secret");
     }
 
-    @Nested
-    class TrainingFacadeTests {
+    private Trainee james() {
+        return Trainee.builder().id(1L)
+                .user(User.builder()
+                        .id(1L)
+                        .firstName("James")
+                        .lastName("Bond")
+                        .userName("james.bond")
+                        .build()).build();
+    }
 
-        @Test
-        void shouldDelegateCreateTrainingToTrainingService() {
-            // Arrange
-            CreateTrainingDto dto = mock(CreateTrainingDto.class);
+    private Trainer sara() {
+        return Trainer.builder().id(2L)
+                .user(User.builder()
+                        .id(2L)
+                        .firstName("Sara")
+                        .lastName("Connor")
+                        .userName("sara.connor")
+                        .build()).build();
+    }
 
-            Training expectedTraining = new Training();
-            expectedTraining.setId(TRAINING_ID);
+    @Test
+    void shouldRegisterTraineeWithoutAuthentication() {
+        // Arrange
+        CreateTraineeDto dto = new CreateTraineeDto("James", "Bond", LocalDate.of(1990, 4, 13), null);
+        Trainee james = james();
+        when(traineeMapper.toTrainee(dto)).thenReturn(james);
+        when(traineeService.registerTrainee(james)).thenReturn(new RegistrationResult<>(james, "raw-password"));
+        doNothing().when(credentialService).verifyIfUserExists(dto.firstName(), dto.lastName());
+        // Act
+        AuthenticationResponse result = facade.createTrainee(dto);
+        // Assert
+        assertEquals("james.bond", result.username());
+        assertEquals("raw-password", result.password());
+        verify(traineeValidator).validateCreate(dto);
+        verifyNoInteractions(authorization);
+    }
 
-            when(trainingService.createTraining(dto))
-                    .thenReturn(expectedTraining);
+    @Test
+    void shouldRegisterTrainerWithoutAuthentication() {
+        // Arrange
+        CreateTrainerDto dto = new CreateTrainerDto("Sara", "Connor", 1L);
+        Trainer sara = sara();
+        when(trainerMapper.toTrainer(dto)).thenReturn(sara);
+        when(trainerService.registerTrainer(sara)).thenReturn(new RegistrationResult<>(sara, "raw-password"));
+        // Act
+        AuthenticationResponse result = facade.createTrainer(dto);
+        // Assert
+        assertEquals("sara.connor", result.username());
+        assertEquals("raw-password", result.password());
+        verifyNoInteractions(authorization);
+    }
 
-            // Act
-            Training result = gymCrmFacade.createTraining(dto);
+    @Test
+    void shouldAuthorizeBeforeReadingTrainee() {
+        // Arrange
+        String username = "james.bond";
+        Credentials credentials = jamesCredentials();
+        Trainee james = james();
 
-            // Assert
-            assertNotNull(result);
-            assertSame(expectedTraining, result);
-            assertEquals(TRAINING_ID, result.getId());
+        when(traineeService.findByUserName(username)).thenReturn(james);
 
-            verify(trainingService).createTraining(dto);
-            verifyNoInteractions(traineeService, trainerService);
-        }
+        // Act
+        facade.getTraineeByUserName(username, credentials);
 
-        @Test
-        void shouldDelegateGetTrainingByIdToTrainingService() {
-            // Arrange
-            Training expectedTraining = new Training();
-            expectedTraining.setId(TRAINING_ID);
+        // Assert
+        InOrder order = inOrder(authorization, traineeService);
 
-            when(trainingService.getTrainingById(TRAINING_ID))
-                    .thenReturn(expectedTraining);
+        order.verify(authorization).requireTraineeOwner(credentials, username);
 
-            // Act
-            Training result = gymCrmFacade.getTrainingById(TRAINING_ID);
+        order.verify(traineeService).findByUserName(username);
 
-            // Assert
-            assertNotNull(result);
-            assertSame(expectedTraining, result);
-            assertEquals(TRAINING_ID, result.getId());
+        order.verifyNoMoreInteractions();
+    }
 
-            verify(trainingService).getTrainingById(TRAINING_ID);
-            verifyNoInteractions(traineeService, trainerService);
-        }
+    @Test
+    void shouldAuthorizeBeforeUpdatingTrainee() {
+        // Arrange
+        String username = "james.bond";
+        Credentials credentials = jamesCredentials();
 
-        @Test
-        void shouldPropagateExceptionWhenCreatingTrainingFails() {
-            // Arrange
-            CreateTrainingDto dto = mock(CreateTrainingDto.class);
+        UpdateTraineeDto dto = new UpdateTraineeDto(
+                "James",
+                "Bond",
+                username,
+                null, null
+        );
 
-            RuntimeException expectedException =
-                    new RuntimeException("Training creation failed");
+        Trainee mappedTrainee = james();
 
-            when(trainingService.createTraining(dto))
-                    .thenThrow(expectedException);
+        when(traineeMapper.toUpdateTrainee(dto)).thenReturn(mappedTrainee);
 
-            // Act
-            RuntimeException exception = assertThrows(
-                    RuntimeException.class,
-                    () -> gymCrmFacade.createTraining(dto)
-            );
+        when(traineeService.updateTrainee(mappedTrainee)).thenReturn(mappedTrainee);
 
-            // Assert
-            assertSame(expectedException, exception);
+        // Act
+        facade.updateTrainee(dto, credentials);
 
-            verify(trainingService).createTraining(dto);
-        }
+        // Assert
+        InOrder order = inOrder(authorization, traineeService);
 
-        @Test
-        void shouldPropagateExceptionWhenTrainingDoesNotExist() {
-            // Arrange
-            EntityNotFoundException expectedException =
-                    new EntityNotFoundException(
-                            "Training with id 3 not found"
-                    );
+        order.verify(authorization).requireTraineeOwner(credentials, username);
 
-            when(trainingService.getTrainingById(TRAINING_ID))
-                    .thenThrow(expectedException);
+        order.verify(traineeService).updateTrainee(mappedTrainee);
 
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> gymCrmFacade.getTrainingById(TRAINING_ID)
-            );
+        order.verifyNoMoreInteractions();
+    }
 
-            // Assert
-            assertSame(expectedException, exception);
+    @Test
+    void shouldAuthorizeBeforeUpdatingTrainer() {
+        // Arrange
+        String username = "sarah.connor";
+        Credentials credentials = sarahCredentials();
 
-            verify(trainingService).getTrainingById(TRAINING_ID);
-        }
+        UpdateTrainerDto dto = new UpdateTrainerDto(
+                "Sara",
+                "Connor",
+                username
+        );
 
-        @Test
-        void shouldPassNullDtoToTrainingServiceWithoutModification() {
-            // Act
-            gymCrmFacade.createTraining(null);
+        Trainer mappedTrainer = sara();
 
-            // Assert
-            verify(trainingService).createTraining(null);
-        }
+        when(trainerMapper.toUpdateTrainerDomain(dto)).thenReturn(mappedTrainer);
 
-        @Test
-        void shouldPassNullIdToTrainingServiceWithoutModification() {
-            // Act
-            gymCrmFacade.getTrainingById(null);
+        when(trainerService.updateTrainer(mappedTrainer)).thenReturn(mappedTrainer);
 
-            // Assert
-            verify(trainingService).getTrainingById(null);
-        }
+        // Act
+        facade.updateTrainer(dto, credentials);
+
+        // Assert
+        InOrder order = inOrder(authorization, trainerService);
+
+        order.verify(authorization).requireTrainerOwner(credentials, username);
+
+        order.verify(trainerService).updateTrainer(mappedTrainer);
+
+        order.verifyNoMoreInteractions();
+    }
+
+    @Test
+    void shouldAuthorizeBeforeDeletingTrainee() {
+        // Arrange
+        String username = "james.bond";
+        Credentials credentials = jamesCredentials();
+
+        // Act
+        facade.removeTraineeByUsername(username, credentials);
+
+        // Assert
+        InOrder order = inOrder(authorization, traineeService);
+
+        order.verify(authorization).requireTraineeOwner(credentials, username);
+
+        order.verify(traineeService).removeTraineeByUsername(username);
+
+        order.verifyNoMoreInteractions();
+    }
+
+    @Test
+    void shouldAuthorizeBeforeChangingTraineePassword() {
+        // Arrange
+        String username = "james.bond";
+        Credentials credentials = jamesCredentials();
+
+        ChangePasswordDto dto = new ChangePasswordDto("old", "new");
+
+        // Act
+        facade.changeTraineePassword(username, dto, credentials);
+
+        // Assert
+        InOrder order = inOrder(authorization, traineeService);
+
+        order.verify(authorization).requireTraineeOwner(credentials, username);
+
+        order.verify(traineeService).changePassword(username, "old", "new");
+
+        order.verifyNoMoreInteractions();
+    }
+
+
+    @Test
+    void shouldChangeProfileStatusOnlyAfterOwnerCheck() {
+        // Arrange
+        String username = "james.bond";
+        Credentials credentials = jamesCredentials();
+        Trainee james = james();
+
+        // Act
+        facade.changeTraineeProfileStatus(username, true, credentials);
+
+        // Assert
+        InOrder order = inOrder(authorization, traineeService);
+
+        order.verify(authorization).requireTraineeOwner(credentials, username);
+
+        order.verify(traineeService).changeProfileStatus(james.getUser().getUserName(), true);
+
+        order.verifyNoMoreInteractions();
+    }
+
+    @Test
+    void shouldActivateTrainerOnlyAfterOwnerCheck() {
+        // Arrange
+        String username = "sarah.connor";
+        Credentials credentials = new Credentials("sara.connor", "secret");
+
+        // Act
+        facade.changeTrainerProfileStatus(username, true, credentials);
+
+        // Assert
+
+        verify(trainerService).changeProfileStatus(username, true);
+
+        verifyNoMoreInteractions(trainerService);
+    }
+
+    @Test
+    void shouldDelegateTrainingCreation() {
+        // Arrange
+        CreateTrainingDto dto = new CreateTrainingDto(1L, 2L, "Fitness", 1L, LocalDate.of(2026, 11, 15), 45L);
+        Training training = Training.builder().build();
+        when(trainingMapper.toTraining(dto)).thenReturn(training);
+        // Act
+        facade.createTraining(dto, jamesCredentials());
+        // Assert
+        verify(trainingValidator).validateCreate(dto);
+        verify(trainings).createTraining(training);
+    }
+
+    @Test
+    void shouldRejectNullTrainingId() {
+        // Arrange
+        Long id = null;
+        // Act / Assert
+        assertThrows(NullPointerException.class, () -> facade.getTrainingById(id, jamesCredentials()));
+        verifyNoInteractions(trainings);
+    }
+
+    @Test
+    void shouldRejectNullTraineeUsername() {
+        // Arrange
+        String username = null;
+        // Act / Assert
+        assertThrows(NullPointerException.class, () -> facade.getTraineeByUserName(username, jamesCredentials()));
+        verifyNoInteractions(authorization);
     }
 }
