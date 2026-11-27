@@ -8,6 +8,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -100,21 +103,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleBadCredentialsException(HttpServletRequest request) {
-        log.error("Invalid credentials error occurred");
+        log.warn("Authentication failed: invalid credentials");
 
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.FORBIDDEN,
-                "Access denied"
+                HttpStatus.UNAUTHORIZED,
+                "Invalid username or password"
         );
 
-        problem.setTitle("Invalid credentials");
+        problem.setTitle("Authentication failed");
         problem.setInstance(URI.create(request.getRequestURI()));
-        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
 
         setTransactionId(problem);
 
         return ResponseEntity
-                .status(HttpStatus.FORBIDDEN)
+                .status(HttpStatus.UNAUTHORIZED)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(problem);
     }
@@ -142,9 +144,30 @@ public class GlobalExceptionHandler {
                 .body(problem);
     }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ProblemDetail> handleIEntityNotFoundException(HttpServletRequest request, EntityNotFoundException ex) {
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleUserNotFoundException(HttpServletRequest request, UserNotFoundException ex) {
         log.error("Not found error occurred ", ex);
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage()
+        );
+
+        problem.setTitle("Not found");
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
+
+        setTransactionId(problem);
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem);
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<ProblemDetail> handleUsernameNotFoundException(HttpServletRequest request, UsernameNotFoundException ex) {
+        log.error("Username not found ", ex);
 
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.NOT_FOUND,
@@ -319,6 +342,22 @@ public class GlobalExceptionHandler {
         );
 
         problem.setTitle("Resource not found");
+        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
+
+        return problem;
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ProblemDetail handleNoResourceFound(HttpServletRequest request, AuthorizationDeniedException ex) {
+
+        log.debug("Access denied: {}", ex.getMessage());
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized!!!"
+        );
+
+        problem.setTitle("Access denied");
         problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
 
         return problem;
