@@ -31,7 +31,7 @@ public class TrainingTypeController {
     @Operation(summary = "List specializations",
             description = "Returns available training specializations.",
             operationId = "getTrainingTypes")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",

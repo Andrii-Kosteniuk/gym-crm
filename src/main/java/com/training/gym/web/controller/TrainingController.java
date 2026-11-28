@@ -1,9 +1,7 @@
 package com.training.gym.web.controller;
 
-import com.training.gym.dto.training.NewTrainingDto;
 import com.training.gym.facade.GymCrmFacade;
 import com.training.gym.web.dto.request.CreateTrainingRequest;
-import com.training.gym.web.mapper.TrainingWebMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -24,12 +22,11 @@ import org.springframework.web.bind.annotation.*;
 public class TrainingController {
 
     private final GymCrmFacade applicationEntry;
-    private final TrainingWebMapper trainingWebMapper;
 
     @Operation(summary = "Create training",
             description = "Creates a training session for an existing trainee and trainer.",
             operationId = "addTraining")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request; empty response body",
@@ -57,9 +54,7 @@ public class TrainingController {
     @PostMapping
     public ResponseEntity<Void> addTraining(@Valid @RequestBody CreateTrainingRequest request) {
 
-        NewTrainingDto newTrainingDto = trainingWebMapper.toNewTrainingDto(request);
-
-        applicationEntry.createTraining(newTrainingDto);
+        applicationEntry.createTraining(request);
 
         return ResponseEntity.ok().build();
 
