@@ -39,7 +39,7 @@ public interface TraineeMapper {
     @Mapping(target = "user.lastName", source = "lastName")
     @Mapping(target = "user.userName", source = "userName")
     @Mapping(target = "user.password", ignore = true)
-    @Mapping(target = "user.active", ignore = true)
+    @Mapping(target = "user.active", source = "active")
     @Mapping(target = "dateOfBirth", source = "dateOfBirth")
     @Mapping(target = "address", source = "address")
     @Mapping(target = "trainers", ignore = true)

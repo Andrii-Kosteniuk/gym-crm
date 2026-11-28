@@ -8,6 +8,7 @@ public record UpdateTraineeDto(
         String lastName,
         String userName,
         LocalDate dateOfBirth,
-        AddressDto address
+        AddressDto address,
+        Boolean active
 ) {
 }

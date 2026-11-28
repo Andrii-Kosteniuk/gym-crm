@@ -8,7 +8,6 @@ import com.training.gym.dto.training.CreateTrainingDto;
 import com.training.gym.dto.training.NewTrainingDto;
 import com.training.gym.dto.training.TrainingResponseDto;
 import com.training.gym.dto.training.TrainingTypeResponseDto;
-import com.training.gym.web.dto.request.CreateTrainingRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

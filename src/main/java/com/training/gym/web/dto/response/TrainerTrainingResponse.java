@@ -1,6 +1,5 @@
 package com.training.gym.web.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
@@ -11,7 +10,6 @@ public record TrainerTrainingResponse(
         @Schema(description = "Training session name")
         String trainingName,
 
-        @JsonFormat(pattern = "dd.MM.yyyy")
         @Schema(description = "Training date")
         LocalDate trainingDate,
 

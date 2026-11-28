@@ -5,6 +5,7 @@ public record UpdateTrainerDto(
 
          String firstName,
          String lastName,
-         String userName
+         String userName,
+         Boolean active
 ) {
 }
