@@ -1,10 +1,10 @@
-package com.training.gym.config.security;
+package com.training.gym.config.security.jwt;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
-import com.training.gym.config.security.jwt.JwtProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 
@@ -29,13 +29,17 @@ public class JwtConfig {
     }
 
     @Bean
-    public JwtDecoder jwtDecoder(SecretKey secretKey, JwtProperties properties) {
+    public JwtDecoder jwtDecoder(SecretKey secretKey, JwtProperties properties, JwtRevocationValidator jwtRevocationValidator) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder
                 .withSecretKey(secretKey)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
 
-        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(properties.issuer()));
+        decoder.setJwtValidator(
+                new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(properties.issuer()),
+                        jwtRevocationValidator
+                )
+        );
 
         return decoder;
     }
