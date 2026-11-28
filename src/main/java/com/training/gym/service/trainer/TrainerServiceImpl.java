@@ -8,6 +8,7 @@ import com.training.gym.domain.model.User;
 import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.exception.BusinessRuleViolationException;
+import com.training.gym.exception.UserAlreadyExistsException;
 import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.monitoring.metrics.RegistrationMetrics;
@@ -67,6 +68,10 @@ public class TrainerServiceImpl implements TrainerService {
 
         User user = trainer.getUser();
 
+        boolean exists = userRepository.existsByFirstNameAndLastName(user.getFirstName(), user.getLastName());
+
+        if (exists) throw new UserAlreadyExistsException("User with such name already exists");
+
         String username = usernameGenerator.generate(
                 user.getFirstName(),
                 user.getLastName(),
@@ -96,9 +101,7 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #trainerUsername)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #trainer.user.userName)")
     public Trainer updateTrainer(Trainer trainer) {
         Objects.requireNonNull(trainer, "Trainer must not be null");
 
@@ -114,6 +117,7 @@ public class TrainerServiceImpl implements TrainerService {
 
         existingUser.setFirstName(updatedUser.getFirstName());
         existingUser.setLastName(updatedUser.getLastName());
+        existingUser.setActive(updatedUser.getActive());
 
         TrainerEntity updatedTrainer = trainerRepository.update(existingTrainer);
 
@@ -124,6 +128,7 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("@profileAuthorizationService.isTrainerOwner(authentication, #id)")
     public Trainer getTrainerById(Long id) {
         Objects.requireNonNull(id, "Id can not be null");
         log.debug("Retrieving trainer profile: id={}", id);
@@ -138,6 +143,7 @@ public class TrainerServiceImpl implements TrainerService {
     @PreAuthorize("""
         @profileAuthorizationService.isOwner(authentication, #username)
         """)
+    @Transactional(readOnly = true)
     public Trainer findByUserName(String username) {
         Objects.requireNonNull(username, "Username can not be null");
 
@@ -148,9 +154,7 @@ public class TrainerServiceImpl implements TrainerService {
     }
 
     @Transactional
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #username)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #username)")
     public void changeProfileStatus(String username, boolean active) {
         Objects.requireNonNull(username, "Trainer is required");
 
@@ -177,9 +181,7 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #username)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #username)")
     public List<Training> findTrainings(String username, TrainerTrainingCriteria criteria) {
 
         if (username == null || username.isBlank()) {
@@ -199,9 +201,7 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #username)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #username)")
     public List<Trainer> getUnassignedTrainers(String username) {
         Objects.requireNonNull(username, "Trainee username must not be null");
 
@@ -215,9 +215,7 @@ public class TrainerServiceImpl implements TrainerService {
 
     @Override
     @Transactional
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #username)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #username)")
     public void changePassword(String username, String oldPassword, String newPassword) {
         credentialService.changePassword(username, oldPassword, newPassword);
     }

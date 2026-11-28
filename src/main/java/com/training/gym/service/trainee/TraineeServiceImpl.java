@@ -8,6 +8,7 @@ import com.training.gym.domain.model.User;
 import com.training.gym.dto.auth.RegistrationResult;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.exception.BusinessRuleViolationException;
+import com.training.gym.exception.UserAlreadyExistsException;
 import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.monitoring.metrics.RegistrationMetrics;
@@ -65,6 +66,10 @@ public class TraineeServiceImpl implements TraineeService {
 
         User user = Objects.requireNonNull(trainee.getUser(), "User must not be null");
 
+        boolean exists = userRepository.existsByFirstNameAndLastName(user.getFirstName(), user.getLastName());
+
+        if (exists) throw new UserAlreadyExistsException("User with such name already exists");
+
         String username = usernameGenerator.generate(
                 user.getFirstName(),
                 user.getLastName(),
@@ -88,9 +93,7 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #trainee.user.userName)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #trainee.user.userName)")
     public Trainee updateTrainee(Trainee trainee) {
         Objects.requireNonNull(trainee, "Trainee must not be null");
 
@@ -103,6 +106,7 @@ public class TraineeServiceImpl implements TraineeService {
 
         existingTrainee.getUserEntity().setFirstName(user.getFirstName());
         existingTrainee.getUserEntity().setLastName(user.getLastName());
+        existingTrainee.getUserEntity().setActive(user.getActive());
         existingTrainee.setDateOfBirth(trainee.getDateOfBirth());
         existingTrainee.setAddressEntity(traineeMapper.mapAddress(trainee.getAddress()));
 
@@ -114,9 +118,8 @@ public class TraineeServiceImpl implements TraineeService {
     }
 
     @Override
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #dto.userName)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isTraineeOwner(authentication, #id)")
+    @Transactional(readOnly = true)
     public Trainee getTraineeById(Long id) {
         Objects.requireNonNull(id, "Id can not be null");
         log.debug("Retrieving trainee profile: id={}", id);
@@ -129,9 +132,7 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #username)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #username)")
     public Trainee findByUserName(String username) {
         Objects.requireNonNull(username, "Username can not be null");
 
@@ -144,9 +145,7 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #username)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #username)")
     public void removeTraineeByUsername(String username) {
 
         TraineeEntity trainee = traineeRepository.findByUserName(username)
@@ -163,9 +162,7 @@ public class TraineeServiceImpl implements TraineeService {
 
 
     @Transactional
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #username)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #username)")
     public void changeProfileStatus(String username, boolean active) {
         Objects.requireNonNull(username, "Trainee is required");
 
@@ -192,9 +189,7 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #traineeUsername)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #traineeUsername)")
     public void replaceTrainersByUsername(String traineeUsername, Set<String> trainerUsernames) {
         if (traineeUsername == null || traineeUsername.isBlank()) {
             throw new IncorrectMethodArgumentException("Trainee username must not be blank");
@@ -240,9 +235,7 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #username)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #username)")
     public List<Training> findTrainings(String username, TraineeTrainingCriteria criteria) {
 
         if (username == null || username.isBlank()) {
@@ -262,9 +255,7 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional
-    @PreAuthorize("""
-        @profileAuthorizationService.isOwner(authentication, #username)
-        """)
+    @PreAuthorize("@profileAuthorizationService.isOwner(authentication, #username)")
     public void changePassword(String username, String oldPassword, String newPassword) {
         credentialService.changePassword(username, oldPassword, newPassword);
     }
