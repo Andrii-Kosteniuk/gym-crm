@@ -1,13 +1,12 @@
 package com.training.gym.web.controller;
 
-import com.training.gym.dto.auth.AuthenticationResponse;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
-import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.facade.GymCrmFacade;
 import com.training.gym.web.dto.request.ProfileStatusChangeRequest;
 import com.training.gym.web.dto.request.TraineeRegistrationRequest;
 import com.training.gym.web.dto.request.UpdateTraineeRequest;
 import com.training.gym.web.dto.request.UpdateTraineeTrainersRequest;
+import com.training.gym.web.dto.response.RegistrationResponse;
 import com.training.gym.web.dto.response.TraineeProfileResponse;
 import com.training.gym.web.dto.response.TraineeTrainingResponse;
 import com.training.gym.web.dto.response.TrainerSummaryResponse;
@@ -41,7 +40,6 @@ public class TraineeController {
     private final GymCrmFacade applicationEntry;
     private final TraineeWebMapper traineeWebMapper;
     private final TrainerWebMapper trainerWebMapper;
-
     private final TrainingWebMapper trainingWebMapper;
 
     @Operation(summary = "Register trainee",
@@ -49,7 +47,7 @@ public class TraineeController {
             operationId = "registerTrainee")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successful request",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AuthenticationResponse.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = RegistrationResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid request, validation error, or missing request data",
                     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "409", description = "Resource conflict or business rule violation",
@@ -59,11 +57,9 @@ public class TraineeController {
     })
 
     @PostMapping("/registration")
-    public ResponseEntity<AuthenticationResponse> registerTrainee(@Valid @RequestBody TraineeRegistrationRequest request) {
+    public ResponseEntity<RegistrationResponse> registerTrainee(@Valid @RequestBody TraineeRegistrationRequest request) {
 
-        CreateTraineeDto createDto = traineeWebMapper.toCreateDto(request);
-
-        var response = applicationEntry.createTrainee(createDto);
+        var response = applicationEntry.registerTrainee(request);
 
         return ResponseEntity.ok().body(response);
 
@@ -72,7 +68,7 @@ public class TraineeController {
     @Operation(summary = "Get trainee profile",
             description = "Returns trainee details and assigned trainers.",
             operationId = "getTraineeProfile")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",
@@ -109,7 +105,7 @@ public class TraineeController {
     @Operation(summary = "Update trainee profile",
             description = "Updates editable trainee profile fields.",
             operationId = "updateTrainee")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",
@@ -150,7 +146,7 @@ public class TraineeController {
     @Operation(summary = "Delete trainee profile",
             description = "Deletes the trainee identified by username.",
             operationId = "deleteTrainee")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request; empty response body",
@@ -187,7 +183,7 @@ public class TraineeController {
     @Operation(summary = "List unassigned trainers",
             description = "Returns trainers not assigned to the specified trainee.",
             operationId = "getNotAssignedTrainers")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",
@@ -225,7 +221,7 @@ public class TraineeController {
     @Operation(summary = "Search trainee trainings",
             description = "Filters trainee training history by optional inclusive dates, trainer name and training type.",
             operationId = "getTraineeTrainingsList")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",
@@ -283,7 +279,7 @@ public class TraineeController {
     @Operation(summary = "Change trainee activation status",
             description = "Changes activation status",
             operationId = "activateDeactivateTraineeProfile")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request; empty response body",
@@ -322,7 +318,7 @@ public class TraineeController {
                     Replaces the entire list of trainers assigned to a trainee using trainer usernames.
                     """,
             operationId = "replaceTraineeTrainersByUsername",
-            security = @SecurityRequirement(name = "basicAuth")
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
