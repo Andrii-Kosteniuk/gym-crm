@@ -1,8 +1,6 @@
 package com.training.gym.config.security.jwt;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -22,19 +20,13 @@ public class JwtTokenService {
     private final JwtProperties properties;
     private final Clock clock;
 
-    public String generateToken(Authentication authentication) {
-        if (!authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken) {
-            throw new IllegalArgumentException(
-                    "Authentication is required"
-            );
-        }
+    public String generateToken(String username) {
+
         Instant now = clock.instant();
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(properties.issuer())
-
-                .subject(authentication.getName())
+                .subject(username)
                 .issuedAt(now)
                 .expiresAt(now.plus(properties.accessTokenTtl()))
                 .id(UUID.randomUUID().toString())
