@@ -1,11 +1,11 @@
 package com.training.gym.web.controller;
 
-import com.training.gym.dto.auth.AuthenticationResponse;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
 import com.training.gym.facade.GymCrmFacade;
 import com.training.gym.web.dto.request.ProfileStatusChangeRequest;
 import com.training.gym.web.dto.request.TrainerRegistrationRequest;
 import com.training.gym.web.dto.request.UpdateTrainerRequest;
+import com.training.gym.web.dto.response.RegistrationResponse;
 import com.training.gym.web.dto.response.TrainerProfileResponse;
 import com.training.gym.web.dto.response.TrainerTrainingResponse;
 import com.training.gym.web.mapper.TrainerWebMapper;
@@ -44,7 +44,7 @@ public class TrainerController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AuthenticationResponse.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = RegistrationResponse.class))),
             @ApiResponse(responseCode = "400",
                     description = "Invalid request, validation error, or missing request data",
                     content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))),
@@ -60,11 +60,9 @@ public class TrainerController {
     })
 
     @PostMapping("/registration")
-    public ResponseEntity<AuthenticationResponse> registerTrainer(@Valid @RequestBody TrainerRegistrationRequest request) {
+    public ResponseEntity<RegistrationResponse> registerTrainer(@Valid @RequestBody TrainerRegistrationRequest request) {
 
-        var createDto = trainerWebMapper.toCreateDto(request);
-
-        var authenticationResponse = applicationEntry.createTrainer(createDto);
+        var authenticationResponse = applicationEntry.registerTrainer(request);
 
         return ResponseEntity.ok().body(authenticationResponse);
     }
@@ -72,7 +70,7 @@ public class TrainerController {
     @Operation(summary = "Get trainer profile",
             description = "Returns the trainer profile and assigned trainees.",
             operationId = "getTrainerProfile")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",
@@ -108,7 +106,7 @@ public class TrainerController {
     @Operation(summary = "Update trainer profile",
             description = "Updates editable trainer fields; specialization cannot be changed.",
             operationId = "updateTrainer")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",
@@ -149,7 +147,7 @@ public class TrainerController {
     @Operation(summary = "Search trainer trainings",
             description = "Filters trainer training history by optional inclusive dates and trainee name.",
             operationId = "getTrainerTrainingsList")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request",
@@ -198,7 +196,7 @@ public class TrainerController {
     @Operation(summary = "Change trainer activation status",
             description = "Changes activation status; requesting the current status results in a conflict.",
             operationId = "activateDeactivateTrainerProfile")
-    @SecurityRequirement(name = "basicAuth")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200",
                     description = "Successful request; empty response body",
