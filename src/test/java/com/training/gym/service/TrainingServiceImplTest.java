@@ -2,8 +2,8 @@ package com.training.gym.service;
 
 import com.training.gym.domain.model.*;
 import com.training.gym.exception.BusinessRuleViolationException;
-import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.persistence.entity.TraineeEntity;
 import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.TrainingEntity;
@@ -92,6 +92,7 @@ class TrainingServiceImplTest {
 
     @Test
     void createsTraining() {
+        // Arrange
         var input = training();
         stubParticipants(trainee(true), trainer(true, 3L));
         var entity = new TrainingEntity();
@@ -100,23 +101,29 @@ class TrainingServiceImplTest {
         when(trainingRepository.save(entity)).thenReturn(entity);
         when(trainingMapper.toTrainingDomain(entity)).thenReturn(saved);
 
+        // Act
         var result = service.createTraining(input);
 
+        // Assert
         assertSame(saved, result);
         verify(trainingRepository).save(entity);
     }
 
     @Test
     void rejectsNullTraining() {
+        // Arrange
+        // Act & Assert
         assertThrows(NullPointerException.class, () -> service.createTraining(null));
         verifyNoInteractions(trainingRepository);
     }
 
     @Test
     void rejectsTrainingWithId() {
+        // Arrange
         var input = training();
         input.setId(9L);
 
+        // Act & Assert
         assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(input));
 
         verifyNoInteractions(trainingRepository);
@@ -124,9 +131,11 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsMissingTraineeReference() {
+        // Arrange
         var input = training();
         input.setTrainee(null);
 
+        // Act & Assert
         assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(input));
 
         verifyNoInteractions(trainingRepository);
@@ -134,9 +143,11 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsInvalidTrainerId() {
+        // Arrange
         var input = training();
         input.setTrainer(Trainer.builder().id(-1L).build());
 
+        // Act & Assert
         assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(input));
 
         verifyNoInteractions(trainingRepository);
@@ -144,9 +155,11 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsMissingTrainingTypeId() {
+        // Arrange
         var input = training();
         input.setTrainingType(TrainingType.builder().build());
 
+        // Act & Assert
         assertThrows(IncorrectMethodArgumentException.class, () -> service.createTraining(input));
 
         verifyNoInteractions(trainingRepository);
@@ -155,8 +168,10 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsMissingTrainee() {
+        // Arrange
         var input = training();
 
+        // Act & Assert
         assertThrows(UserNotFoundException.class, () -> service.createTraining(input));
 
         verify(trainingRepository, never()).save(any());
@@ -164,9 +179,11 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsMissingTrainer() {
+        // Arrange
         var input = training();
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(new TraineeEntity()));
 
+        // Act & Assert
         assertThrows(UserNotFoundException.class, () -> service.createTraining(input));
 
         verify(trainingRepository, never()).save(any());
@@ -174,10 +191,12 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsMissingTrainingType() {
+        // Arrange
         var input = training();
         when(traineeRepository.findById(1L)).thenReturn(Optional.of(new TraineeEntity()));
         when(trainerRepository.findById(2L)).thenReturn(Optional.of(new TrainerEntity()));
 
+        // Act & Assert
         assertThrows(UserNotFoundException.class, () -> service.createTraining(input));
 
         verify(trainingRepository, never()).save(any());
@@ -185,9 +204,11 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsInactiveTrainee() {
+        // Arrange
         var input = training();
         stubParticipants(trainee(false), trainer(true, 3L));
 
+        // Act & Assert
         assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(input));
 
         verify(trainingRepository, never()).save(any());
@@ -195,9 +216,11 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsInactiveTrainer() {
+        // Arrange
         var input = training();
         stubParticipants(trainee(true), trainer(false, 3L));
 
+        // Act & Assert
         assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(input));
 
         verify(trainingRepository, never()).save(any());
@@ -205,9 +228,11 @@ class TrainingServiceImplTest {
 
     @Test
     void rejectsSpecializationMismatch() {
+        // Arrange
         var input = training();
         stubParticipants(trainee(true), trainer(true, 9L));
 
+        // Act & Assert
         assertThrows(BusinessRuleViolationException.class, () -> service.createTraining(input));
 
         verify(trainingRepository, never()).save(any());
@@ -215,18 +240,23 @@ class TrainingServiceImplTest {
 
     @Test
     void findsTrainingById() {
+        // Arrange
         var entity = new TrainingEntity();
         var training = training();
         when(trainingRepository.findById(10L)).thenReturn(Optional.of(entity));
         when(trainingMapper.toTrainingDomain(entity)).thenReturn(training);
 
+        // Act
         var result = service.getTrainingById(10L);
 
+        // Assert
         assertSame(training, result);
     }
 
     @Test
     void rejectsMissingTraining() {
+        // Arrange
+        // Act & Assert
         assertThrows(UserNotFoundException.class, () -> service.getTrainingById(99L));
     }
 }

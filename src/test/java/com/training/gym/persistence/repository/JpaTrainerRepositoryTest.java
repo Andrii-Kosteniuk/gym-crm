@@ -1,6 +1,6 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.exception.UserAlreadyExistsException;
 import com.training.gym.persistence.entity.TrainerEntity;
@@ -90,7 +90,7 @@ class JpaTrainerRepositoryTest {
     void saveRejectsUnknownSpecialization() {
         TrainerEntity trainer = trainer(null, true);
 
-        assertThrows(EntityNotFoundException.class, () -> repository.save(trainer));
+        assertThrows(UserNotFoundException.class, () -> repository.save(trainer));
 
         verify(em, never()).persist(any());
     }
@@ -123,7 +123,7 @@ class JpaTrainerRepositoryTest {
     void updateRejectsMissingTrainer() {
         TrainerEntity trainer = trainer(2L, true);
 
-        assertThrows(EntityNotFoundException.class, () -> repository.update(trainer));
+        assertThrows(UserNotFoundException.class, () -> repository.update(trainer));
 
         verify(em, never()).merge(any());
     }
@@ -217,7 +217,7 @@ class JpaTrainerRepositoryTest {
     void deleteRejectsMissingTrainer() {
         TrainerEntity trainer = trainer(2L, true);
 
-        assertThrows(EntityNotFoundException.class, () -> repository.delete(trainer));
+        assertThrows(UserNotFoundException.class, () -> repository.delete(trainer));
 
         verify(em, never()).remove(any());
     }
@@ -256,7 +256,7 @@ class JpaTrainerRepositoryTest {
     void changeProfileStatusRejectsMissingTrainer() {
         TrainerEntity trainer = trainer(2L, true);
 
-        assertThrows(EntityNotFoundException.class, () -> repository.changeProfileStatus(trainer, false));
+        assertThrows(UserNotFoundException.class, () -> repository.changeProfileStatus(trainer, false));
     }
 
     @Test
@@ -265,7 +265,7 @@ class JpaTrainerRepositoryTest {
         when(countQuery.setParameter("username", "missing")).thenReturn(countQuery);
         when(countQuery.getSingleResult()).thenReturn(0L);
 
-        assertThrows(EntityNotFoundException.class, () -> repository.findUnassignedTrainers("missing"));
+        assertThrows(UserNotFoundException.class, () -> repository.findUnassignedTrainers("missing"));
     }
 
     @Test

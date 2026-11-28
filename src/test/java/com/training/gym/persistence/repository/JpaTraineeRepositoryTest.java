@@ -1,10 +1,9 @@
 package com.training.gym.persistence.repository;
 
-import com.training.gym.exception.EntityNotFoundException;
+import com.training.gym.exception.UserNotFoundException;
 import com.training.gym.exception.IncorrectMethodArgumentException;
 import com.training.gym.exception.UserAlreadyExistsException;
 import com.training.gym.persistence.entity.TraineeEntity;
-import com.training.gym.persistence.entity.TrainerEntity;
 import com.training.gym.persistence.entity.UserEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -14,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -74,7 +72,7 @@ class JpaTraineeRepositoryTest {
         TraineeEntity traineeEntity = new TraineeEntity();
         traineeEntity.setId(1L);
         assertThrows(NullPointerException.class, () -> traineeRepository.update(traineeEntity));
-        assertThrows(EntityNotFoundException.class, () -> traineeRepository.update(entity(1L, true)));
+        assertThrows(UserNotFoundException.class, () -> traineeRepository.update(entity(1L, true)));
     }
 
 
@@ -100,14 +98,14 @@ class JpaTraineeRepositoryTest {
 
     @Test
     void deleteThrowsIfNotPresent() {
-        assertThrows(EntityNotFoundException.class, () -> traineeRepository.delete(entity(1L, true)));
+        assertThrows(UserNotFoundException.class, () -> traineeRepository.delete(entity(1L, true)));
         assertThrows(IncorrectMethodArgumentException.class, () -> traineeRepository.deleteByUsername(" "));
     }
 
     @Test
     void activationRejectsNullAndMissingEntity() {
         assertThrows(NullPointerException.class, () -> traineeRepository.changeProfileStatus(null, true));
-        assertThrows(EntityNotFoundException.class, () -> traineeRepository.changeProfileStatus(entity(1L, true), false));
+        assertThrows(UserNotFoundException.class, () -> traineeRepository.changeProfileStatus(entity(1L, true), false));
     }
 
     @Test
@@ -115,6 +113,6 @@ class JpaTraineeRepositoryTest {
 
         assertThrows(NullPointerException.class, () -> traineeRepository.replaceTrainers(null, Set.of()));
         assertThrows(NullPointerException.class, () -> traineeRepository.replaceTrainers("james.bond", null));
-        assertThrows(EntityNotFoundException.class, () -> traineeRepository.replaceTrainers("james.bond", Set.of()));
+        assertThrows(UserNotFoundException.class, () -> traineeRepository.replaceTrainers("james.bond", Set.of()));
     }
 }

@@ -1,99 +1,106 @@
 package com.training.gym.controller;
 
-import com.training.gym.dto.auth.Credentials;
 import com.training.gym.exception.GlobalExceptionHandler;
 import com.training.gym.facade.GymCrmFacade;
-import com.training.gym.service.auth.AuthenticationService;
-import com.training.gym.util.CredentialsParser;
 import com.training.gym.web.controller.AuthController;
+import com.training.gym.web.dto.response.AuthResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
-import static org.mockito.ArgumentMatchers.any;
+import java.time.Instant;
+
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
 class AuthControllerMockMvcTest {
-    @Mock
-    GymCrmFacade facade;
-    @Mock
-    CredentialsParser parser;
-    @Mock
-    AuthenticationService authenticationService;
 
-    private MockMvc mvc;
-    private static final String AUTH = "Basic am9objpwYXNz";
-    private final Credentials credentials = new Credentials("james", "pass");
+    private final GymCrmFacade facade = mock(GymCrmFacade.class);
 
-    private MockMvc setup(Object controller) {
-        var validator = new LocalValidatorFactoryBean();
-        validator.afterPropertiesSet();
-        return MockMvcBuilders.standaloneSetup(controller)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .setValidator(validator)
-                .build();
-    }
+    MockMvc mvc;
 
     @BeforeEach
     void setUp() {
-        mvc = setup(new AuthController(facade, parser, authenticationService));
+        var validator = new LocalValidatorFactoryBean();
+        validator.afterPropertiesSet();
+
+        mvc = MockMvcBuilders.standaloneSetup(
+                        new AuthController(facade))
+                .setControllerAdvice(
+                        new GlobalExceptionHandler())
+                .setValidator(validator).build();
     }
 
     @Test
     void changePasswordReturns200() throws Exception {
-        // Arrange
-        when(parser.parse(AUTH)).thenReturn(credentials);
 
-        // Act & Assert
+        // Arrange Act
         mvc.perform(put("/api/v1/auth/login-change")
-                        .header("Authorization", AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"james","oldPassword":"pass","newPassword":"newPass"}
-                                """))
+                        .content("{\"username\":\"james\",\"oldPassword\":\"password\",\"newPassword\":\"newPass123\"}"))
                 .andExpect(status().isOk());
 
-        verify(authenticationService).authenticate("james", "pass");
+        // Assert
         verify(facade).changePassword(any());
     }
 
     @Test
     void changePasswordRejectsMissingNewPassword() throws Exception {
-        // Arrange
-
-        // Act & Assert
+        // Arrange Act
         mvc.perform(put("/api/v1/auth/login-change")
-                        .header("Authorization", AUTH)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"james","oldPassword":"pass"}
-                                """))
+                        .content("{\"username\":\"james\",\"oldPassword\":\"password\"}"))
                 .andExpect(status().isBadRequest());
+        // Assert
 
         verifyNoInteractions(facade);
     }
 
     @Test
     void loginReturns200() throws Exception {
+        // Arrange Act
+        when(facade.authenticate(any())).thenReturn(new AuthResponse("token"));
 
-        when(parser.parse(AUTH)).thenReturn(credentials);
+        mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"james\",\"password\":\"password\"}"))
+                .andExpect(status()
+                        .isOk())
+                .andExpect(jsonPath("$.accessToken").value("token"));
 
-        // Act & Assert
-        mvc.perform(get("/api/v1/auth/login")
-                        .header("Authorization", AUTH))
-                .andExpect(status().isOk());
-
-        verify(parser).parse(AUTH);
     }
 
+    void logoutReturns204() throws Exception {
+
+        // Arrange
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "HS256")
+                .subject("james.bond")
+                .claim("jti", "token-id")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(900))
+                .build();
+
+        var authentication = new JwtAuthenticationToken(jwt);
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        doNothing().when(facade).logOut(jwt);
+
+        // Act
+        mvc.perform(post("/api/v1/auth/logout"))
+                .andExpect(status().isNoContent());
+
+        // Assert
+        verify(facade).logOut(jwt);
+    }
 }

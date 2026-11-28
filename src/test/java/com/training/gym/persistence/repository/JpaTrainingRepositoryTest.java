@@ -14,6 +14,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -225,6 +226,7 @@ class JpaTrainingRepositoryTest {
         verifyNoInteractions(em);
     }
 
+    @Nested
     class JpaTrainingRepositoryCriteriaTest {
 
         private final EntityManager entityManager = mock(EntityManager.class);
