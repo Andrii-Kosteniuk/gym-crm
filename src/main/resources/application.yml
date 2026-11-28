@@ -32,6 +32,9 @@ gym:
       secret: ${JWT_SECRET}
       issuer: gym-crm
       access-token-ttl: 15m
+    brute-force:
+      max-attempts: 3
+      lock-duration: 5m
 
 management:
   server:
