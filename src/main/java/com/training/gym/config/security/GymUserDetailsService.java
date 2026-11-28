@@ -44,7 +44,7 @@ public class GymUserDetailsService implements UserDetailsService {
                 .username(userDomain.getUserName())
                 .password(userDomain.getPassword())
                 .disabled(!userDomain.getActive())
-                .accountLocked(loginAttemptService.isBlocked(username))
+                .accountLocked(blocked)
                 .authorities(Collections.emptyList())
                 .build();
     }
