@@ -3,12 +3,11 @@ package com.training.gym.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ProblemDetail;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -20,6 +19,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -97,26 +97,6 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-                .body(problem);
-    }
-
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ProblemDetail> handleBadCredentialsException(HttpServletRequest request) {
-        log.warn("Authentication failed: invalid credentials");
-
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.UNAUTHORIZED,
-                "Invalid username or password"
-        );
-
-        problem.setTitle("Authentication failed");
-        problem.setInstance(URI.create(request.getRequestURI()));
-
-        setTransactionId(problem);
-
-        return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(problem);
     }
@@ -322,7 +302,7 @@ public class GlobalExceptionHandler {
 
         problem.setTitle("Internal server error");
         problem.setInstance(URI.create(request.getRequestURI()));
-        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
+        setTransactionId(problem);
 
         setTransactionId(problem);
 
@@ -342,13 +322,14 @@ public class GlobalExceptionHandler {
         );
 
         problem.setTitle("Resource not found");
-        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
+        problem.setInstance(URI.create(request.getRequestURI()));
+        setTransactionId(problem);
 
         return problem;
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
-    public ProblemDetail handleNoResourceFound(HttpServletRequest request, AuthorizationDeniedException ex) {
+    public ProblemDetail handleNoResourceFound(AuthorizationDeniedException ex) {
 
         log.debug("Access denied: {}", ex.getMessage());
 
@@ -358,9 +339,55 @@ public class GlobalExceptionHandler {
         );
 
         problem.setTitle("Access denied");
-        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
+        setTransactionId(problem);
 
         return problem;
+    }
+
+    @ExceptionHandler({
+            BadCredentialsException.class,
+            LockedException.class,
+            DisabledException.class
+    })
+    public ResponseEntity<ProblemDetail> handleAuthenticationException() {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED,
+                "Authentication failed"
+        );
+
+        problem.setTitle("Unauthorized");
+        setTransactionId(problem);
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(problem);
+    }
+
+    @ExceptionHandler(AccountTemporarilyLockedException.class)
+    public ResponseEntity<ProblemDetail> handleAccountLocked(HttpServletRequest request, AccountTemporarilyLockedException ex) {
+
+        Duration remaining = ex.getRemainingLockDuration();
+
+        long retryAfter = remaining.toSeconds();
+
+        if (remaining.getNano() > 0) {
+            retryAfter++;
+        }
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too many unsuccessful login attempts. Please try again later."
+        );
+
+        problem.setTitle("Account temporarily locked. Try again later.");
+        problem.setInstance(URI.create(request.getRequestURI()));
+        setTransactionId(problem);
+
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfter))
+                .body(problem);
     }
 
 
