@@ -1,5 +1,7 @@
 package com.training.gym.config.security;
 
+import com.training.gym.config.security.handler.RestAccessDeniedHandler;
+import com.training.gym.config.security.handler.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,7 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityFilter {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, RestAuthenticationEntryPoint authenticationEntryPoint, RestAccessDeniedHandler accessDeniedHandler) {
 
         return http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
@@ -28,7 +30,15 @@ public class SecurityFilter {
                                 "/api/v1/trainers/registration",
                                 "/api/v1/auth/login").permitAll()
                         .anyRequest().authenticated())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(
+                                authenticationEntryPoint))
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler(accessDeniedHandler))
                 .oauth2ResourceServer(oauth2 -> oauth2
+                        .authenticationEntryPoint(
+                                authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
                         .jwt(Customizer.withDefaults()))
                 .build();
     }
