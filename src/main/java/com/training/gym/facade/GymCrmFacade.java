@@ -7,17 +7,12 @@ import com.training.gym.domain.model.Trainee;
 import com.training.gym.domain.model.Trainer;
 import com.training.gym.domain.model.Training;
 import com.training.gym.domain.model.TrainingType;
-import com.training.gym.dto.auth.*;
 import com.training.gym.dto.crireria.TraineeTrainingCriteria;
 import com.training.gym.dto.crireria.TrainerTrainingCriteria;
-import com.training.gym.dto.trainee.CreateTraineeDto;
 import com.training.gym.dto.trainee.TraineeResponseDto;
 import com.training.gym.dto.trainee.UpdateTraineeDto;
-import com.training.gym.dto.trainer.CreateTrainerDto;
 import com.training.gym.dto.trainer.TrainerResponseDto;
 import com.training.gym.dto.trainer.UpdateTrainerDto;
-import com.training.gym.dto.training.CreateTrainingDto;
-import com.training.gym.dto.training.NewTrainingDto;
 import com.training.gym.dto.training.TrainingResponseDto;
 import com.training.gym.dto.training.TrainingTypeResponseDto;
 import com.training.gym.service.auth.AuthenticationService;
@@ -29,11 +24,12 @@ import com.training.gym.service.training.TrainingService;
 import com.training.gym.service.types.TrainingTypeService;
 import com.training.gym.util.validation.TraineeDtoValidator;
 import com.training.gym.util.validation.TrainerDtoValidator;
-import com.training.gym.util.validation.TrainingDtoValidator;
-import com.training.gym.web.dto.request.ChangeLoginRequestDto;
-import com.training.gym.web.dto.request.AuthRequest;
+import com.training.gym.web.dto.request.*;
 import com.training.gym.web.dto.response.AuthResponse;
+import com.training.gym.web.dto.response.RegistrationResponse;
+import com.training.gym.web.mapper.TrainingWebMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -45,7 +41,6 @@ import java.util.Set;
 public class GymCrmFacade {
 
     public static final String USERNAME_CAN_NOT_BE_NULL = "Username can not be null";
-    public static final String ID_CAN_NOT_BE_NULL = "ID can not be null";
 
     private final TraineeService traineeService;
     private final TrainerService trainerService;
@@ -53,27 +48,17 @@ public class GymCrmFacade {
     private final TrainingTypeService trainingTypeService;
     private final TraineeDtoValidator traineeValidator;
     private final TrainerDtoValidator trainerValidator;
-    private final TrainingDtoValidator trainingValidator;
     private final TraineeMapper traineeMapper;
     private final TrainerMapper trainerMapper;
     private final TrainingMapper trainingMapper;
+    private final TrainingWebMapper trainingWebMapper;
     private final TrainingTypePersistenceMapper trainingTypeMapper;
     private final AuthenticationService authenticationService;
     private final CredentialService credentialService;
 
-    public AuthenticationResponse createTrainee(CreateTraineeDto dto) {
-        traineeValidator.validateCreate(dto);
+    public RegistrationResponse registerTrainee(TraineeRegistrationRequest request) {
 
-        Trainee trainee = traineeMapper.toTrainee(dto);
-
-        credentialService.verifyIfUserExists(dto.firstName(), dto.lastName());
-
-        RegistrationResult<Trainee> result = traineeService.registerTrainee(trainee);
-
-        String username = result.profile().getUser().getUserName();
-        String initialPassword = result.initialPassword();
-
-        return new AuthenticationResponse(username, initialPassword);
+        return authenticationService.registerTrainee(request);
     }
 
     public TraineeResponseDto updateTrainee(UpdateTraineeDto dto) {
@@ -87,13 +72,6 @@ public class GymCrmFacade {
         return traineeMapper.toResponseDto(updatedTrainee);
     }
 
-    public TraineeResponseDto getTraineeById(Long id) {
-        Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
-        Trainee traineeById = traineeService.getTraineeById(id);
-
-        return traineeMapper.toResponseDto(traineeById);
-    }
-
     public TraineeResponseDto getTraineeByUserName(String username) {
         Objects.requireNonNull(username, USERNAME_CAN_NOT_BE_NULL);
 
@@ -102,17 +80,14 @@ public class GymCrmFacade {
         return traineeMapper.toResponseDto(trainee);
     }
 
-    public AuthenticationResponse createTrainer(CreateTrainerDto dto) {
-        trainerValidator.validateCreate(dto);
+    public RegistrationResponse registerTrainer(TrainerRegistrationRequest request) {
 
-        Trainer trainer = trainerMapper.toTrainer(dto);
+        return authenticationService.registerTrainer(request);
 
-        RegistrationResult<Trainer> result = trainerService.registerTrainer(trainer);
+    }
 
-        return new AuthenticationResponse(
-                result.profile().getUser().getUserName(),
-                result.initialPassword()
-        );
+    public void logOut(Jwt jwt) {
+        authenticationService.logout(jwt);
     }
 
     public List<TrainerResponseDto> replaceTraineeTrainersByUsername(String traineeUsername, Set<String> trainerUsernames) {
@@ -137,13 +112,6 @@ public class GymCrmFacade {
         return trainerMapper.toResponseDto(updatedTrainer);
     }
 
-    public TrainerResponseDto getTrainerById(Long id) {
-
-        Trainer trainerById = trainerService.getTrainerById(id);
-
-        return trainerMapper.toResponseDto(trainerById);
-    }
-
     public TrainerResponseDto getTrainerByUserName(String username) {
         Objects.requireNonNull(username, USERNAME_CAN_NOT_BE_NULL);
 
@@ -155,28 +123,7 @@ public class GymCrmFacade {
     public void changePassword(ChangeLoginRequestDto dto) {
         Objects.requireNonNull(dto, "Password change DTO is required");
 
-        credentialService.changePassword(dto.username(), dto.oldPassword(),  dto.newPassword());
-    }
-
-    public void createTraining(CreateTrainingDto dto, Credentials credentials) {
-
-        Objects.requireNonNull(credentials, "Credentials are required");
-
-        trainingValidator.validateCreate(dto);
-
-        Training training = trainingMapper.toTraining(dto);
-
-        trainingMapper.toResponseDto(
-                trainingService.createTraining(training)
-        );
-    }
-
-    public TrainingResponseDto getTrainingById(Long id) {
-        Objects.requireNonNull(id, ID_CAN_NOT_BE_NULL);
-
-        Training training = trainingService.getTrainingById(id);
-
-        return trainingMapper.toResponseDto(training);
+        credentialService.changePassword(dto.username(), dto.oldPassword(), dto.newPassword());
     }
 
     public void changeTraineeProfileStatus(String username, boolean active) {
@@ -238,9 +185,9 @@ public class GymCrmFacade {
 
     }
 
-    public void createTraining(NewTrainingDto newTrainingDto) {
+    public void createTraining(CreateTrainingRequest request) {
 
-        Training training = trainingMapper.toTraining(newTrainingDto);
+        Training training = trainingWebMapper.toTrainingDomain(request);
 
         trainingService.createTraining(training);
     }
