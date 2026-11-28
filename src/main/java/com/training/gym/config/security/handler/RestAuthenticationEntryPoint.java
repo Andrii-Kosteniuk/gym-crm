@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
@@ -26,17 +27,17 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
         entryPoint.commence(request, response, authException);
 
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
         response.getWriter().write("""
                 {
                     "detail": "Authentication is required or invalid",
                     "instance": "%s",
-                    "status": 401,
+                    "status": %d,
                     "title": "Unauthorized"
                 }
-                """.formatted(request.getRequestURI()));
+                """.formatted(request.getRequestURI(), HttpStatus.UNAUTHORIZED.value()));
 
     }
 }
