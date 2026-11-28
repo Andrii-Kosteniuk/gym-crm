@@ -10,6 +10,8 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -101,6 +103,46 @@ public class GlobalExceptionHandler {
                 .body(problem);
     }
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ProblemDetail> handleHttpRequestMethodNotSupportedException(HttpServletRequest request, HttpRequestMethodNotSupportedException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                ex.getMessage()
+        );
+
+        problem.setTitle("Http method not allowed");
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
+
+        setTransactionId(problem);
+
+        return ResponseEntity
+                .status(HttpStatus.METHOD_NOT_ALLOWED)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ProblemDetail> handleHttpMediaTypeNotSupportedException(HttpServletRequest request, HttpMediaTypeNotSupportedException ex) {
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                ex.getMessage()
+        );
+
+        problem.setTitle("Media type is unsupported");
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
+
+        setTransactionId(problem);
+
+        return ResponseEntity
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIIllegalArgumentException(HttpServletRequest request, IllegalArgumentException ex) {
         log.error("Invalid input error occurred");
@@ -127,27 +169,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleUserNotFoundException(HttpServletRequest request, UserNotFoundException ex) {
         log.error("Not found error occurred ", ex);
-
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.NOT_FOUND,
-                ex.getMessage()
-        );
-
-        problem.setTitle("Not found");
-        problem.setInstance(URI.create(request.getRequestURI()));
-        problem.setProperty(TRANSACTION_ID, request.getHeader(TRANSACTION_ID));
-
-        setTransactionId(problem);
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-                .body(problem);
-    }
-
-    @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ProblemDetail> handleUsernameNotFoundException(HttpServletRequest request, UsernameNotFoundException ex) {
-        log.error("Username not found ", ex);
 
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.NOT_FOUND,
@@ -346,6 +367,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             BadCredentialsException.class,
+            UsernameNotFoundException.class,
             LockedException.class,
             DisabledException.class
     })
@@ -382,6 +404,11 @@ public class GlobalExceptionHandler {
 
         problem.setTitle("Account temporarily locked. Try again later.");
         problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty(
+                "errorCode",
+                "ACCOUNT_TEMPORARILY_LOCKED"
+        );
+        problem.setProperty("retryAfter", retryAfter);
         setTransactionId(problem);
 
         return ResponseEntity
