@@ -1,0 +1,63 @@
+name: gym-crm
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: gym-crm
+    container_name: gym-app
+
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      MANAGEMENT_PORT: 8081
+      MANAGEMENT_ADDRESS: 0.0.0.0
+
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - gym-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:${POSTGRES_VERSION:-17}
+    container_name: gym-db
+
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password is required}
+    ports:
+      - "5432:5432"
+    volumes:
+      - gym-db-data:/var/lib/postgresql/data
+    networks:
+      - gym-network
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    restart: unless-stopped
+
+networks:
+  gym-network:
+    name: gym-network
+    driver: bridge
+
+volumes:
+  gym-db-data:
+    name: gym-db-data
+    driver: local

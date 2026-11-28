@@ -1,491 +1,326 @@
 package com.training.gym.service;
 
-import com.training.gym.util.IdGenerator;
+import com.training.gym.domain.criteria.TraineeTrainingFilter;
+import com.training.gym.domain.mapper.TrainingCriteriaMapper;
+import com.training.gym.domain.model.Trainee;
+import com.training.gym.domain.model.Training;
+import com.training.gym.domain.model.User;
+import com.training.gym.dto.crireria.TraineeTrainingCriteria;
+import com.training.gym.exception.IncorrectMethodArgumentException;
+import com.training.gym.exception.UserNotFoundException;
+import com.training.gym.monitoring.metrics.RegistrationMetrics;
+import com.training.gym.persistence.entity.TraineeEntity;
+import com.training.gym.persistence.entity.TrainingEntity;
+import com.training.gym.persistence.entity.UserEntity;
+import com.training.gym.repository.TraineeRepository;
+import com.training.gym.repository.TrainerRepository;
+import com.training.gym.repository.TrainingRepository;
+import com.training.gym.repository.UserRepository;
+import com.training.gym.service.auth.CredentialService;
+import com.training.gym.service.mapper.TraineePersistenceMapper;
+import com.training.gym.service.mapper.TrainingPersistenceMapper;
+import com.training.gym.service.trainee.TraineeServiceImpl;
 import com.training.gym.util.PasswordGenerator;
 import com.training.gym.util.UsernameGenerator;
-import com.training.gym.exception.EntityNotFoundException;
-import com.training.gym.model.Address;
-import com.training.gym.dao.TraineeRepository;
-import com.training.gym.model.Trainer;
-import com.training.gym.dto.trainer.CreateTrainerDto;
-import com.training.gym.dto.trainer.UpdateTrainerDto;
-import com.training.gym.mapper.TrainerMapper;
-import com.training.gym.dao.TrainerRepository;
-import com.training.gym.model.TrainingType;
-
-import com.training.gym.validation.TrainerDtoValidator;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class TrainerServiceImplTest {
+class TraineeServiceImplTest {
 
-    private static final Long ID = 1L;
-    private static final String USERNAME = "andrii.kosteniuk";
-    private static final String PASSWORD = "secure-password";
+    private static final String USERNAME = "james.bond";
 
     @Mock
-    private TrainerRepository trainerRepository;
-
+    TraineeRepository traineeRepository;
     @Mock
-    private TraineeRepository traineeRepository;
-
+    TrainingRepository trainingRepository;
     @Mock
-    private TrainerMapper trainerMapper;
-
+    TrainerRepository trainerRepository;
     @Mock
-    private IdGenerator idGenerator;
-
+    UserRepository userRepository;
     @Mock
-    private UsernameGenerator usernameGenerator;
-
+    UsernameGenerator usernameGenerator;
     @Mock
-    private PasswordGenerator passwordGenerator;
-
+    PasswordGenerator passwordGenerator;
     @Mock
-    private TrainerDtoValidator dtoValidator;
+    PasswordEncoder passwordEncoder;
+    @Mock
+    CredentialService credentialService;
+    @Mock
+    TrainingCriteriaMapper criteriaMapper;
+    @Mock
+    TraineePersistenceMapper traineeMapper;
+    @Mock
+    TrainingPersistenceMapper trainingMapper;
+    @Mock
+    RegistrationMetrics metrics;
 
     @InjectMocks
-    private TrainerServiceImpl trainerService;
+    TraineeServiceImpl service;
 
-    private Trainer trainer;
-    private CreateTrainerDto createDto;
-    private Address address;
-    private TrainingType specialization;
-
-    @BeforeEach
-    void setUp() {
-        address = Address.builder()
-                .city("Wroclaw")
-                .street("Pl.Grunwaldzki")
-                .buildNumber(10)
-                .zipcode("12-345")
+    private Trainee trainee() {
+        return Trainee.builder()
+                .id(1L)
+                .user(User.builder()
+                        .firstName("James")
+                        .lastName("Bond")
+                        .userName(USERNAME)
+                        .build())
                 .build();
-
-        // Assumes TrainingType is an enum.
-        specialization = new TrainingType(1L, "Health");
-
-        trainer = new Trainer();
-        trainer.setFirstName("Andrii");
-        trainer.setLastName("Kosteniuk");
-        trainer.setSpecialization(specialization);
-
-        createDto = new CreateTrainerDto(
-                "Andrii",
-                "Kosteniuk",
-                LocalDate.of(2000, 10, 19),
-                address,
-                specialization
-        );
     }
 
-    private void mockSuccessfulCreation() {
-        when(trainerMapper.toTrainer(createDto))
-                .thenReturn(trainer);
-
-        when(idGenerator.generate())
-                .thenReturn(ID);
-
-        when(passwordGenerator.generate())
-                .thenReturn(PASSWORD);
-
-        when(usernameGenerator.generate(
-                eq("Andrii"),
-                eq("Kosteniuk"),
-                ArgumentMatchers.any()
-        )).thenReturn(TrainerServiceImplTest.USERNAME);
-
-        when(trainerRepository.save(any(Trainer.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+    private TraineeEntity entity() {
+        var user = new UserEntity();
+        user.setActive(true);
+        user.setFirstName("James");
+        user.setLastName("Bond");
+        var entity = new TraineeEntity();
+        entity.setId(1L);
+        entity.setUserEntity(user);
+        return entity;
     }
 
-    @Nested
-    class CreateTests {
+    @Test
+    void registersTrainee() {
+        // Arrange
+        var trainee = trainee();
+        var entity = entity();
+        var saved = trainee();
+        when(usernameGenerator.generate(eq("James"), eq("Bond"), any())).thenReturn(USERNAME);
+        when(passwordGenerator.generate()).thenReturn("initial-secret");
+        when(passwordEncoder.encode("initial-secret")).thenReturn("encoded");
+        when(traineeMapper.toEntity(trainee)).thenReturn(entity);
+        doNothing().when(metrics).recordTraineeRegistration();
+        when(traineeRepository.save(entity)).thenReturn(entity);
+        when(traineeMapper.toTraineeDomain(entity)).thenReturn(saved);
 
-        @Test
-        void shouldCreateTrainerSuccessfully() {
-            // Arrange
-            mockSuccessfulCreation();
+        // Act
+        var result = service.registerTrainee(trainee);
 
-            // Act
-            Trainer result = trainerService.createTrainer(createDto);
-
-            // Assert
-            assertNotNull(result);
-
-            assertAll(
-                    () -> assertEquals(ID, result.getId()),
-                    () -> assertEquals("Andrii", result.getFirstName()),
-                    () -> assertEquals("Kosteniuk", result.getLastName()),
-                    () -> assertEquals(USERNAME, result.getUserName()),
-                    () -> assertEquals(PASSWORD, result.getPassword()),
-                    () -> assertTrue(result.isActive()),
-                    () -> assertEquals(
-                            specialization,
-                            result.getSpecialization()
-                    )
-            );
-
-            verify(trainerMapper).toTrainer(createDto);
-            verify(idGenerator).generate();
-            verify(passwordGenerator).generate();
-            verify(trainerRepository).save(trainer);
-        }
-
-        @Test
-        void shouldRejectNullCreateDto() {
-            doThrow(new IllegalArgumentException("CreateTrainerDto must not be null"))
-                    .when(dtoValidator)
-                    .validateCreate(isNull());
-
-            // Act
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> trainerService.createTrainer(null)
-            );
-
-            // Assert
-            assertEquals(
-                    "CreateTrainerDto must not be null",
-                    exception.getMessage()
-            );
-
-            verify(dtoValidator).validateCreate(isNull());
-            verifyNoInteractions(trainerRepository, trainerMapper);
-
-            verifyNoInteractions(
-                    trainerRepository,
-                    traineeRepository,
-                    trainerMapper,
-                    idGenerator,
-                    usernameGenerator,
-                    passwordGenerator
-            );
-        }
-
-        @Test
-        void shouldCheckBothRepositoriesWhenUsernameIsAvailable() {
-            // Arrange
-            when(trainerMapper.toTrainer(createDto))
-                    .thenReturn(trainer);
-
-            when(idGenerator.generate())
-                    .thenReturn(ID);
-
-            when(passwordGenerator.generate())
-                    .thenReturn(PASSWORD);
-
-            when(usernameGenerator.generate(
-                    anyString(),
-                    anyString(),
-                    ArgumentMatchers.any()
-            )).thenAnswer(invocation -> {
-                Predicate<String> exists = invocation.getArgument(2);
-
-                assertFalse(exists.test(USERNAME));
-
-                return USERNAME;
-            });
-
-            when(trainerRepository.save(any(Trainer.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
-
-            // Act
-            Trainer result = trainerService.createTrainer(createDto);
-
-            // Assert
-            assertEquals(USERNAME, result.getUserName());
-
-            verify(traineeRepository).existsByUserName(USERNAME);
-            verify(trainerRepository).existsByUserName(USERNAME);
-        }
-
-        @Test
-        void shouldDetectUsernameExistingAmongTrainees() {
-            // Arrange
-            when(trainerMapper.toTrainer(createDto))
-                    .thenReturn(trainer);
-
-            when(idGenerator.generate())
-                    .thenReturn(ID);
-
-            when(passwordGenerator.generate())
-                    .thenReturn(PASSWORD);
-
-            when(traineeRepository.existsByUserName(USERNAME))
-                    .thenReturn(true);
-
-            when(usernameGenerator.generate(
-                    anyString(),
-                    anyString(),
-                    ArgumentMatchers.any()
-            )).thenAnswer(invocation -> {
-                Predicate<String> exists = invocation.getArgument(2);
-
-                assertTrue(exists.test(USERNAME));
-
-                return USERNAME + "1";
-            });
-
-            when(trainerRepository.save(any(Trainer.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
-
-            // Act
-            Trainer result = trainerService.createTrainer(createDto);
-
-            // Assert
-            assertEquals(USERNAME + "1", result.getUserName());
-
-            verify(traineeRepository).existsByUserName(USERNAME);
-
-            // Short-circuit evaluation: true || ... skips the second call.
-            verify(trainerRepository, never())
-                    .existsByUserName(USERNAME);
-        }
-
-        @Test
-        void shouldDetectUsernameExistingAmongTrainers() {
-            // Arrange
-            when(trainerMapper.toTrainer(createDto))
-                    .thenReturn(trainer);
-
-            when(idGenerator.generate())
-                    .thenReturn(ID);
-
-            when(passwordGenerator.generate())
-                    .thenReturn(PASSWORD);
-
-            when(trainerRepository.existsByUserName(USERNAME))
-                    .thenReturn(true);
-
-            when(usernameGenerator.generate(
-                    anyString(),
-                    anyString(),
-                    ArgumentMatchers.any()
-            )).thenAnswer(invocation -> {
-                Predicate<String> exists = invocation.getArgument(2);
-
-                assertTrue(exists.test(USERNAME));
-
-                return USERNAME + "1";
-            });
-
-            when(trainerRepository.save(any(Trainer.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
-
-            // Act
-            Trainer result = trainerService.createTrainer(createDto);
-
-            // Assert
-            assertEquals(USERNAME + "1", result.getUserName());
-
-            verify(traineeRepository).existsByUserName(USERNAME);
-            verify(trainerRepository).existsByUserName(USERNAME);
-        }
-
-        @Test
-        void shouldSaveGeneratedCredentialsAndActiveStatus() {
-            // Arrange
-            mockSuccessfulCreation();
-
-            // Act
-            trainerService.createTrainer(createDto);
-
-            // Assert
-            ArgumentCaptor<Trainer> captor =
-                    ArgumentCaptor.forClass(Trainer.class);
-
-            verify(trainerRepository).save(captor.capture());
-
-            Trainer saved = captor.getValue();
-
-            assertAll(
-                    () -> assertEquals(ID, saved.getId()),
-                    () -> assertEquals(USERNAME, saved.getUserName()),
-                    () -> assertEquals(PASSWORD, saved.getPassword()),
-                    () -> assertTrue(saved.isActive()),
-                    () -> assertEquals(
-                            specialization,
-                            saved.getSpecialization()
-                    )
-            );
-        }
+        // Assert
+        assertSame(saved, result.profile());
+        assertEquals("initial-secret", result.initialPassword());
+        assertEquals("encoded", trainee.getUser().getPassword());
+        assertTrue(trainee.getUser().getActive());
+        verify(traineeRepository).save(entity);
     }
 
-    @Nested
-    class UpdateTests {
-
-        @Test
-        void shouldUpdateExistingTrainerSuccessfully() {
-            // Arrange
-            trainer.setId(ID);
-            trainer.setUserName(USERNAME);
-            trainer.setPassword(PASSWORD);
-            trainer.setActive(true);
-
-            UpdateTrainerDto dto = new UpdateTrainerDto(
-                    "Andrew",
-                    "Kosteniuk",
-                    USERNAME,
-                    LocalDate.of(1998, 5, 15),
-                    address,
-                    specialization
-            );
-
-            when(trainerRepository.findByUserName(USERNAME))
-                    .thenReturn(Optional.of(trainer));
-
-            doAnswer(invocation -> {
-                UpdateTrainerDto source = invocation.getArgument(0);
-                Trainer target = invocation.getArgument(1);
-
-                target.setFirstName(source.firstName());
-                target.setLastName(source.lastName());
-                target.setSpecialization(source.specialization());
-
-                return null;
-            }).when(trainerMapper).updateTrainer(dto, trainer);
-
-            when(trainerRepository.save(trainer))
-                    .thenReturn(trainer);
-
-            // Act
-            Trainer result = trainerService.updateTrainer(dto);
-
-            // Assert
-            assertNotNull(result);
-
-            assertAll(
-                    () -> assertEquals("Andrew", result.getFirstName()),
-                    () -> assertEquals("Kosteniuk", result.getLastName()),
-                    () -> assertEquals(ID, result.getId()),
-                    () -> assertEquals(USERNAME, result.getUserName()),
-                    () -> assertEquals(PASSWORD, result.getPassword()),
-                    () -> assertTrue(result.isActive()),
-                    () -> assertEquals(
-                            specialization,
-                            result.getSpecialization()
-                    )
-            );
-
-            verify(trainerRepository).findByUserName(USERNAME);
-            verify(trainerMapper).updateTrainer(dto, trainer);
-            verify(trainerRepository).save(trainer);
-        }
-
-        @Test
-        void shouldRejectNullUpdateDto() {
-            doThrow(new IllegalArgumentException("UpdateTrainerDto must not be null"))
-                    .when(dtoValidator)
-                    .validateUpdate(isNull());
-
-            // Act
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> trainerService.updateTrainer(null)
-            );
-
-            // Assert
-            assertEquals(
-                    "UpdateTrainerDto must not be null",
-                    exception.getMessage()
-            );
-
-            verify(dtoValidator).validateUpdate(isNull());
-            verifyNoInteractions(trainerRepository, trainerMapper);
-        }
-
-        @Test
-        void shouldThrowExceptionWhenUpdatingNonexistentTrainer() {
-            // Arrange
-            UpdateTrainerDto dto = new UpdateTrainerDto(
-                    "Andrew",
-                    "Kosteniuk",
-                    "unknown.user",
-                    LocalDate.of(2000, 10, 19),
-                    address,
-                    specialization
-            );
-
-            when(trainerRepository.findByUserName("unknown.user"))
-                    .thenReturn(Optional.empty());
-
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> trainerService.updateTrainer(dto)
-            );
-
-            // Assert
-            assertEquals(
-                    "Trainer with username unknown.user not found",
-                    exception.getMessage()
-            );
-
-            verify(trainerRepository).findByUserName("unknown.user");
-
-            verify(trainerRepository, never())
-                    .save(any(Trainer.class));
-
-            verifyNoInteractions(trainerMapper);
-        }
+    @Test
+    void rejectsNullRegistration() {
+        // Arrange
+        // Act & Assert
+        assertThrows(NullPointerException.class, () -> service.registerTrainee(null));
+        verifyNoInteractions(traineeRepository);
     }
 
-    @Nested
-    class GetByIdTests {
-
-        @Test
-        void shouldReturnTrainerWhenIdExists() {
-            // Arrange
-            trainer.setId(ID);
-
-            when(trainerRepository.findById(ID))
-                    .thenReturn(Optional.of(trainer));
-
-            // Act
-            Trainer result = trainerService.getTrainerById(ID);
-
-            // Assert
-            assertSame(trainer, result);
-
-            verify(trainerRepository).findById(ID);
-        }
-
-        @Test
-        void shouldThrowExceptionWhenIdDoesNotExist() {
-            // Arrange
-            when(trainerRepository.findById(999L))
-                    .thenReturn(Optional.empty());
-
-            // Act
-            EntityNotFoundException exception = assertThrows(
-                    EntityNotFoundException.class,
-                    () -> trainerService.getTrainerById(999L)
-            );
-
-            // Assert
-            assertEquals(
-                    "Trainer with id 999 not found",
-                    exception.getMessage()
-            );
-
-            verify(trainerRepository).findById(999L);
-        }
+    @Test
+    void rejectsRegistrationWithoutUser() {
+        // Arrange
+        // Act & Assert
+        assertThrows(NullPointerException.class,
+                () -> service.registerTrainee(Trainee.builder().build()));
+        verifyNoInteractions(traineeRepository);
     }
+
+    @Test
+    void updatesTrainee() {
+        // Arrange
+        var trainee = trainee();
+        var entity = entity();
+        var updated = trainee();
+        when(traineeRepository.findByUserName(USERNAME)).thenReturn(Optional.of(entity));
+        when(traineeRepository.update(entity)).thenReturn(entity);
+        when(traineeMapper.toTraineeDomain(entity)).thenReturn(updated);
+
+        // Act
+        var result = service.updateTrainee(trainee);
+
+        // Assert
+        assertSame(updated, result);
+        assertEquals("James", entity.getUserEntity().getFirstName());
+        verify(traineeRepository).update(entity);
+    }
+
+    @Test
+    void rejectsNullUpdate() {
+        // Arrange
+        // Act & Assert
+        assertThrows(NullPointerException.class, () -> service.updateTrainee(null));
+        verifyNoInteractions(traineeRepository);
+    }
+
+    @Test
+    void rejectsUpdateWithoutUser() {
+        // Arrange
+        // Act & Assert
+        assertThrows(NullPointerException.class,
+                () -> service.updateTrainee(Trainee.builder().build()));
+        verify(traineeRepository, never()).update(any());
+    }
+
+    @Test
+    void rejectsUpdateOfMissingTrainee() {
+        // Arrange
+        // Act & Assert
+        assertThrows(UserNotFoundException.class, () -> service.updateTrainee(trainee()));
+        verify(traineeRepository, never()).update(any());
+    }
+
+    @Test
+    void findsTraineeById() {
+        // Arrange
+        var entity = entity();
+        var trainee = trainee();
+        when(traineeRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(traineeMapper.toTraineeDomain(entity)).thenReturn(trainee);
+
+        // Act
+        var result = service.getTraineeById(1L);
+
+        // Assert
+        assertSame(trainee, result);
+    }
+
+    @Test
+    void findsTraineeByUsername() {
+        // Arrange
+        var entity = entity();
+        var trainee = trainee();
+        when(traineeRepository.findByUserName(USERNAME)).thenReturn(Optional.of(entity));
+        when(traineeMapper.toTraineeDomain(entity)).thenReturn(trainee);
+
+        // Act
+        var result = service.findByUserName(USERNAME);
+
+        // Assert
+        assertSame(trainee, result);
+    }
+
+    @Test
+    void rejectsNullLookupIdentifiers() {
+        // Arrange
+        // Act & Assert
+        assertThrows(NullPointerException.class, () -> service.getTraineeById(null));
+        assertThrows(NullPointerException.class, () -> service.findByUserName(null));
+    }
+
+    @Test
+    void rejectsMissingTraineeLookup() {
+        // Arrange
+        // Act & Assert
+        assertThrows(UserNotFoundException.class, () -> service.getTraineeById(10L));
+        assertThrows(UserNotFoundException.class, () -> service.findByUserName("unknown"));
+    }
+
+    @Test
+    void deletesTrainee() {
+        // Arrange
+        var entity = entity();
+        when(traineeRepository.findByUserName(USERNAME)).thenReturn(Optional.of(entity));
+
+        // Act
+        service.removeTraineeByUsername(USERNAME);
+
+        // Assert
+        verify(traineeRepository).delete(entity);
+        verify(userRepository).delete(entity.getUserEntity());
+    }
+
+    @Test
+    void rejectsDeletionOfMissingTrainee() {
+        // Arrange
+        // Act & Assert
+        assertThrows(UserNotFoundException.class,
+                () -> service.removeTraineeByUsername("unknown"));
+        verify(traineeRepository, never()).delete(any());
+    }
+
+    @Test
+    void rejectsNullStatusUsername() {
+        // Arrange
+        // Act & Assert
+        assertThrows(NullPointerException.class, () -> service.changeProfileStatus(null, true));
+    }
+
+    @Test
+    void rejectsStatusChangeOfMissingTrainee() {
+        // Arrange
+        // Act & Assert
+        assertThrows(UserNotFoundException.class,
+                () -> service.changeProfileStatus(USERNAME, true));
+    }
+
+    @Test
+    void searchesTrainings() {
+        // Arrange
+        var criteria = new TraineeTrainingCriteria(null, null, null, null, "");
+        var filter = new TraineeTrainingFilter(null, null, null, null);
+        var entity = new TrainingEntity();
+        var training = Training.builder().build();
+        when(criteriaMapper.toFilter(criteria)).thenReturn(filter);
+        when(trainingRepository.findByTraineeUsername(USERNAME, filter)).thenReturn(List.of(entity));
+        when(trainingMapper.toTrainingDomain(entity)).thenReturn(training);
+
+        // Act
+        var result = service.findTrainings(" james.bond ", criteria);
+
+        // Assert
+        assertEquals(List.of(training), result);
+    }
+
+    @Test
+    void rejectsInvalidTrainingSearch() {
+        // Arrange
+        var criteria = new TraineeTrainingCriteria(null, null, null, null, "");
+
+        // Act & Assert
+        assertThrows(IncorrectMethodArgumentException.class,
+                () -> service.findTrainings(" ", criteria));
+        assertThrows(NullPointerException.class,
+                () -> service.findTrainings(USERNAME, null));
+    }
+
+    @Test
+    void rejectsNullTrainerReplacementArguments() {
+        // Arrange
+        // Act & Assert
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.replaceTrainersByUsername(null, Set.of()));
+        assertThrows(IncorrectMethodArgumentException.class, () -> service.replaceTrainersByUsername(USERNAME, null));
+        verifyNoInteractions(traineeRepository);
+    }
+
+    @Test
+    void rejectsNullTrainerId() {
+        // Arrange
+        Set<String> usernames = new HashSet<>();
+        usernames.add(null);
+
+        // Act & Assert
+        assertThrows(IncorrectMethodArgumentException.class,
+                () -> service.replaceTrainersByUsername(USERNAME, usernames));
+        verify(traineeRepository, never()).replaceTrainers(anyString(), anySet());
+    }
+
+    @Test
+    void rejectsMissingTraineeWhenReplacingTrainers() {
+        // Arrange
+        // Act & Assert
+        assertThrows(IncorrectMethodArgumentException.class,
+                () -> service.replaceTrainersByUsername(USERNAME, Set.of()));
+        verify(traineeRepository, never()).replaceTrainers(anyString(), anySet());
+    }
+
 }

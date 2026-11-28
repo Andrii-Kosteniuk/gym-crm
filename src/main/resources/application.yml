@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: gym-crm
+
+  profiles:
+    default: local
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    locations: classpath:db/migration/postgresql
+
+  sql:
+    init:
+      mode: never
+
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+server:
+  shutdown: graceful
+
+gym:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: gym-crm
+      access-token-ttl: 15m
+    brute-force:
+      max-attempts: 3
+      lock-duration: 5m
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+    address: ${MANAGEMENT_ADDRESS:127.0.0.1}
+
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState, db, trainingTypes, authentication, databaseWrite
+
+  metrics:
+    tags:
+      application: ${spring.application.name}
